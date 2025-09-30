@@ -45,6 +45,14 @@
     {
       "name": "AI & ML",
       "url": "ai-ml"
+    },
+    {
+      "name": "Hackathon",
+      "url": "hackathon"
+    },
+    {
+      "name": "Bug Bounty",
+      "url": "bug-bounty"
     }
   ],
   "anchors": [
@@ -145,6 +153,24 @@
         "api-reference/treasury-api",
         "api-reference/subscriptions-api",
         "api-reference/rpc-methods"
+      ]
+    },
+    {
+      "group": "Hackathon",
+      "pages": [
+        "hackathon/overview"
+      ]
+    },
+    {
+      "group": "Bug Bounty",
+      "pages": [
+        "bug-bounty/overview"
+      ]
+    },
+    {
+      "group": "Changelog",
+      "pages": [
+        "changelog"
       ]
     },
     {

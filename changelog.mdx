@@ -1,0 +1,576 @@
+---
+title: 'Changelog'
+description: 'Version history and release notes for Nexis Appchain - Track network upgrades, protocol improvements, and feature releases'
+icon: 'clock-rotate-left'
+---
+
+# Nexis Appchain Changelog
+
+This changelog documents all notable changes to the Nexis Appchain protocol, smart contracts, infrastructure, and developer tooling. We follow semantic versioning where applicable and timestamp-based network upgrades for protocol changes.
+
+<Info>
+**Current Network Version**: Fjord (January 2025)
+**Latest Contract Version**: v1.0.0 (AI Agent Economics)
+**Documentation Version**: v2.1.0
+</Info>
+
+---
+
+## 🚀 Unreleased
+
+### Coming in Q1 2025
+
+**Protocol Enhancements**
+- Interop upgrade for cross-chain messaging
+- Multi-verifier quorum system for proof-of-inference
+- Automated subscription processing via OP Stack hooks
+- Enhanced treasury risk management
+
+**Smart Contract Improvements**
+- Agents.sol v1.1.0 with quorum-based verification
+- Proof verifier acknowledgment interface
+- Optimized gas usage across all contracts
+
+**Developer Experience**
+- Nexis SDK (TypeScript) v1.0.0
+- GraphQL indexer for AI analytics
+- Enhanced monitoring and alerting
+- Expanded code examples and tutorials
+
+---
+
+## [Network v1.0.0 - "Genesis"] - 2025-01-15
+
+### 🎉 Mainnet Launch
+
+**The Nexis Appchain mainnet is now live!** Built on OP Stack with Fjord upgrade, custom AI agent economics layer, and 2-second block times.
+
+<Card title="Network Details" icon="network-wired">
+  - **Chain ID**: 84532
+  - **L1**: Base Sepolia (testnet) / Base (mainnet)
+  - **Block Time**: 2 seconds
+  - **Gas Limit**: 30,000,000
+  - **Governance Token**: NZT (Nexis)
+</Card>
+
+### Core Protocol
+
+**OP Stack Implementation**
+- ✅ Bedrock architecture with Fjord fork active
+- ✅ EIP-4844 blob transactions (Ecotone)
+- ✅ Span batch format (Delta)
+- ✅ Fault proof system with 73-depth bisection game
+- ✅ 7-day challenge period (mainnet) / 12 seconds (testnet)
+- ✅ Optimized channel size (1GB max)
+
+**Network Parameters**
+```json
+{
+  "chainId": 84532,
+  "blockTime": 2,
+  "gasLimit": 30000000,
+  "baseFeePerGas": "0x3b9aca00",
+  "eip1559Elasticity": 6,
+  "eip1559Denominator": 250,
+  "maxSequencerDrift": 600,
+  "channelTimeout": 300
+}
+```
+
+### AI Agent Economics Contracts
+
+**Agents.sol v1.0.0** ([0xTBD](https://explorer.nexis.network))
+- Agent registration with metadata and service URIs
+- Multi-asset staking (ETH, ERC20)
+- Unbonding periods and early withdrawal penalties
+- Stake locking for task execution
+- Slashing mechanisms with treasury integration
+- Multi-dimensional reputation system
+- Cryptographic proof-of-inference recording
+- Verifier attestation system
+- Delegation permissions (metadata, inference, withdraw)
+- UUPS upgradeable pattern
+
+**Tasks.sol v1.0.0** ([0xTBD](https://explorer.nexis.network))
+- Task posting with escrow
+- Bond-based task claiming
+- Inference-linked work submission
+- Automated verification callbacks
+- Dispute resolution system
+- Payment distribution
+
+**Treasury.sol v1.0.0** ([0xTBD](https://explorer.nexis.network))
+- Multi-pool design (treasury 40%, insurance 30%, rewards 30%)
+- Slash and penalty handling
+- Configurable distribution ratios
+- Reward withdrawal system
+
+**Subscriptions.sol v1.0.0** ([0xTBD](https://explorer.nexis.network))
+- Epoch-based recurring subscriptions
+- Continuous payment streams (per-second accrual)
+- Automatic processing on-demand
+- Agent-integrated payments
+
+### Token Economics
+
+**NZT Governance Token**
+- **Symbol**: NZT
+- **Name**: Nexis
+- **Type**: ERC20Votes (governance-enabled)
+- **Max Supply**: 1,000,000,000 NZT
+- **Inflation**: 2% annual cap via MintManager
+- **Features**: Burnable, votable, delegatable
+
+**Fee Structure**
+- L2 Base Fee: Dynamic EIP-1559 (1 gwei genesis)
+- L1 Data Fee: Ecotone formula (base fee + blob fee scalars)
+- Sequencer Fee: Captured in SequencerFeeVault
+- Minimum Vault Withdrawal: 10 ETH
+
+### Developer Tooling
+
+**RPC Infrastructure**
+- HTTP RPC: Production endpoints live
+- WebSocket RPC: Real-time subscriptions
+- Archive Nodes: Full history available
+- Rate Limits: 100 req/s (public), custom (partners)
+
+**Explorer**
+- Block explorer at [explorer.nexis.network](https://explorer.nexis.network)
+- Contract verification support
+- Advanced filtering and analytics
+
+**Faucet**
+- Testnet faucet: [faucet.nexis.network](https://faucet.nexis.network)
+- 0.1 testnet ETH per request
+- 24-hour cooldown
+
+### Documentation
+
+**Comprehensive Documentation**
+- 60+ pages covering all aspects
+- 12+ detailed tutorials
+- AI/ML integration guides
+- API reference with examples
+- Smart contract documentation
+
+---
+
+## [Contract Deployment v0.9.0] - 2024-12-20
+
+### Testnet Launch
+
+**AgentsL3 Testnet Deployed**
+
+Pre-mainnet testnet for community testing and feedback.
+
+**Smart Contracts**
+- Agents.sol deployed at [0x...testnet](https://testnet-explorer.nexis.network)
+- Tasks.sol deployed at [0x...testnet](https://testnet-explorer.nexis.network)
+- Treasury.sol deployed at [0x...testnet](https://testnet-explorer.nexis.network)
+- Subscriptions.sol deployed at [0x...testnet](https://testnet-explorer.nexis.network)
+
+**Test Features**
+- Fast finalization (12 seconds)
+- Faucet with unlimited testnet tokens
+- Public RPC endpoints
+- Block explorer
+
+### Changes from v0.8.0
+
+**Smart Contract Updates**
+- Fixed unbonding queue edge case in Agents.sol
+- Added metadata URI updates to agent registry
+- Improved event emissions for better indexing
+- Gas optimizations across all contracts
+
+**Infrastructure**
+- Upgraded to Fjord fork
+- Increased channel size limits
+- Implemented blob-based data availability
+
+---
+
+## [Network Upgrade - Fjord] - 2024-11-15
+
+### OP Stack Upgrade
+
+**Fjord Fork Activation**
+
+<Card title="Key Improvements" icon="arrow-up-right-dots">
+  - Constant max sequencer drift (30 minutes)
+  - Increased channel bank size to 1GB
+  - RLP bytes per channel increased to 100MB
+  - FastLZ compression for brotli-compressed data
+  - Improved batch submission efficiency
+</Card>
+
+**Technical Changes**
+- `MAX_SEQUENCER_DRIFT` set to 1800 seconds (30 minutes)
+- `MAX_CHANNEL_BANK_SIZE` increased from 100MB to 1GB
+- `MAX_RLP_BYTES_PER_CHANNEL` increased from 10MB to 100MB
+- New `FastLZ` decompression for Fjord batches
+
+**Migration Notes**
+- Timestamp-based activation (no block number)
+- Backwards compatible with Canyon/Delta/Ecotone
+- Nodes must upgrade before activation timestamp
+
+### Contract Changes
+
+**Agents.sol v0.8.2**
+- Added service URI management for agent endpoints
+- Improved delegation system with batch operations
+- Fixed edge case in withdrawal queue processing
+
+**Tasks.sol v0.8.1**
+- Added task metadata field for richer task descriptions
+- Implemented task cancellation with refund logic
+
+---
+
+## [Contract Beta v0.8.0] - 2024-10-01
+
+### AI Agent Economics Beta
+
+**First Beta Release of AI Agent Contracts**
+
+**Agents.sol v0.8.0**
+- Initial agent registry implementation
+- Multi-asset staking system
+- Basic reputation tracking
+- Proof-of-inference recording
+
+**Tasks.sol v0.8.0**
+- Task lifecycle management
+- Escrow and bond system
+- Basic dispute resolution
+
+**Treasury.sol v0.8.0**
+- Single-pool treasury
+- Manual distribution
+
+**Subscriptions.sol v0.8.0**
+- Epoch-based subscriptions only
+- Manual processing
+
+### Known Limitations (Beta)
+
+- Single verifier attestation (quorum system planned)
+- Manual subscription processing
+- Limited reputation weighting options
+- Basic treasury allocation
+
+---
+
+## [Network Upgrade - Ecotone] - 2024-03-14
+
+### OP Stack Upgrade
+
+**Ecotone (Cancun) Equivalence**
+
+<Card title="EIP-4844 Blob Transactions" icon="database">
+  Ecotone introduces blob-based data availability, reducing L1 data costs by 10-100x.
+</Card>
+
+**Technical Changes**
+- EIP-4844 blob transactions support
+- New L1 cost formula: `gasUsed * (baseFeeScalar * 16 * baseFee + blobBaseFeeScalar * blobBaseFee) / (16 * 10^6)`
+- Separate scalars for base fee and blob base fee
+- `L1Block` contract updated with blob base fee
+- `GasPriceOracle` updated for Ecotone formula
+
+**Migration Notes**
+- Old fee formula deprecated but still available via `_getL1FeeLegacy()`
+- Automatic detection based on L1Block attributes
+- Significant cost savings for batch submission
+
+---
+
+## [Network Upgrade - Delta] - 2023-12-20
+
+### OP Stack Upgrade
+
+**Delta Fork with Span Batches**
+
+**Span Batch Format**
+- Multiple L2 blocks per batch (Type 1)
+- Reduced overhead compared to SingularBatch
+- Better compression for sequential blocks
+- ~15% cost savings on average
+
+**L1 Cost Improvements**
+- More aggressive batch packing
+- Optimized channel management
+- Better compression ratios
+
+---
+
+## [Network Upgrade - Canyon] - 2023-11-10
+
+### OP Stack Upgrade
+
+**Canyon (Shanghai) Equivalence**
+
+**EVM Changes**
+- PUSH0 opcode support
+- Warm COINBASE access
+- Shanghai EVM features
+
+**Network Improvements**
+- Channel timeout enforcement fixes
+- Improved deposit transaction handling
+- Better reorg protection
+
+---
+
+## [Network Upgrade - Regolith] - 2023-06-28
+
+### OP Stack Upgrade
+
+**Regolith Pre-Mainnet Fixes**
+
+Based on [Sherlock audit findings](https://github.com/sherlock-audit/2023-01-optimism-judging):
+
+**Critical Fixes**
+- Deposit transaction processing edge cases
+- L1 attributes transaction consistency
+- Sequencer drift calculation corrections
+
+---
+
+## [Network Genesis - Bedrock] - 2023-06-06
+
+### OP Stack Foundation
+
+**Bedrock Architecture Launch**
+
+Initial Optimism Bedrock architecture deployment:
+
+**Core Components**
+- op-node (rollup node)
+- op-geth (execution layer)
+- op-batcher (batch submitter)
+- op-proposer (output proposer)
+
+**Initial Parameters**
+- 2-second block time
+- EIP-1559 fee market
+- Optimistic fault proofs (placeholder)
+- Deposit and withdrawal bridging
+
+---
+
+## Documentation Updates
+
+### [v2.1.0] - 2025-01-15
+
+**Major Documentation Expansion**
+
+**New Sections**
+- 🎉 Hackathon program (year-round rolling format)
+- 🛡️ Bug bounty program (up to $250k rewards)
+- 📖 Comprehensive changelog (this page!)
+- 🏗️ Enhanced deployment tutorials
+- 📊 Expanded API reference
+
+**Improvements**
+- 15+ new code examples
+- Better SEO optimization
+- Improved navigation structure
+- Mobile-responsive enhancements
+
+### [v2.0.0] - 2024-12-15
+
+**AI/ML Documentation Overhaul**
+
+**New Content**
+- Proof-of-inference deep dive (1,200 lines)
+- LangGraph integration guide
+- AI agent patterns and best practices
+- 8 comprehensive tutorials
+
+### [v1.0.0] - 2024-10-01
+
+**Initial Documentation Release**
+
+**Core Documentation**
+- Introduction and quickstart
+- Infrastructure guides
+- Smart contract documentation
+- Developer guides
+- Use cases
+
+---
+
+## Migration Guides
+
+### Upgrading from Testnet to Mainnet
+
+<Steps>
+  <Step title="Update RPC Endpoints">
+    Replace testnet RPC with mainnet endpoints
+  </Step>
+  <Step title="Update Contract Addresses">
+    Use mainnet contract addresses from deployment docs
+  </Step>
+  <Step title="Update Chain ID">
+    Change chainId from testnet to 84532 (mainnet)
+  </Step>
+  <Step title="Test with Small Amounts">
+    Deploy with minimal funds first to verify
+  </Step>
+  <Step title="Monitor and Scale">
+    Use monitoring tools before full production launch
+  </Step>
+</Steps>
+
+### Upgrading from Singular to Span Batches
+
+No changes required - batcher automatically uses SpanBatch format post-Delta fork.
+
+### Migrating to EIP-4844 Blobs
+
+No changes required - batcher automatically submits via blobs post-Ecotone activation.
+
+---
+
+## Deprecation Notices
+
+### Deprecated Features
+
+<Warning>
+**Legacy Fee Formula** (Deprecated in Ecotone)
+
+`getL1Fee()` now uses Ecotone formula. Legacy formula available via `_getL1FeeLegacy()` but will be removed in future upgrade.
+
+**Mitigation**: Update fee estimation logic to use new `GasPriceOracle` methods.
+</Warning>
+
+<Warning>
+**SingularBatch Priority** (Soft Deprecated in Delta)
+
+SpanBatch format preferred post-Delta. SingularBatch still supported for backwards compatibility.
+
+**Mitigation**: No action required - batcher handles automatically.
+</Warning>
+
+---
+
+## Security Disclosures
+
+### Resolved Security Issues
+
+<Accordion title="None to Date">
+No security vulnerabilities have been disclosed for Nexis-specific contracts. We maintain responsible disclosure practices and will document any issues here after resolution.
+
+See [Bug Bounty](/bug-bounty/overview) for reporting security issues.
+</Accordion>
+
+### Third-Party Dependencies
+
+We monitor and promptly patch vulnerabilities in:
+- OP Stack codebase
+- OpenZeppelin contracts
+- Solidity compiler
+- Node.js dependencies
+
+**Current Status**: All dependencies up-to-date with latest security patches.
+
+---
+
+## Upcoming Features
+
+<Info>
+**Roadmap Preview** - Subject to change
+
+See [Roadmap](/roadmap) for complete feature timeline.
+</Info>
+
+### Q1 2025
+
+- ✅ Mainnet launch
+- 🔄 Multi-verifier quorum system
+- 🔄 Nexis SDK v1.0
+- 🔄 GraphQL indexer
+
+### Q2 2025
+
+- Enhanced agent discovery APIs
+- Cross-chain AI agent coordination
+- Automated testing framework
+- Advanced analytics dashboard
+
+### Q3 2025
+
+- Decentralized sequencer exploration
+- Alternative data availability options
+- Enhanced governance mechanisms
+- Mobile SDK (React Native)
+
+### Q4 2025
+
+- zkML integration research
+- Inter-agent communication protocol
+- Advanced reputation algorithms
+- Enterprise partnership features
+
+---
+
+## Release Calendar
+
+| Date | Milestone | Type |
+|------|-----------|------|
+| **2025-01-15** | Mainnet Genesis | Network |
+| **2025-02-01** | SDK v1.0.0 | Tooling |
+| **2025-03-01** | Quorum System | Contract Upgrade |
+| **2025-Q2** | Automated Subscriptions | Contract Upgrade |
+| **2025-Q3** | Interop Upgrade | Network Upgrade |
+
+---
+
+## Stay Updated
+
+<CardGroup cols={3}>
+  <Card title="Twitter" icon="twitter" href="https://twitter.com/nexis_network">
+    Follow for release announcements
+  </Card>
+  <Card title="Discord" icon="discord" href="https://discord.gg/nexis">
+    Join #announcements channel
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/nexis-network">
+    Watch repositories for updates
+  </Card>
+</CardGroup>
+
+<Note>
+Subscribe to our [mailing list](https://nexis.network/newsletter) for quarterly release digests and major announcements.
+</Note>
+
+---
+
+## Version Support Policy
+
+### Long-Term Support (LTS)
+
+- **Current LTS**: v1.0.0 (2+ years support)
+- **Security Patches**: Applied within 7 days
+- **Bug Fixes**: Applied within 30 days
+- **Feature Updates**: Major versions only
+
+### End of Life (EOL)
+
+- **Testnet Beta (v0.8.x)**: Deprecated, migrate to v1.0.0
+- **Documentation v1.x**: Archived, use v2.x
+
+### Breaking Changes Policy
+
+We minimize breaking changes, but when necessary:
+- 90-day advance notice
+- Migration guide provided
+- Backwards compatibility period when possible
+- Support for resolving issues during migration
+
+---
+
+**Last Updated**: January 15, 2025 | [Edit on GitHub](https://github.com/nexis-network/nexis-mintlify-docs/blob/main/changelog.mdx)

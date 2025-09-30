@@ -1,0 +1,794 @@
+---
+title: 'Nexis Bug Bounty Program'
+description: 'Responsible security disclosure program - Earn up to $250,000 for critical vulnerabilities in Nexis Appchain'
+icon: 'shield-halved'
+---
+
+# Nexis Security Bug Bounty Program
+
+The security of Nexis Appchain and its users is our highest priority. We partner with the security research community to identify and fix vulnerabilities before they can be exploited. **The Nexis Bug Bounty Program rewards researchers who discover and responsibly disclose security issues.**
+
+<Info>
+**Program Status**: Active and accepting submissions as of January 2025.
+**Total Rewards Paid**: Program launching - be among the first researchers!
+</Info>
+
+## Reward Structure
+
+Rewards are determined by severity using the [OWASP Risk Rating Methodology](https://owasp.org/www-community/OWASP_Risk_Rating_Methodology), considering both **Impact** and **Likelihood**.
+
+<CardGroup cols={2}>
+  <Card title="Critical" icon="skull-crossbones" color="#FF0000">
+    **$100,000 - $250,000**
+
+    Direct theft of funds, protocol insolvency, permanent loss of user assets
+  </Card>
+  <Card title="High" icon="triangle-exclamation" color="#FF6B00">
+    **$25,000 - $100,000**
+
+    Theft of unclaimed yield, temporary freezing of funds, smart contract griefing
+  </Card>
+  <Card title="Medium" icon="exclamation" color="#FFA500">
+    **$5,000 - $25,000**
+
+    Block stuffing, griefing DoS, unintended state changes
+  </Card>
+  <Card title="Low" icon="info" color="#4169E1">
+    **$1,000 - $5,000**
+
+    Contract fails to deliver promised functionality, minor UX issues
+  </Card>
+</CardGroup>
+
+### Informational Findings
+
+Non-security issues such as gas optimizations, code quality improvements, and best practice suggestions are welcome but not eligible for rewards. We may offer swag or recognition for high-quality informational reports.
+
+## In-Scope Assets
+
+### Smart Contracts (Highest Priority)
+
+<Accordion title="AI Agent Economics Contracts">
+**Mainnet Deployments** (rewards 2x testnet)
+
+1. **Agents.sol** - Core agent registry and staking
+   - Agent registration and ownership
+   - Multi-asset staking (ETH, ERC20)
+   - Unbonding and withdrawal queue
+   - Stake locking for tasks
+   - Slashing mechanisms
+   - Reputation system
+   - Proof-of-inference recording
+   - Delegation system
+   - **Location**: `0x[TBD]` (mainnet), testnet deployed
+
+2. **Tasks.sol** - Task marketplace
+   - Task creation and escrow
+   - Task claiming with bonds
+   - Work submission and verification
+   - Dispute resolution
+   - Payment distribution
+   - **Location**: `0x[TBD]` (mainnet), testnet deployed
+
+3. **Treasury.sol** - Multi-pool treasury
+   - Fund management (treasury, insurance, rewards)
+   - Slash and penalty handling
+   - Reward distribution
+   - Pool rebalancing
+   - **Location**: `0x[TBD]` (mainnet), testnet deployed
+
+4. **Subscriptions.sol** - Recurring payments
+   - Epoch-based subscriptions
+   - Continuous payment streams
+   - Automatic processing
+   - **Location**: `0x[TBD]` (mainnet), testnet deployed
+
+**Critical Risk Areas:**
+- Fund theft or loss scenarios
+- Stake manipulation attacks
+- Reputation gaming
+- Reentrancy vulnerabilities
+- Integer overflow/underflow
+- Access control bypasses
+- Upgrade mechanism exploits (UUPS)
+</Accordion>
+
+<Accordion title="OP Stack L2 Contracts">
+**Core Protocol Contracts**
+
+1. **OptimismPortal2.sol** - L1 entry point
+   - Deposit transactions
+   - Withdrawal proofs and finalization
+   - Pausing mechanism
+   - **Location**: Inherits from Optimism contracts
+
+2. **L2OutputOracle.sol** - Output root proposals
+   - Output submission
+   - Output deletion
+   - Challenge period
+   - **Location**: Inherits from Optimism contracts
+
+3. **SystemConfig.sol** - System parameters
+   - Gas limits and scalars
+   - Batch inbox configuration
+   - Sequencer address
+   - **Location**: Inherits from Optimism contracts
+
+4. **DisputeGameFactory.sol** - Fault proofs
+   - Game creation
+   - Game resolution
+   - Bond management
+   - **Location**: Inherits from Optimism contracts
+
+5. **L1/L2 Bridges**
+   - L1StandardBridge.sol
+   - L2StandardBridge.sol
+   - ERC20/ERC721 bridging
+   - **Locations**: Inherits from Optimism contracts
+
+**Critical Risk Areas:**
+- Bridging vulnerabilities (double spend, replay)
+- Fraud proof bypass
+- Withdrawal finalization exploits
+- Batch submission manipulation
+- Sequencer centralization attacks
+</Accordion>
+
+<Accordion title="Fee & Token Contracts">
+**Economic Layer**
+
+1. **GovernanceToken.sol** (NZT Token)
+   - ERC20 implementation
+   - Minting controls (2% annual cap)
+   - Burning mechanism
+   - Voting (ERC20Votes)
+   - **Location**: `0x[TBD]`
+
+2. **MintManager.sol** - Inflation control
+   - Mint cap enforcement
+   - Time-lock mechanism
+   - **Location**: `0x[TBD]`
+
+3. **Fee Vaults**
+   - BaseFeeVault.sol
+   - L1FeeVault.sol
+   - SequencerFeeVault.sol
+   - Minimum withdrawal thresholds
+   - **Locations**: `0x[TBD]` each
+
+4. **GasPriceOracle.sol** - L1 data cost
+   - Fee calculation (Ecotone/Fjord formulas)
+   - Scalar configuration
+   - **Location**: `0x[TBD]`
+
+**Critical Risk Areas:**
+- Unauthorized minting
+- Fee manipulation
+- Vault draining
+- Price oracle attacks
+</Accordion>
+
+### Infrastructure & Protocols
+
+<Accordion title="Rollup Node (op-node)">
+**Consensus & Derivation Layer**
+
+**In-Scope Components:**
+- Derivation pipeline (L1 to L2 block derivation)
+- Batch decoding and validation
+- Deposit transaction extraction
+- Output root computation
+- Unsafe/safe/finalized head tracking
+- P2P block propagation
+- Engine API interaction
+
+**Examples of Valid Bugs:**
+- Invalid state transition acceptance
+- Consensus split conditions
+- Batch validation bypass
+- Deposit censorship or reordering
+- Output root manipulation
+- Sequencer equivocation detection failures
+
+**Repository**: [nexis-appchain/op-node](https://github.com/nexis-network/nexis-appchain/tree/main/op-node)
+</Accordion>
+
+<Accordion title="Batch Submitter (op-batcher)">
+**L1 Data Submission**
+
+**In-Scope Components:**
+- Batch encoding (SingularBatch, SpanBatch)
+- Channel management
+- Compression (zlib, brotli)
+- Transaction building
+- Blob submission (EIP-4844)
+- Safe head tracking
+
+**Examples of Valid Bugs:**
+- Data availability issues
+- Batch reordering vulnerabilities
+- Channel reconstruction exploits
+- Gas estimation attacks
+- Sequencer censorship
+
+**Repository**: [nexis-appchain/op-batcher](https://github.com/nexis-network/nexis-appchain/tree/main/op-batcher)
+</Accordion>
+
+<Accordion title="Output Proposer (op-proposer)">
+**L2 Output Proposals**
+
+**In-Scope Components:**
+- Output root generation
+- Submission timing
+- L1 confirmation tracking
+- Dispute game creation
+
+**Examples of Valid Bugs:**
+- Invalid output acceptance
+- Proposal reorg handling issues
+- Dispute game bypass
+- Bond theft
+
+**Repository**: [nexis-appchain/op-proposer](https://github.com/nexis-network/nexis-appchain/tree/main/op-proposer)
+</Accordion>
+
+<Accordion title="Challenger (op-challenger)">
+**Fault Proof System**
+
+**In-Scope Components:**
+- Dispute game monitoring
+- Claim bisection logic
+- Cannon/Asterisc trace providers
+- Bond management
+- Resolution logic
+
+**Examples of Valid Bugs:**
+- Invalid claim acceptance
+- Trace generation manipulation
+- Bond theft or lock-up
+- Challenge period bypass
+
+**Repository**: [nexis-appchain/op-challenger](https://github.com/nexis-network/nexis-appchain/tree/main/op-challenger)
+</Accordion>
+
+### Frontend & User-Facing Applications
+
+<Accordion title="Web Applications (Lower Priority)">
+**In-Scope:**
+- Nexis Explorer
+- Bridge UI
+- Token faucet
+- Documentation website
+
+**Examples of Valid Bugs:**
+- XSS vulnerabilities
+- CSRF attacks
+- Authentication bypass
+- Data leakage
+- Phishing vulnerabilities
+</Accordion>
+
+## Out of Scope
+
+The following are **NOT eligible** for bounty rewards:
+
+<Warning>
+**Explicitly Out of Scope:**
+
+- Previously disclosed vulnerabilities
+- Issues in third-party contracts (Uniswap, etc.) not modified by Nexis
+- Vulnerabilities requiring extremely unlikely user behaviors
+- Attacks requiring access to privileged accounts (admin, sequencer) without demonstrating compromise path
+- Theoretical vulnerabilities without proof of concept
+- Best practice violations without security impact
+- Denial of service attacks requiring significant financial cost to attacker
+- Gas optimization suggestions
+- Issues found on testnets only (unless applicable to mainnet)
+- Social engineering attacks on team members
+- Physical attacks on infrastructure
+- Issues in deprecated or sunset contracts
+- Known issues documented in audit reports (see below)
+</Warning>
+
+### Known Issues (Not Eligible)
+
+Issues identified in previous audits that are accepted risks:
+
+1. **Centralization Risks**
+   - Single sequencer operation (design decision)
+   - Admin upgrade controls (using Safe multisig)
+   - Proposer censorship (mitigated by challenge system)
+
+2. **OP Stack Inherited Limitations**
+   - L1 reorg handling edge cases (documented in OP Stack specs)
+   - Sequencer liveness assumptions
+   - Batch submission MEV
+
+Full list maintained in [security disclosures](/security/known-issues).
+
+## Eligibility Requirements
+
+To be eligible for a bounty, you must:
+
+<Tabs>
+  <Tab title="Researcher Requirements">
+    ✅ **Eligible**
+    - Security researchers
+    - White-hat hackers
+    - Academic institutions
+    - Independent auditors
+    - Ethical hackers
+
+    ❌ **Ineligible**
+    - Current or former Nexis Labs employees/contractors (within 6 months)
+    - Immediate family members of Nexis team
+    - Minors (under 18) without parental consent
+    - Residents of OFAC-sanctioned countries
+  </Tab>
+  <Tab title="Disclosure Requirements">
+    You must:
+    - Report the vulnerability privately to security@nexis.network
+    - **NOT** exploit the vulnerability beyond proof-of-concept
+    - **NOT** disclose publicly until 90 days after our fix
+    - **NOT** access, modify, or exfiltrate user data
+    - Cooperate with our investigation
+    - Provide detailed reproduction steps
+  </Tab>
+  <Tab title="Quality Standards">
+    Your submission must include:
+    - Clear description of the vulnerability
+    - Step-by-step reproduction
+    - Proof of concept code
+    - Impact assessment
+    - Suggested fix (optional but valued)
+    - No duplicate submissions (first reporter wins)
+  </Tab>
+</Tabs>
+
+## Submission Process
+
+### Step 1: Initial Report
+
+Email **security@nexis.network** with:
+
+```markdown
+Subject: [Bug Bounty] [Severity] Brief Description
+
+**Vulnerability Summary**
+One-paragraph description of the issue
+
+**Affected Component**
+- Contract: [name and address]
+- Function: [specific function]
+- Repository: [link to code]
+
+**Severity Assessment**
+[Critical | High | Medium | Low] - with justification
+
+**Reproduction Steps**
+1. Step one
+2. Step two
+...
+
+**Proof of Concept**
+[Code, transaction hashes, or detailed walkthrough]
+
+**Impact Analysis**
+What can an attacker achieve? How much is at risk?
+
+**Suggested Mitigation**
+How would you fix this?
+
+**Your Information**
+- Name (or pseudonym):
+- Email:
+- ETH Address (for bounty):
+- Twitter/GitHub (optional):
+```
+
+### Step 2: Acknowledgment
+
+We acknowledge all submissions within **24 hours** (often much faster).
+
+### Step 3: Validation
+
+Our security team validates the report:
+- Confirms reproducibility
+- Assesses severity
+- Determines eligibility
+- May request additional information
+
+**Timeline**: 3-5 business days for initial validation
+
+### Step 4: Fix & Testing
+
+If valid:
+- We develop and test a fix
+- We may request your help testing
+- Private disclosure to select auditors
+
+**Timeline**: 7-30 days depending on severity
+
+### Step 5: Reward Determination
+
+Final bounty determined by:
+- Severity (Impact × Likelihood)
+- Quality of report
+- Cooperation during process
+- Whether we learned something new
+
+### Step 6: Public Disclosure
+
+After fix deployed:
+- 90-day disclosure window (negotiable)
+- Joint disclosure or researcher solo (your choice)
+- Credit in our security changelog
+
+### Step 7: Payment
+
+- Paid in USDC to provided ETH address
+- KYC required for rewards $10,000+ (Synaps or Sumsub)
+- Tax forms required for US persons
+- Payment within 14 days of disclosure
+
+## Proof of Concept Requirements
+
+A strong PoC significantly increases your bounty. Include:
+
+<CodeGroup>
+
+```solidity Smart Contract Exploit
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.15;
+
+import "forge-std/Test.sol";
+import "../src/Agents.sol";
+
+/**
+ * Proof of Concept: [Vulnerability Name]
+ *
+ * Description: [What the exploit does]
+ * Impact: [Financial loss amount or capability compromised]
+ * Affected Contract: Agents.sol at 0x...
+ */
+contract AgentsExploit is Test {
+    Agents agents;
+    address attacker = address(0xbad);
+    address victim = address(0xdeaf);
+
+    function setUp() public {
+        // Setup test environment
+        agents = Agents(AGENTS_ADDRESS);
+
+        // Fund accounts
+        vm.deal(attacker, 100 ether);
+        vm.deal(victim, 100 ether);
+    }
+
+    function testExploit() public {
+        // Demonstrate the vulnerability
+        vm.startPrank(attacker);
+
+        // Step 1: Setup
+        // ...
+
+        // Step 2: Exploit
+        // ...
+
+        // Step 3: Profit
+        assertGt(attacker.balance, 100 ether, "Attacker profited");
+        assertLt(victim.balance, 100 ether, "Victim lost funds");
+
+        vm.stopPrank();
+    }
+}
+```
+
+```typescript Infrastructure Attack
+/**
+ * Proof of Concept: Batch Submission Manipulation
+ *
+ * Description: Demonstrates how attacker can reorder transactions
+ * Impact: MEV extraction or censorship
+ */
+
+import { ethers } from 'ethers';
+
+async function demonstrateBatchManipulation() {
+  const l1Provider = new ethers.JsonRpcProvider(L1_RPC);
+  const l2Provider = new ethers.JsonRpcProvider(L2_RPC);
+
+  // Step 1: Monitor batch inbox
+  const batchInbox = '0xff00000000000000000000000000000084532000';
+
+  // Step 2: Front-run batch submission
+  // [Your exploit code here]
+
+  // Step 3: Demonstrate impact
+  console.log('Original batch hash:', originalBatch);
+  console.log('Manipulated batch hash:', manipulatedBatch);
+  console.log('Funds extracted:', ethers.formatEther(profit));
+}
+```
+
+```python Reputation Gaming Attack
+"""
+Proof of Concept: Reputation System Gaming
+
+Description: Demonstrates how attacker can artificially inflate reputation
+Impact: Users trust malicious agent, leading to financial loss
+"""
+
+from web3 import Web3
+from eth_account import Account
+
+def demonstrate_reputation_attack():
+    w3 = Web3(Web3.HTTPProvider(RPC_URL))
+
+    # Step 1: Create sybil agents
+    agents = [Account.create() for _ in range(10)]
+
+    # Step 2: Cross-attest to boost reputation
+    # [Your exploit code here]
+
+    # Step 3: Demonstrate inflated reputation
+    print(f"Reputation before: {initial_rep}")
+    print(f"Reputation after: {final_rep}")
+    print(f"Gain: {final_rep - initial_rep}")
+```
+
+```bash Node Consensus Split
+#!/bin/bash
+# Proof of Concept: Consensus Split Attack
+#
+# Description: Forces honest nodes to disagree on safe head
+# Impact: Bridge withdrawals delayed or censored
+
+# Step 1: Setup two op-nodes
+op-node --l1=$L1_RPC --l2=$L2_RPC_A --rpc.addr=127.0.0.1 --rpc.port=8545 &
+NODE_A=$!
+
+op-node --l1=$L1_RPC --l2=$L2_RPC_B --rpc.addr=127.0.0.1 --rpc.port=8546 &
+NODE_B=$!
+
+# Step 2: Trigger the vulnerability
+# [Your attack steps]
+
+# Step 3: Demonstrate split
+SAFE_HEAD_A=$(curl -s -X POST -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"optimism_syncStatus","params":[],"id":1}' \
+  http://localhost:8545 | jq -r '.result.safe_l2.hash')
+
+SAFE_HEAD_B=$(curl -s -X POST -H "Content-Type: application/json" \
+  --data '{"jsonrpc":"2.0","method":"optimism_syncStatus","params":[],"id":1}' \
+  http://localhost:8546 | jq -r '.result.safe_l2.hash')
+
+if [ "$SAFE_HEAD_A" != "$SAFE_HEAD_B" ]; then
+  echo "CONSENSUS SPLIT DETECTED"
+  echo "Node A safe head: $SAFE_HEAD_A"
+  echo "Node B safe head: $SAFE_HEAD_B"
+fi
+```
+
+</CodeGroup>
+
+### PoC Best Practices
+
+1. **Be Specific**: Exact contract addresses, function names, parameter values
+2. **Be Reproducible**: Anyone should be able to run your PoC
+3. **Be Safe**: Don't actually exploit mainnet or steal funds
+4. **Be Clear**: Comment your code explaining each step
+5. **Show Impact**: Demonstrate the concrete harm (e.g., "steals $X")
+
+## Severity Classification
+
+We use the following matrix to determine severity:
+
+### Impact Levels
+
+| Level | Description | Examples |
+|-------|-------------|----------|
+| **Critical** | Direct theft, permanent loss, protocol insolvency | Drain all staked funds, mint unlimited tokens, steal bridge deposits |
+| **High** | Indirect theft, temporary loss, major disruption | Steal unclaimed rewards, freeze user funds temporarily, force invalid state |
+| **Medium** | Griefing, minor loss, degraded UX | Block stuffing DoS, spam events, incorrect accounting (non-exploitable) |
+| **Low** | Edge cases, minor issues | Contract doesn't handle zero values, poor error messages |
+
+### Likelihood Levels
+
+| Level | Criteria |
+|-------|----------|
+| **High** | Easily exploitable by any attacker with no special access |
+| **Medium** | Requires specific conditions or timing |
+| **Low** | Requires privileged access or highly unlikely conditions |
+
+### Severity Matrix
+
+|                | Critical Impact | High Impact | Medium Impact | Low Impact |
+|----------------|----------------|-------------|---------------|------------|
+| **High Likelihood**   | 🔴 Critical     | 🟠 High      | 🟡 Medium     | 🔵 Low      |
+| **Medium Likelihood** | 🟠 High         | 🟡 Medium    | 🔵 Low        | 🟢 Info     |
+| **Low Likelihood**    | 🟡 Medium       | 🔵 Low       | 🟢 Info       | 🟢 Info     |
+
+## Payment Process
+
+### Reward Determination
+
+Final bounty based on:
+
+```
+Base Bounty (by severity)
+× Quality Multiplier (0.8 - 1.5)
+× Cooperation Bonus (1.0 - 1.2)
+= Final Bounty
+```
+
+**Quality Multiplier Factors:**
+- Comprehensive PoC: +0.3
+- Suggested fix: +0.1
+- Multiple attack vectors: +0.1
+- Clear documentation: +0.1
+- Creative discovery: +0.2
+
+**Cooperation Bonus:**
+- Responsive to questions: +0.1
+- Help testing fix: +0.1
+- Delay disclosure as requested: +0.05
+
+### KYC & Compliance
+
+Rewards $10,000+ require KYC:
+- Submit via Synaps or Sumsub (link provided)
+- Government ID verification
+- Proof of address
+- Screening against sanctions lists
+
+**US Persons:**
+- W-9 form required
+- 1099 issued for $600+ payments
+- State-specific requirements may apply
+
+**International:**
+- W-8BEN form for treaty benefits
+- May require additional documentation
+
+### Payment Methods
+
+**Preferred:** USDC on Ethereum mainnet
+
+**Alternative:**
+- USDC on other chains (Polygon, Arbitrum, Base)
+- ETH or WETH
+- Bank wire (for $25,000+, minus $50 fee)
+
+**Not Supported:**
+- Privacy coins
+- NFTs
+- Equity or tokens
+- Deferred payment structures
+
+## Hall of Fame
+
+<Note>
+The Nexis Bug Bounty launched in January 2025. Be the first researcher in our Hall of Fame!
+</Note>
+
+### Top Contributors
+
+| Rank | Researcher | Findings | Total Earned |
+|------|-----------|----------|--------------|
+| 1 | Coming Soon | - | - |
+| 2 | Coming Soon | - | - |
+| 3 | Coming Soon | - | - |
+
+### Notable Discoveries
+
+*Hall of Fame entries will be featured here after disclosure period.*
+
+## Safe Harbor
+
+We commit to:
+
+<Accordion title="No Legal Action">
+We will not pursue legal action against researchers who:
+- Act in good faith
+- Follow responsible disclosure
+- Don't access or harm user data
+- Don't exploit beyond PoC
+- Don't demand payment before disclosure
+</Accordion>
+
+<Accordion title="Coordinated Disclosure">
+We will:
+- Work with you on disclosure timeline
+- Credit you publicly (unless you prefer anonymous)
+- Not disclose your identity without permission
+- Respect embargo periods
+</Accordion>
+
+<Accordion title="Fair Treatment">
+We will not:
+- Modify bounty terms retroactively
+- Claim your work as our own
+- Share your report with third parties without permission (except necessary security contractors)
+- Penalize you for reporting in good faith
+</Accordion>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can I report the same issue to multiple bug bounty platforms?">
+    No. Choose one platform. If reporting via Immunefi or other platform, that platform's rules apply. Direct reports to security@nexis.network use these terms.
+  </Accordion>
+
+  <Accordion title="What if I find something but I'm not sure it's exploitable?">
+    Report it anyway! We'd rather receive false positives than miss a real issue. Worst case, we thank you and classify it as informational.
+  </Accordion>
+
+  <Accordion title="Can I test on mainnet?">
+    No. Use testnet or local forks. If you must test on mainnet for a reproducible PoC, contact us first.
+  </Accordion>
+
+  <Accordion title="How long do I need to wait before public disclosure?">
+    90 days from our fix deployment, or earlier with mutual agreement. We respect your right to disclose but ask you coordinate with us.
+  </Accordion>
+
+  <Accordion title="What if you disagree with my severity assessment?">
+    We'll provide detailed reasoning. If you disagree, we can seek neutral third-party arbitration (details in full program terms).
+  </Accordion>
+
+  <Accordion title="Can I submit anonymously?">
+    Yes, but you must provide an ETH address for payment and complete KYC for rewards $10,000+. We can keep your identity confidential in public disclosures.
+  </Accordion>
+
+  <Accordion title="What happens if two researchers submit the same bug?">
+    First valid submission wins full bounty. Second submission may receive 10% courtesy payment if submitted within 24 hours.
+  </Accordion>
+</AccordionGroup>
+
+## Contact & Support
+
+<CardGroup cols={2}>
+  <Card title="Report Vulnerability" icon="envelope">
+    **security@nexis.network**
+
+    PGP Key: [Download](/security/pgp-key.txt)
+  </Card>
+  <Card title="Program Questions" icon="circle-question">
+    **bugbounty@nexis.network**
+
+    For questions about eligibility, rewards, etc.
+  </Card>
+  <Card title="Encrypted Reporting" icon="lock">
+    **Keybase**: nexislabs
+
+    For highly sensitive disclosures
+  </Card>
+  <Card title="Emergency Contact" icon="phone">
+    **Critical issues only**: [Form](/security/emergency)
+
+    For active exploits requiring immediate response
+  </Card>
+</CardGroup>
+
+---
+
+## Legal Disclaimer
+
+<Warning>
+**Important Legal Terms:**
+
+By participating in this bug bounty program, you agree that:
+
+1. **No Employment**: This program does not create an employment or contractor relationship
+2. **Discretionary Rewards**: Final bounty amounts are at Nexis Labs' sole discretion
+3. **Program Changes**: We may modify these terms with 30 days notice
+4. **Taxes**: You are responsible for all tax obligations
+5. **Compliance**: You must comply with all applicable laws
+6. **No Guarantee**: We are not obligated to act on every report
+7. **Prior Disclosure**: Findings already publicly disclosed are ineligible
+8. **Jurisdiction**: Disputes resolved per Terms of Service
+
+**Full Terms**: [https://nexis.network/bug-bounty-terms](https://nexis.network/bug-bounty-terms)
+</Warning>
+
+**Help us build the most secure AI blockchain. Report responsibly. Get rewarded fairly. 🛡️**
