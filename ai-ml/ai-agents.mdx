@@ -91,7 +91,7 @@ async function registerAgent(
   const metadataURI = await uploadToIPFS(metadataJSON);
 
   // 2. Initialize contract
-  const provider = new ethers.providers.JsonRpcProvider("https://rpc.nexis.network");
+  const provider = new ethers.providers.JsonRpcProvider("https://rpc.nex-t1.ai");
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
   const agents = new NexisAgents(AGENTS_ADDRESS, signer);
 
@@ -142,7 +142,7 @@ def register_agent(
     metadata_uri = upload_to_ipfs(metadata_json)
 
     # 2. Initialize contract
-    w3 = Web3(Web3.HTTPProvider("https://rpc.nexis.network"))
+    w3 = Web3(Web3.HTTPProvider("https://rpc.nex-t1.ai"))
     account = w3.eth.account.from_key(os.environ["PRIVATE_KEY"])
     agents = NexisAgents(AGENTS_ADDRESS, w3, account)
 

@@ -115,7 +115,7 @@ op-geth \
   --authrpc.addr=0.0.0.0 \
   --authrpc.port=8551 \
   --authrpc.jwtsecret=/data/jwt.hex \
-  --rollup.sequencerhttp=https://sequencer.nexis.network \
+  --rollup.sequencerhttp=https://sequencer.nex-t1.ai \
   --rollup.disabletxpoolgossip=true \
   --networkid=84532 \
   --syncmode=full \
@@ -446,9 +446,9 @@ console.log(GAS_COSTS.costInUSD('registerAgent', 2000)); // $0.5000
 ```mermaid
 graph TB
     subgraph "Public Infrastructure"
-        SEQ[Sequencer Node<br/>sequencer.nexis.network]
-        RPC1[RPC Node 1<br/>rpc.nexis.network]
-        RPC2[RPC Node 2<br/>rpc2.nexis.network]
+        SEQ[Sequencer Node<br/>sequencer.nex-t1.ai]
+        RPC1[RPC Node 1<br/>rpc.nex-t1.ai]
+        RPC2[RPC Node 2<br/>rpc2.nex-t1.ai]
         LB[Load Balancer<br/>proxyd]
     end
 

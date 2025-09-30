@@ -9,9 +9,9 @@ icon: 'server'
 Nexis Network is fully compatible with the Ethereum JSON-RPC API, based on the Optimism stack. This means you can use standard Ethereum tools and libraries to interact with Nexis.
 
 **Endpoints:**
-- **Mainnet:** `https://rpc.nexis.network`
-- **Testnet:** `https://testnet-rpc.nexis.network`
-- **WebSocket (Testnet):** `wss://testnet-ws.nexis.network`
+- **Mainnet:** `https://rpc.nex-t1.ai`
+- **Testnet:** `https://testnet-rpc.nex-t1.ai`
+- **WebSocket (Testnet):** `wss://testnet-ws.nex-t1.ai`
 
 **Key Features:**
 - Full Ethereum JSON-RPC compatibility
@@ -38,13 +38,13 @@ Get the latest block number.
 <CodeGroup>
 
 ```javascript JavaScript (ethers.js)
-const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nexis.network');
+const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nex-t1.ai');
 const blockNumber = await provider.getBlockNumber();
 console.log("Latest block:", blockNumber);
 ```
 
 ```javascript JavaScript (raw JSON-RPC)
-const response = await fetch('https://testnet-rpc.nexis.network', {
+const response = await fetch('https://testnet-rpc.nex-t1.ai', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -63,13 +63,13 @@ console.log("Latest block:", blockNumber);
 ```python Python
 from web3 import Web3
 
-w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nexis.network'))
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nex-t1.ai'))
 block_number = w3.eth.block_number
 print(f"Latest block: {block_number}")
 ```
 
 ```bash cURL
-curl -X POST https://testnet-rpc.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -120,7 +120,7 @@ balance_at_block = w3.eth.get_balance(address, 1000000)
 ```
 
 ```bash cURL
-curl -X POST https://testnet-rpc.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -181,7 +181,7 @@ block_with_txs = w3.eth.get_block('latest', full_transactions=True)
 ```
 
 ```bash cURL
-curl -X POST https://testnet-rpc.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -575,7 +575,7 @@ Get sync status of the node.
 **Example:**
 
 ```bash cURL
-curl -X POST https://testnet-rpc.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -606,7 +606,7 @@ Get the output root at a specific L2 block.
 **Example:**
 
 ```bash cURL
-curl -X POST https://testnet-rpc.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -635,7 +635,7 @@ Subscribe to real-time events.
 <CodeGroup>
 
 ```javascript JavaScript (ethers.js)
-const wsProvider = new ethers.WebSocketProvider('wss://testnet-ws.nexis.network');
+const wsProvider = new ethers.WebSocketProvider('wss://testnet-ws.nex-t1.ai');
 
 // Subscribe to new blocks
 wsProvider.on("block", (blockNumber) => {
@@ -661,7 +661,7 @@ wsProvider.on("pending", (txHash) => {
 
 ```javascript JavaScript (raw WebSocket)
 const WebSocket = require('ws');
-const ws = new WebSocket('wss://testnet-ws.nexis.network');
+const ws = new WebSocket('wss://testnet-ws.nex-t1.ai');
 
 ws.on('open', () => {
   // Subscribe to new blocks
@@ -684,7 +684,7 @@ ws.on('message', (data) => {
 ```python Python (web3.py)
 from web3 import Web3
 
-ws_url = 'wss://testnet-ws.nexis.network'
+ws_url = 'wss://testnet-ws.nex-t1.ai'
 w3 = Web3(Web3.WebsocketProvider(ws_url))
 
 # Subscribe to new blocks
@@ -735,7 +735,7 @@ Get detailed execution trace of a transaction.
 **Example:**
 
 ```bash cURL
-curl -X POST https://testnet-rpc.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -903,13 +903,13 @@ class NexisClient {
   constructor(privateKey) {
     // Connect to Nexis testnet
     this.provider = new ethers.JsonRpcProvider(
-      'https://testnet-rpc.nexis.network'
+      'https://testnet-rpc.nex-t1.ai'
     );
     this.wallet = new ethers.Wallet(privateKey, this.provider);
 
     // WebSocket for events
     this.wsProvider = new ethers.WebSocketProvider(
-      'wss://testnet-ws.nexis.network'
+      'wss://testnet-ws.nex-t1.ai'
     );
   }
 
@@ -1019,11 +1019,11 @@ import json
 class NexisClient:
     def __init__(self, private_key):
         # Connect to Nexis testnet
-        self.w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nexis.network'))
+        self.w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nex-t1.ai'))
         self.account = Account.from_key(private_key)
 
         # WebSocket connection
-        self.ws_w3 = Web3(Web3.WebsocketProvider('wss://testnet-ws.nexis.network'))
+        self.ws_w3 = Web3(Web3.WebsocketProvider('wss://testnet-ws.nex-t1.ai'))
 
     def get_network_info(self):
         return {

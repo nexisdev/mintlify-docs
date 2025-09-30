@@ -24,13 +24,13 @@ Add Nexis Appchain Testnet to your wallet with the following network parameters:
 {
   "chainId": 84532,
   "chainName": "Nexis Appchain Testnet",
-  "rpcUrls": ["https://rpc.testnet.nexis.network"],
+  "rpcUrls": ["https://testnet-rpc.nex-t1.ai"],
   "nativeCurrency": {
     "name": "Nexis",
     "symbol": "NZT",
     "decimals": 18
   },
-  "blockExplorerUrls": ["https://explorer.testnet.nexis.network"]
+  "blockExplorerUrls": ["https://testnet.nex-t1.ai"]
 }
 ```
 
@@ -48,8 +48,8 @@ async function addNexisNetwork() {
           symbol: 'NZT',
           decimals: 18
         },
-        rpcUrls: ['https://rpc.testnet.nexis.network'],
-        blockExplorerUrls: ['https://explorer.testnet.nexis.network']
+        rpcUrls: ['https://testnet-rpc.nex-t1.ai'],
+        blockExplorerUrls: ['https://testnet.nex-t1.ai']
       }]
     });
     console.log('Network added successfully!');
@@ -70,7 +70,7 @@ You'll need testnet NZT and ETH to interact with the network.
 
 ### Option 1: Use the Faucet (Recommended)
 
-1. Visit the [Nexis Faucet](https://faucet.nexis.network)
+1. Visit the [Nexis Faucet](https://faucet.nex-t1.ai)
 2. Connect your wallet
 3. Request testnet tokens (you'll receive 10 NZT and 0.1 ETH)
 4. Wait for the transaction to confirm (usually < 5 seconds)
@@ -125,7 +125,7 @@ module.exports = {
   solidity: "0.8.20",
   networks: {
     nexis: {
-      url: "https://rpc.testnet.nexis.network",
+      url: "https://testnet-rpc.nex-t1.ai",
       chainId: 84532,
       accounts: [process.env.PRIVATE_KEY]
     }
@@ -139,8 +139,8 @@ module.exports = {
         network: "nexis",
         chainId: 84532,
         urls: {
-          apiURL: "https://explorer.testnet.nexis.network/api",
-          browserURL: "https://explorer.testnet.nexis.network"
+          apiURL: "https://testnet.nex-t1.ai/api",
+          browserURL: "https://testnet.nex-t1.ai"
         }
       }
     ]
@@ -156,10 +156,10 @@ libs = ["lib"]
 solc_version = "0.8.20"
 
 [rpc_endpoints]
-nexis = "https://rpc.testnet.nexis.network"
+nexis = "https://testnet-rpc.nex-t1.ai"
 
 [etherscan]
-nexis = { key = "no-api-key-needed", url = "https://explorer.testnet.nexis.network/api" }
+nexis = { key = "no-api-key-needed", url = "https://testnet.nex-t1.ai/api" }
 ```
 </CodeGroup>
 
@@ -242,7 +242,7 @@ forge create src/AITaskRequester.sol:AITaskRequester \
 </CodeGroup>
 
 <Check>
-**Success!** Your contract is now deployed to Nexis Appchain. You can view it on the [explorer](https://explorer.testnet.nexis.network).
+**Success!** Your contract is now deployed to Nexis Appchain. You can view it on the [explorer](https://testnet.nex-t1.ai).
 </Check>
 
 ## Step 4: Register an AI Agent
@@ -257,7 +257,7 @@ Create a Node.js script to register your agent:
 const { ethers } = require('ethers');
 
 const AGENTS_CONTRACT = '0x1234...'; // Agents.sol testnet address
-const RPC_URL = 'https://rpc.testnet.nexis.network';
+const RPC_URL = 'https://testnet-rpc.nex-t1.ai';
 
 const AGENTS_ABI = [
   "function registerAgent(string name, string metadata, address[] stakingAssets, uint256[] amounts) external payable",
@@ -325,7 +325,7 @@ const { ethers } = require('ethers');
 const crypto = require('crypto');
 
 const TASKS_CONTRACT = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
-const RPC_URL = 'https://rpc.testnet.nexis.network';
+const RPC_URL = 'https://testnet-rpc.nex-t1.ai';
 
 const TASKS_ABI = [
   "function claimTask(uint256 taskId) external payable",

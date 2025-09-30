@@ -27,8 +27,8 @@ This document provides comprehensive technical specifications, contract informat
 |-----------|-------|---------|
 | **Chain ID** | 84532 | Base Sepolia (Testnet) |
 | **Chain Name** | Nexis Appchain | Layer 3 |
-| **RPC URL** | https://rpc.nexis.network | Primary RPC |
-| **Explorer** | https://explorer.nexis.network | Block Explorer |
+| **RPC URL** | https://rpc.nex-t1.ai | Primary RPC |
+| **Explorer** | https://explorer.nex-t1.ai | Block Explorer |
 | **Symbol** | NZT | Native gas token |
 
 ### Contract Addresses
@@ -63,8 +63,8 @@ await window.ethereum.request({
       symbol: 'NZT',
       decimals: 18
     },
-    rpcUrls: ['https://rpc.nexis.network'],
-    blockExplorerUrls: ['https://explorer.nexis.network']
+    rpcUrls: ['https://rpc.nex-t1.ai'],
+    blockExplorerUrls: ['https://explorer.nex-t1.ai']
   }]
 });
 ```
@@ -72,7 +72,7 @@ await window.ethereum.request({
 ```typescript ethers.js
 import { ethers } from 'ethers';
 
-const provider = new ethers.JsonRpcProvider('https://rpc.nexis.network');
+const provider = new ethers.JsonRpcProvider('https://rpc.nex-t1.ai');
 const chainId = await provider.getNetwork().then(n => n.chainId);
 console.log(`Connected to chain ${chainId}`); // 84532
 
@@ -91,7 +91,7 @@ const nztToken = new ethers.Contract(nztAddress, nztAbi, provider);
 from web3 import Web3
 
 # Connect to Nexis RPC
-w3 = Web3(Web3.HTTPProvider('https://rpc.nexis.network'))
+w3 = Web3(Web3.HTTPProvider('https://rpc.nex-t1.ai'))
 assert w3.is_connected(), "Failed to connect"
 
 # NZT token contract
@@ -107,7 +107,7 @@ print(f"NZT Balance: {w3.from_wei(balance, 'ether')} NZT")
 
 ```bash cURL
 # Get NZT balance
-curl -X POST https://rpc.nexis.network \
+curl -X POST https://rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -393,7 +393,7 @@ Get free testnet NZT for development and testing:
 
 <Steps>
   <Step title="Visit Faucet">
-    Navigate to [https://faucet.nexis.network](https://faucet.nexis.network)
+    Navigate to [https://faucet.nex-t1.ai](https://faucet.nex-t1.ai)
   </Step>
   <Step title="Connect Wallet">
     Connect your wallet (MetaMask, Coinbase Wallet, WalletConnect)
@@ -721,7 +721,7 @@ Report vulnerabilities for rewards up to $500,000:
 | **Medium** | $10k - $50k | Temporarily lock funds, griefing attacks |
 | **Low** | $1k - $10k | Information disclosure, minor issues |
 
-Submit bugs to: [security@nexis.network](mailto:security@nexis.network)
+Submit bugs to: [support@nex-t1.ai](mailto:support@nex-t1.ai)
 
 ### Best Practices
 
@@ -746,16 +746,16 @@ Submit bugs to: [security@nexis.network](mailto:security@nexis.network)
 ## Additional Resources
 
 <CardGroup cols={2}>
-  <Card title="Token Analytics" icon="chart-line" href="https://analytics.nexis.network">
+  <Card title="Token Analytics" icon="chart-line" href="https://nex-t1.ai">
     Real-time token metrics and supply data
   </Card>
   <Card title="Staking Dashboard" icon="lock" href="/tokenomics/staking">
     Stake NZT and track rewards
   </Card>
-  <Card title="Governance Portal" icon="landmark" href="https://gov.nexis.network">
+  <Card title="Governance Portal" icon="landmark" href="https://nex-t1.ai">
     Create and vote on proposals
   </Card>
-  <Card title="Block Explorer" icon="magnifying-glass" href="https://explorer.nexis.network">
+  <Card title="Block Explorer" icon="magnifying-glass" href="https://explorer.nex-t1.ai">
     View transactions and contract interactions
   </Card>
 </CardGroup>

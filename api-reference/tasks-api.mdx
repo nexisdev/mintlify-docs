@@ -707,7 +707,7 @@ Here's a complete example of the task lifecycle from creation to completion:
 import { ethers } from 'ethers';
 
 // Setup
-const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nexis.network');
+const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nex-t1.ai');
 const creatorWallet = new ethers.Wallet(creatorPrivateKey, provider);
 const agentWallet = new ethers.Wallet(agentPrivateKey, provider);
 
@@ -829,7 +829,7 @@ from web3 import Web3
 import time
 
 # Setup
-w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nexis.network'))
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nex-t1.ai'))
 
 # Load contracts
 tasks = w3.eth.contract(address=tasks_address, abi=tasks_abi)

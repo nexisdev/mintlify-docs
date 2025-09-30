@@ -136,10 +136,10 @@ Open MetaMask and navigate to **Settings → Networks → Add Network**. Enter t
 | Field | Value |
 |-------|-------|
 | **Network Name** | Nexis Appchain Testnet |
-| **RPC URL** | `https://rpc.testnet.nexis.network` |
+| **RPC URL** | `https://testnet-rpc.nex-t1.ai` |
 | **Chain ID** | `84532` |
 | **Currency Symbol** | NZT |
-| **Block Explorer** | `https://explorer.testnet.nexis.network` |
+| **Block Explorer** | `https://testnet.nex-t1.ai` |
 
 Click "Save" to add the network.
   </Tab>
@@ -160,8 +160,8 @@ async function addNexisNetwork() {
           symbol: 'NZT',
           decimals: 18
         },
-        rpcUrls: ['https://rpc.testnet.nexis.network'],
-        blockExplorerUrls: ['https://explorer.testnet.nexis.network']
+        rpcUrls: ['https://testnet-rpc.nex-t1.ai'],
+        blockExplorerUrls: ['https://testnet.nex-t1.ai']
       }]
     });
     console.log('Network added successfully!');
@@ -185,7 +185,7 @@ Test your RPC connection:
 
 ```bash
 # Check if RPC is responding
-curl https://rpc.testnet.nexis.network \
+curl https://testnet-rpc.nex-t1.ai \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
@@ -257,7 +257,7 @@ module.exports = {
   networks: {
     // Nexis Testnet
     nexis: {
-      url: process.env.NEXIS_RPC_URL || "https://rpc.testnet.nexis.network",
+      url: process.env.NEXIS_RPC_URL || "https://testnet-rpc.nex-t1.ai",
       chainId: 84532,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       gasPrice: 1000000000, // 1 gwei
@@ -276,8 +276,8 @@ module.exports = {
         network: "nexis",
         chainId: 84532,
         urls: {
-          apiURL: "https://explorer.testnet.nexis.network/api",
-          browserURL: "https://explorer.testnet.nexis.network"
+          apiURL: "https://testnet.nex-t1.ai/api",
+          browserURL: "https://testnet.nex-t1.ai"
         }
       }
     ]
@@ -300,7 +300,7 @@ Create a `.env` file in your project root:
 PRIVATE_KEY=your_private_key_here
 
 # RPC URL (optional, uses default if not set)
-NEXIS_RPC_URL=https://rpc.testnet.nexis.network
+NEXIS_RPC_URL=https://testnet-rpc.nex-t1.ai
 ```
 
 <Warning>
@@ -554,7 +554,7 @@ async function main() {
   console.log(`npx hardhat verify --network nexis ${contractAddress} ${TASKS_CONTRACT}`);
 
   console.log("\n🔗 View on explorer:");
-  console.log(`https://explorer.testnet.nexis.network/address/${contractAddress}`);
+  console.log(`https://testnet.nex-t1.ai/address/${contractAddress}`);
 }
 
 main()
@@ -611,7 +611,7 @@ Replace `DEPLOYED_ADDRESS` with your actual contract address.
 **Expected output:**
 ```
 Successfully verified contract AITaskRequester on Nexis Explorer.
-https://explorer.testnet.nexis.network/address/0xAbC1...23dE#code
+https://testnet.nex-t1.ai/address/0xAbC1...23dE#code
 ```
 
 ## Part 5: Deploy with Foundry (Alternative)
@@ -653,10 +653,10 @@ optimizer = true
 optimizer_runs = 200
 
 [rpc_endpoints]
-nexis = "https://rpc.testnet.nexis.network"
+nexis = "https://testnet-rpc.nex-t1.ai"
 
 [etherscan]
-nexis = { key = "no-api-key-needed", url = "https://explorer.testnet.nexis.network/api" }
+nexis = { key = "no-api-key-needed", url = "https://testnet.nex-t1.ai/api" }
 ```
 
 ### Step 4: Create Contract
@@ -726,7 +726,7 @@ console.log("Task created! Tx:", tx.hash);
 Visit the explorer to see your contract:
 
 ```
-https://explorer.testnet.nexis.network/address/YOUR_CONTRACT_ADDRESS
+https://testnet.nex-t1.ai/address/YOUR_CONTRACT_ADDRESS
 ```
 
 You should see:
@@ -779,13 +779,13 @@ await contract.deploy({
 **Solution:**
 ```bash
 # Test RPC connectivity
-curl https://rpc.testnet.nexis.network \
+curl https://testnet-rpc.nex-t1.ai \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"net_version","params":[],"id":1}'
 
 # Try alternative RPC if main is down
-url: "https://rpc-backup.testnet.nexis.network"
+url: "https://testnet-rpc.nex-t1.ai"
 ```
   </Accordion>
 

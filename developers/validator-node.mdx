@@ -391,7 +391,7 @@ ExecStart=/usr/local/bin/op-geth \
   --authrpc.addr 0.0.0.0 \
   --authrpc.port 8551 \
   --authrpc.jwtsecret /opt/nexis/data/geth/geth/jwtsecret \
-  --rollup.sequencerhttp https://sequencer.testnet.nexis.network \
+  --rollup.sequencerhttp https://sequencer.nex-t1.ai \
   --rollup.disabletxpoolgossip=false
 
 StandardOutput=journal
@@ -483,7 +483,7 @@ services:
       - --authrpc.addr=0.0.0.0
       - --authrpc.port=8551
       - --authrpc.jwtsecret=/jwtsecret
-      - --rollup.sequencerhttp=https://sequencer.testnet.nexis.network
+      - --rollup.sequencerhttp=https://sequencer.nex-t1.ai
     logging:
       driver: "json-file"
       options:
@@ -566,7 +566,7 @@ docker-compose down
 const { ethers } = require('ethers');
 
 async function stakeValidator() {
-  const provider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+  const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nex-t1.ai');
   const wallet = new ethers.Wallet(process.env.VALIDATOR_PRIVATE_KEY, provider);
 
   const AGENTS_CONTRACT = '0x1234567890123456789012345678901234567890';

@@ -31,7 +31,7 @@
   ],
   "topbarCtaButton": {
     "name": "Launch App",
-    "url": "https://app.nexis.network"
+    "url": "https://nex-t1.ai"
   },
   "tabs": [
     {
@@ -56,7 +56,7 @@
     {
       "name": "Blog",
       "icon": "newspaper",
-      "url": "https://blog.nexis.network"
+      "url": "https://nex-t1.ai/blog"
     }
   ],
   "navigation": [

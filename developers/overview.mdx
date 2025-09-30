@@ -43,7 +43,7 @@ module.exports = {
   solidity: "0.8.20",
   networks: {
     nexis: {
-      url: "https://rpc.testnet.nexis.network",
+      url: "https://testnet-rpc.nex-t1.ai",
       chainId: 84532,
       accounts: [process.env.PRIVATE_KEY]
     }
@@ -68,7 +68,7 @@ cd my-project
 # Configure for Nexis
 # Edit foundry.toml:
 [rpc_endpoints]
-nexis = "https://rpc.testnet.nexis.network"
+nexis = "https://testnet-rpc.nex-t1.ai"
 
 # Deploy
 forge create src/MyContract.sol:MyContract \
@@ -99,7 +99,7 @@ import { ethers } from 'ethers';
 
 // Connect to Nexis
 const provider = new ethers.JsonRpcProvider(
-  'https://rpc.testnet.nexis.network'
+  'https://testnet-rpc.nex-t1.ai'
 );
 
 // Connect wallet
@@ -132,7 +132,7 @@ import { nexisTestnet } from './chains';
 export const config = createConfig({
   chains: [nexisTestnet],
   transports: {
-    [nexisTestnet.id]: http('https://rpc.testnet.nexis.network')
+    [nexisTestnet.id]: http('https://testnet-rpc.nex-t1.ai')
   }
 });
 
@@ -142,10 +142,10 @@ export const nexisTestnet = {
   name: 'Nexis Appchain Testnet',
   nativeCurrency: { name: 'Nexis', symbol: 'NZT', decimals: 18 },
   rpcUrls: {
-    default: { http: ['https://rpc.testnet.nexis.network'] }
+    default: { http: ['https://testnet-rpc.nex-t1.ai'] }
   },
   blockExplorers: {
-    default: { name: 'Nexis Explorer', url: 'https://explorer.testnet.nexis.network' }
+    default: { name: 'Nexis Explorer', url: 'https://testnet.nex-t1.ai' }
   }
 };
 
@@ -221,7 +221,7 @@ See [Smart Contracts](/developers/smart-contracts) for integration guides.
 
 ```bash
 # Start local node (optional)
-npx hardhat node --fork https://rpc.testnet.nexis.network
+npx hardhat node --fork https://testnet-rpc.nex-t1.ai
 
 # Run tests
 npx hardhat test
@@ -234,7 +234,7 @@ npx hardhat run scripts/deploy.js --network localhost
 
 ```bash
 # Get testnet tokens
-# Visit: https://faucet.nexis.network
+# Visit: https://faucet.nex-t1.ai
 
 # Deploy to testnet
 npx hardhat run scripts/deploy.js --network nexis

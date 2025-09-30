@@ -45,8 +45,8 @@ await window.ethereum.request({
       symbol: 'NZT',
       decimals: 18
     },
-    rpcUrls: ['https://rpc.testnet.nexis.network'],
-    blockExplorerUrls: ['https://explorer.testnet.nexis.network']
+    rpcUrls: ['https://testnet-rpc.nex-t1.ai'],
+    blockExplorerUrls: ['https://testnet.nex-t1.ai']
   }]
 });
 ```
@@ -70,13 +70,13 @@ module.exports = {
   },
   networks: {
     nexisTestnet: {
-      url: process.env.NEXIS_RPC_URL || "https://rpc.testnet.nexis.network",
+      url: process.env.NEXIS_RPC_URL || "https://testnet-rpc.nex-t1.ai",
       chainId: 84532,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       gasPrice: 1000000000, // 1 gwei
     },
     nexisMainnet: {
-      url: process.env.NEXIS_MAINNET_RPC || "https://rpc.nexis.network",
+      url: process.env.NEXIS_MAINNET_RPC || "https://rpc.nex-t1.ai",
       chainId: 4321, // Update when mainnet launches
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       gasPrice: 1000000000,
@@ -92,7 +92,7 @@ module.exports = {
         chainId: 84532,
         urls: {
           apiURL: "https://api.explorer.testnet.nexis.network/api",
-          browserURL: "https://explorer.testnet.nexis.network"
+          browserURL: "https://testnet.nex-t1.ai"
         }
       }
     ]
@@ -113,8 +113,8 @@ optimizer = true
 optimizer_runs = 200
 
 [rpc_endpoints]
-nexis_testnet = "https://rpc.testnet.nexis.network"
-nexis_mainnet = "https://rpc.nexis.network"
+nexis_testnet = "https://testnet-rpc.nex-t1.ai"
+nexis_mainnet = "https://rpc.nex-t1.ai"
 
 [etherscan]
 nexis_testnet = { key = "${NEXIS_EXPLORER_API_KEY}", chain = 84532, url = "https://api.explorer.testnet.nexis.network/api" }
@@ -137,18 +137,18 @@ export const nexisTestnet = defineChain({
   },
   rpcUrls: {
     default: {
-      http: ['https://rpc.testnet.nexis.network'],
-      webSocket: ['wss://ws.testnet.nexis.network'],
+      http: ['https://testnet-rpc.nex-t1.ai'],
+      webSocket: ['wss://testnet-ws.nex-t1.ai'],
     },
     public: {
-      http: ['https://rpc.testnet.nexis.network'],
-      webSocket: ['wss://ws.testnet.nexis.network'],
+      http: ['https://testnet-rpc.nex-t1.ai'],
+      webSocket: ['wss://testnet-ws.nex-t1.ai'],
     },
   },
   blockExplorers: {
     default: {
       name: 'Nexis Explorer',
-      url: 'https://explorer.testnet.nexis.network',
+      url: 'https://testnet.nex-t1.ai',
     },
   },
   contracts: {
@@ -202,7 +202,7 @@ npx hardhat init
 # Create .env file
 cat > .env << EOF
 PRIVATE_KEY=your_private_key_here
-NEXIS_RPC_URL=https://rpc.testnet.nexis.network
+NEXIS_RPC_URL=https://testnet-rpc.nex-t1.ai
 NEXIS_EXPLORER_API_KEY=your_explorer_api_key
 EOF
 
@@ -228,7 +228,7 @@ forge install nexis-network/nexis-contracts
 # Create .env file
 cat > .env << EOF
 PRIVATE_KEY=your_private_key_here
-NEXIS_RPC_URL=https://rpc.testnet.nexis.network
+NEXIS_RPC_URL=https://testnet-rpc.nex-t1.ai
 NEXIS_EXPLORER_API_KEY=your_explorer_api_key
 EOF
 

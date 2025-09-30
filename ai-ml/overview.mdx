@@ -535,7 +535,7 @@ import { ethers } from "ethers";
 import { NexisAgents, NexisTasks } from "@nexis-network/sdk";
 
 // Connect to Nexis Appchain
-const provider = new ethers.providers.JsonRpcProvider("https://rpc.nexis.network");
+const provider = new ethers.providers.JsonRpcProvider("https://rpc.nex-t1.ai");
 const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 
 // Initialize contracts
@@ -559,7 +559,7 @@ from web3 import Web3
 from nexis_sdk import NexisAgents, NexisTasks
 
 # Connect to Nexis Appchain
-w3 = Web3(Web3.HTTPProvider("https://rpc.nexis.network"))
+w3 = Web3(Web3.HTTPProvider("https://rpc.nex-t1.ai"))
 account = w3.eth.account.from_key(os.environ["PRIVATE_KEY"])
 
 # Initialize contracts

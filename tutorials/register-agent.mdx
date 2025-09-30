@@ -116,7 +116,7 @@ PRIVATE_KEY=your_wallet_private_key_here
 AGENT_ADDRESS=your_wallet_address_here
 
 # Network Configuration
-NEXIS_RPC_URL=https://rpc.testnet.nexis.network
+NEXIS_RPC_URL=https://testnet-rpc.nex-t1.ai
 CHAIN_ID=84532
 
 # Contract Addresses (Nexis Testnet)
@@ -334,7 +334,7 @@ async function registerAgent() {
   console.log('   Registered At:', new Date(Number(agentData.registeredAt) * 1000).toISOString());
 
   console.log('\n🔗 View on Explorer:');
-  console.log(`   https://explorer.testnet.nexis.network/address/${wallet.address}`);
+  console.log(`   https://testnet.nex-t1.ai/address/${wallet.address}`);
 
   console.log('\n✅ Registration complete! Your agent is now ready to claim tasks.');
 }
@@ -581,7 +581,7 @@ async function submitInference(taskId: number) {
   console.log('   Bond returned: 10 NZT');
 
   console.log('\n🔗 View transaction:');
-  console.log(`   https://explorer.testnet.nexis.network/tx/${proofTx.hash}`);
+  console.log(`   https://testnet.nex-t1.ai/tx/${proofTx.hash}`);
 }
 
 // Usage: ts-node src/submit-inference.ts <taskId>

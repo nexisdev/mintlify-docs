@@ -34,11 +34,11 @@ Get free testnet tokens to start building on Nexis Appchain. This guide covers a
 | **Network Name** | Nexis Appchain Testnet |
 | **Chain ID** | 84532 |
 | **Currency Symbol** | NZT |
-| **RPC URL** | `https://rpc.testnet.nexis.network` |
-| **WebSocket** | `wss://ws.testnet.nexis.network` |
-| **Block Explorer** | `https://explorer.testnet.nexis.network` |
-| **Bridge** | `https://bridge.testnet.nexis.network` |
-| **Faucet** | `https://faucet.nexis.network` |
+| **RPC URL** | `https://testnet-rpc.nex-t1.ai` |
+| **WebSocket** | `wss://testnet-ws.nex-t1.ai` |
+| **Block Explorer** | `https://testnet.nex-t1.ai` |
+| **Bridge** | `https://bridge.nex-t1.ai` |
+| **Faucet** | `https://faucet.nex-t1.ai` |
 
 ### Base Sepolia (Parent Chain)
 
@@ -69,8 +69,8 @@ await window.ethereum.request({
       symbol: 'NZT',
       decimals: 18
     },
-    rpcUrls: ['https://rpc.testnet.nexis.network'],
-    blockExplorerUrls: ['https://explorer.testnet.nexis.network']
+    rpcUrls: ['https://testnet-rpc.nex-t1.ai'],
+    blockExplorerUrls: ['https://testnet.nex-t1.ai']
   }]
 });
 
@@ -102,10 +102,10 @@ Or visit [https://chainlist.org](https://chainlist.org) and search for "Nexis" o
 3. Click "Add a network manually"
 4. Enter the following:
    - Network Name: `Nexis Appchain Testnet`
-   - RPC URL: `https://rpc.testnet.nexis.network`
+   - RPC URL: `https://testnet-rpc.nex-t1.ai`
    - Chain ID: `84532`
    - Currency Symbol: `NZT`
-   - Block Explorer: `https://explorer.testnet.nexis.network`
+   - Block Explorer: `https://testnet.nex-t1.ai`
 5. Click "Save"
 
 **Base Sepolia:**
@@ -119,7 +119,7 @@ Or visit [https://chainlist.org](https://chainlist.org) and search for "Nexis" o
 
 ```javascript
 // Rabby auto-detects networks
-// Just connect to https://app.nexis.network and approve the network switch
+// Just connect to https://nex-t1.ai and approve the network switch
 ```
 
 ### WalletConnect
@@ -249,7 +249,7 @@ Once you have Base Sepolia ETH, bridge it to Nexis:
 
 <Steps>
   <Step title="Visit Bridge">
-    Go to [https://bridge.testnet.nexis.network](https://bridge.testnet.nexis.network)
+    Go to [https://bridge.nex-t1.ai](https://bridge.nex-t1.ai)
   </Step>
   <Step title="Connect Wallet">
     Connect MetaMask or your preferred wallet
@@ -309,7 +309,7 @@ bridgeToNexis('0.1');
 // Check bridge transaction status
 async function checkBridgeStatus(l1TxHash) {
   const response = await fetch(
-    `https://bridge.testnet.nexis.network/api/status/${l1TxHash}`
+    `https://bridge.nex-t1.ai/api/status/${l1TxHash}`
   );
 
   const status = await response.json();
@@ -343,7 +343,7 @@ async function waitForBridge(l1TxHash) {
 
 ### Official Nexis Faucet
 
-**URL:** [https://faucet.nexis.network](https://faucet.nexis.network)
+**URL:** [https://faucet.nex-t1.ai](https://faucet.nex-t1.ai)
 
 <Steps>
   <Step title="Connect Wallet">
@@ -369,7 +369,7 @@ async function waitForBridge(l1TxHash) {
 
 ```bash
 # Request tokens via API
-curl -X POST https://faucet.nexis.network/api/claim \
+curl -X POST https://faucet.nex-t1.ai/api/claim \
   -H "Content-Type: application/json" \
   -d '{
     "address": "0xYourAddress",
@@ -388,7 +388,7 @@ curl -X POST https://faucet.nexis.network/api/claim \
 ```javascript
 // JavaScript faucet integration
 async function claimFromFaucet(address) {
-  const response = await fetch('https://faucet.nexis.network/api/claim', {
+  const response = await fetch('https://faucet.nex-t1.ai/api/claim', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -417,7 +417,7 @@ import time
 
 def claim_faucet(address: str) -> dict:
     """Claim testnet tokens from Nexis faucet"""
-    url = 'https://faucet.nexis.network/api/claim'
+    url = 'https://faucet.nex-t1.ai/api/claim'
     payload = {'address': address}
 
     response = requests.post(url, json=payload)
@@ -457,7 +457,7 @@ ADDRESSES=(
   "0x9876543210987654321098765432109876543210"
 )
 
-FAUCET_URL="https://faucet.nexis.network/api/claim"
+FAUCET_URL="https://faucet.nex-t1.ai/api/claim"
 
 for address in "${ADDRESSES[@]}"; do
   echo "Claiming for $address..."
@@ -566,7 +566,7 @@ class FaucetManager {
 
 // Usage
 const faucet = new FaucetManager({
-  url: 'https://faucet.nexis.network',
+  url: 'https://faucet.nex-t1.ai',
   rateLimit: 86400, // 24 hours
   amount: '10',
 });
@@ -585,7 +585,7 @@ faucet.autoClaimDaily(addresses);
 
 ```bash
 # Using curl
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -606,7 +606,7 @@ curl -X POST https://rpc.testnet.nexis.network \
 // Using ethers.js
 import { ethers } from 'ethers';
 
-const provider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nex-t1.ai');
 
 async function checkBalance(address) {
   const balance = await provider.getBalance(address);
@@ -621,7 +621,7 @@ checkBalance('0xYourAddress');
 # Using web3.py
 from web3 import Web3
 
-w3 = Web3(Web3.HTTPProvider('https://rpc.testnet.nexis.network'))
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nex-t1.ai'))
 
 def check_balance(address: str):
     balance_wei = w3.eth.get_balance(address)
@@ -638,7 +638,7 @@ check_balance('0xYourAddress')
 // Real-time balance monitoring
 import { ethers } from 'ethers';
 
-const provider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nex-t1.ai');
 
 async function monitorBalance(address) {
   let lastBalance = await provider.getBalance(address);
@@ -700,7 +700,7 @@ async function debugBridge(l1TxHash) {
 
   // 2. Check bridge relay status
   const bridgeStatus = await fetch(
-    `https://bridge.testnet.nexis.network/api/status/${l1TxHash}`
+    `https://bridge.nex-t1.ai/api/status/${l1TxHash}`
   ).then(r => r.json());
 
   console.log('Bridge status:', bridgeStatus);
@@ -719,7 +719,7 @@ async function debugBridge(l1TxHash) {
 1. Manually add network using instructions above
 2. Clear MetaMask cache: Settings → Advanced → Reset Account
 3. Try importing via Chainlist.org
-4. Check RPC endpoint is reachable: `curl https://rpc.testnet.nexis.network`
+4. Check RPC endpoint is reachable: `curl https://testnet-rpc.nex-t1.ai`
 
 ### Issue: Insufficient Gas for Transactions
 
@@ -728,7 +728,7 @@ async function debugBridge(l1TxHash) {
 ```javascript
 // Calculate required gas
 async function estimateGasNeeded(contractAddress, calldata) {
-  const provider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+  const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nex-t1.ai');
 
   // Estimate gas
   const gasLimit = await provider.estimateGas({
@@ -751,7 +751,7 @@ async function estimateGasNeeded(contractAddress, calldata) {
 
 // Check if you have enough
 async function canAffordTransaction(address, contractAddress, calldata) {
-  const provider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+  const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nex-t1.ai');
 
   const balance = await provider.getBalance(address);
   const cost = await estimateGasNeeded(contractAddress, calldata);
@@ -760,7 +760,7 @@ async function canAffordTransaction(address, contractAddress, calldata) {
     const shortfall = cost - balance;
     console.log(`❌ Insufficient balance`);
     console.log(`Need ${ethers.formatEther(shortfall)} more NZT`);
-    console.log(`Visit: https://faucet.nexis.network`);
+    console.log(`Visit: https://faucet.nex-t1.ai`);
     return false;
   }
 
@@ -776,7 +776,7 @@ async function canAffordTransaction(address, contractAddress, calldata) {
 ```javascript
 // Reset nonce
 async function fixNonce(address) {
-  const provider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+  const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nex-t1.ai');
 
   // Get pending transaction count
   const pendingNonce = await provider.getTransactionCount(address, 'pending');
@@ -901,13 +901,13 @@ contract TestTokenSwap {
 ## Resources
 
 <CardGroup cols={2}>
-  <Card title="Official Faucet" icon="faucet" href="https://faucet.nexis.network">
+  <Card title="Official Faucet" icon="faucet" href="https://faucet.nex-t1.ai">
     Get NZT testnet tokens
   </Card>
-  <Card title="Bridge" icon="bridge" href="https://bridge.testnet.nexis.network">
+  <Card title="Bridge" icon="bridge" href="https://bridge.nex-t1.ai">
     Bridge from Base Sepolia
   </Card>
-  <Card title="Block Explorer" icon="magnifying-glass" href="https://explorer.testnet.nexis.network">
+  <Card title="Block Explorer" icon="magnifying-glass" href="https://testnet.nex-t1.ai">
     Track your transactions
   </Card>
   <Card title="Discord Support" icon="discord" href="https://discord.gg/nexis">

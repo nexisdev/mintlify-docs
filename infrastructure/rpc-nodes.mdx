@@ -11,13 +11,13 @@ Nexis Appchain provides robust RPC infrastructure for developers to interact wit
 
 <CardGroup cols={2}>
   <Card title="Mainnet RPC" icon="network-wired">
-    `https://rpc.nexis.network` (Coming Soon)
+    `https://rpc.nex-t1.ai` (Coming Soon)
   </Card>
   <Card title="Testnet RPC" icon="flask">
-    `https://rpc.testnet.nexis.network`
+    `https://testnet-rpc.nex-t1.ai`
   </Card>
   <Card title="WebSocket" icon="plug">
-    `wss://ws.testnet.nexis.network`
+    `wss://testnet-ws.nex-t1.ai`
   </Card>
   <Card title="Rate Limits" icon="gauge-high">
     100 requests/second (free tier)
@@ -30,10 +30,10 @@ Nexis Appchain provides robust RPC infrastructure for developers to interact wit
 const { ethers } = require('ethers');
 
 // HTTP Provider
-const provider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nex-t1.ai');
 
 // WebSocket Provider (for subscriptions)
-const wsProvider = new ethers.WebSocketProvider('wss://ws.testnet.nexis.network');
+const wsProvider = new ethers.WebSocketProvider('wss://testnet-ws.nex-t1.ai');
 
 // Get latest block
 const blockNumber = await provider.getBlockNumber();
@@ -341,7 +341,7 @@ const isSynced = latestBlock === syncStatus.unsafe_l2.number;
 ```javascript
 // WebSocket subscription
 const wsProvider = new ethers.WebSocketProvider(
-  'wss://ws.testnet.nexis.network'
+  'wss://testnet-ws.nex-t1.ai'
 );
 
 wsProvider.on('block', (blockNumber) => {
@@ -421,7 +421,7 @@ console.log('Total cost:', ethers.formatEther(totalCost), 'ETH');
 ### Rate Limit Headers
 
 ```bash
-curl -i https://rpc.testnet.nexis.network \
+curl -i https://testnet-rpc.nex-t1.ai \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
@@ -524,7 +524,7 @@ curl -X POST http://localhost:8545 \
 ```javascript
 // Use connection pooling
 const provider = new ethers.JsonRpcProvider(
-  'https://rpc.testnet.nexis.network',
+  'https://testnet-rpc.nex-t1.ai',
   {
     staticNetwork: ethers.Network.from(84532),
     batchMaxCount: 100, // Batch up to 100 requests
@@ -613,7 +613,7 @@ try {
 
 ```bash
 # Check if RPC is healthy
-curl https://rpc.testnet.nexis.network/health
+curl https://testnet-rpc.nex-t1.ai/health
 
 # Response:
 {

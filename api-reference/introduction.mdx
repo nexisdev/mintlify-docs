@@ -40,19 +40,19 @@ This reference covers all available methods, parameters, return values, events, 
 ### Mainnet
 
 ```
-RPC URL: https://rpc.nexis.network
+RPC URL: https://rpc.nex-t1.ai
 Chain ID: 2370
 Currency: NZT
-Block Explorer: https://explorer.nexis.network
+Block Explorer: https://explorer.nex-t1.ai
 ```
 
 ### Testnet
 
 ```
-RPC URL: https://testnet-rpc.nexis.network
+RPC URL: https://testnet-rpc.nex-t1.ai
 Chain ID: 2371
 Currency: NZT
-Block Explorer: https://testnet-explorer.nexis.network
+Block Explorer: https://testnet.nex-t1.ai
 ```
 
 ### Local Development
@@ -197,7 +197,7 @@ import { ethers } from 'ethers';
 
 // Connect to Nexis testnet
 const provider = new ethers.JsonRpcProvider(
-  'https://testnet-rpc.nexis.network'
+  'https://testnet-rpc.nex-t1.ai'
 );
 
 // Get chain ID
@@ -214,7 +214,7 @@ const { ethers } = require('ethers');
 
 // Connect to Nexis testnet
 const provider = new ethers.providers.JsonRpcProvider(
-  'https://testnet-rpc.nexis.network'
+  'https://testnet-rpc.nex-t1.ai'
 );
 
 // Get chain ID
@@ -226,7 +226,7 @@ console.log('Chain ID:', network.chainId);
 from web3 import Web3
 
 # Connect to Nexis testnet
-w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nexis.network'))
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nex-t1.ai'))
 
 # Verify connection
 print('Connected:', w3.is_connected())
@@ -245,7 +245,7 @@ import (
 
 func main() {
     // Connect to Nexis testnet
-    client, err := ethclient.Dial("https://testnet-rpc.nexis.network")
+    client, err := ethclient.Dial("https://testnet-rpc.nex-t1.ai")
     if err != nil {
         panic(err)
     }
@@ -273,7 +273,7 @@ use ethers::prelude::*;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Connect to Nexis testnet
     let provider = Provider::<Http>::try_from(
-        "https://testnet-rpc.nexis.network"
+        "https://testnet-rpc.nex-t1.ai"
     )?;
 
     // Get chain ID
@@ -304,7 +304,7 @@ const agentsABI = [
 ];
 
 // Connect wallet
-const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nexis.network');
+const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nex-t1.ai');
 const wallet = new ethers.Wallet(privateKey, provider);
 
 // Contract instance
@@ -333,7 +333,7 @@ from web3 import Web3
 import json
 
 # Connect to network
-w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nexis.network'))
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nex-t1.ai'))
 
 # Contract setup
 agents_address = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
@@ -1025,7 +1025,7 @@ class RealtimeAIMonitor {
 }
 
 // Usage
-const monitor = new RealtimeAIMonitor('wss://testnet-ws.nexis.network', {
+const monitor = new RealtimeAIMonitor('wss://testnet-ws.nex-t1.ai', {
   agents: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
   tasks: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
   subscriptions: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9'
@@ -1386,6 +1386,6 @@ try {
 Need help? Join our developer community:
 - Discord: https://discord.gg/nexis
 - GitHub: https://github.com/nexis-network
-- Documentation: https://docs.nexis.network
-- Email: developers@nexis.network
+- Documentation: https://nex-t1.ai
+- Email: team@nex-t1.ai
 </Info>

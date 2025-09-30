@@ -12,13 +12,13 @@ Complete reference for all RPC methods available on Nexis Appchain, including st
 
 ```bash
 # HTTP RPC endpoint
-https://rpc.testnet.nexis.network
+https://testnet-rpc.nex-t1.ai
 
 # WebSocket endpoint
-wss://ws.testnet.nexis.network
+wss://testnet-ws.nex-t1.ai
 
 # Example request
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -32,12 +32,12 @@ curl -X POST https://rpc.testnet.nexis.network \
 
 <CardGroup cols={2}>
   <Card title="HTTP RPC" icon="server">
-    `https://rpc.testnet.nexis.network`
+    `https://testnet-rpc.nex-t1.ai`
 
     Rate Limit: 100 req/s
   </Card>
   <Card title="WebSocket" icon="bolt">
-    `wss://ws.testnet.nexis.network`
+    `wss://testnet-ws.nex-t1.ai`
 
     Real-time subscriptions
   </Card>
@@ -62,7 +62,7 @@ curl -X POST https://rpc.testnet.nexis.network \
 Get the latest block number.
 
 ```bash
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -104,7 +104,7 @@ Get block information by block number.
 2. `Boolean` - If true, returns full transaction objects; if false, only transaction hashes
 
 ```bash
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -195,7 +195,7 @@ const block = await provider.getBlock('0xabc123...');
 Get transaction count in a block.
 
 ```bash
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -219,7 +219,7 @@ console.log('Transactions in latest block:', parseInt(txCount, 16));
 Get transaction details by hash.
 
 ```bash
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -275,7 +275,7 @@ console.log('Transaction:', {
 Get transaction receipt (confirmation status, logs, gas used).
 
 ```bash
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -346,7 +346,7 @@ console.log('Confirmed!');
 cast send 0x5678... \
   --value 0.1ether \
   --private-key $PRIVATE_KEY \
-  --rpc-url https://rpc.testnet.nexis.network
+  --rpc-url https://testnet-rpc.nex-t1.ai
 ```
 
 ```python
@@ -354,7 +354,7 @@ cast send 0x5678... \
 from web3 import Web3
 from eth_account import Account
 
-w3 = Web3(Web3.HTTPProvider('https://rpc.testnet.nexis.network'))
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nex-t1.ai'))
 account = Account.from_key('0xYourPrivateKey')
 
 tx = {
@@ -392,7 +392,7 @@ const pendingNonce = await provider.getTransactionCount('0x1234...', 'pending');
 ```
 
 ```bash
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -416,7 +416,7 @@ console.log('Balance:', ethers.formatEther(balance), 'NZT');
 ```
 
 ```bash
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -454,7 +454,7 @@ console.log('Is contract:', code !== '0x');
 ```
 
 ```bash
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -504,7 +504,7 @@ const result = await provider.call({
 ```bash
 # Using cast
 cast call 0x742d... "getAgent(uint256)" 1 \
-  --rpc-url https://rpc.testnet.nexis.network
+  --rpc-url https://testnet-rpc.nex-t1.ai
 ```
 
 ```python
@@ -534,7 +534,7 @@ const gasLimit = gasEstimate * 110n / 100n;
 ```
 
 ```bash
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -564,7 +564,7 @@ console.log('Priority fee:', ethers.formatUnits(gasPrice.maxPriorityFeePerGas, '
 ```
 
 ```bash
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -655,7 +655,7 @@ for (const log of logs) {
 ```
 
 ```bash
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -745,7 +745,7 @@ console.log('Chain ID:', network.chainId); // 84532
 ```
 
 ```bash
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -771,7 +771,7 @@ curl -X POST https://rpc.testnet.nexis.network \
 Get network ID (same as chain ID).
 
 ```bash
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -788,7 +788,7 @@ curl -X POST https://rpc.testnet.nexis.network \
 Get client version information.
 
 ```bash
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -869,7 +869,7 @@ console.log('Sync status:', {
 Get rollup configuration.
 
 ```bash
-curl -X POST https://rpc.testnet.nexis.network \
+curl -X POST https://testnet-rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -927,7 +927,7 @@ Connect via WebSocket for real-time events.
 ```javascript
 import { ethers } from 'ethers';
 
-const wsProvider = new ethers.WebSocketProvider('wss://ws.testnet.nexis.network');
+const wsProvider = new ethers.WebSocketProvider('wss://testnet-ws.nex-t1.ai');
 
 // Subscribe to new blocks
 wsProvider.on('block', (blockNumber) => {
@@ -992,7 +992,7 @@ import websockets
 import json
 
 async def subscribe_blocks():
-    uri = "wss://ws.testnet.nexis.network"
+    uri = "wss://testnet-ws.nex-t1.ai"
 
     async with websockets.connect(uri) as ws:
         # Subscribe to new blocks
@@ -1052,7 +1052,7 @@ const batchRequest = [
   }
 ];
 
-const response = await fetch('https://rpc.testnet.nexis.network', {
+const response = await fetch('https://testnet-rpc.nex-t1.ai', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify(batchRequest)
@@ -1127,7 +1127,7 @@ class RateLimitedProvider extends ethers.JsonRpcProvider {
 
 // Usage
 const provider = new RateLimitedProvider(
-  'https://rpc.testnet.nexis.network',
+  'https://testnet-rpc.nex-t1.ai',
   10 // 10 requests per second
 );
 ```
@@ -1268,11 +1268,11 @@ class NexisRPCClient {
 
   constructor() {
     this.httpProvider = new ethers.JsonRpcProvider(
-      'https://rpc.testnet.nexis.network'
+      'https://testnet-rpc.nex-t1.ai'
     );
 
     this.wsProvider = new ethers.WebSocketProvider(
-      'wss://ws.testnet.nexis.network'
+      'wss://testnet-ws.nex-t1.ai'
     );
   }
 

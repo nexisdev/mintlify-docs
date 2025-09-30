@@ -81,8 +81,8 @@ Or use this web3 code:
               symbol: 'NZT',
               decimals: 18
             },
-            rpcUrls: ['https://rpc.testnet.nexis.network'],
-            blockExplorerUrls: ['https://explorer.testnet.nexis.network']
+            rpcUrls: ['https://testnet-rpc.nex-t1.ai'],
+            blockExplorerUrls: ['https://testnet.nex-t1.ai']
           }]
         });
 
@@ -116,10 +116,10 @@ Add the network manually in MetaMask:
   <Step title="Enter Network Details">
     ```
     Network Name: Nexis Appchain Testnet
-    RPC URL: https://rpc.testnet.nexis.network
+    RPC URL: https://testnet-rpc.nex-t1.ai
     Chain ID: 84532
     Currency Symbol: NZT
-    Block Explorer: https://explorer.testnet.nexis.network
+    Block Explorer: https://testnet.nex-t1.ai
     ```
   </Step>
 
@@ -134,7 +134,7 @@ Test your connection using curl:
 
 ```bash
 # Check if RPC is responding
-curl https://rpc.testnet.nexis.network \
+curl https://testnet-rpc.nex-t1.ai \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{
@@ -157,8 +157,8 @@ curl https://rpc.testnet.nexis.network \
 
 Visit the official Nexis Faucet:
 
-<Card title="Nexis Faucet" icon="faucet" href="https://faucet.nexis.network">
-  https://faucet.nexis.network
+<Card title="Nexis Faucet" icon="faucet" href="https://faucet.nex-t1.ai">
+  https://faucet.nex-t1.ai
 </Card>
 
 ### Step 2: Connect Your Wallet
@@ -198,7 +198,7 @@ Visit the official Nexis Faucet:
 
 ```bash
 # Basic request
-curl -X POST https://faucet.nexis.network/api/claim \
+curl -X POST https://faucet.nex-t1.ai/api/claim \
   -H "Content-Type: application/json" \
   -d '{
     "address": "0xYourAddressHere",
@@ -206,7 +206,7 @@ curl -X POST https://faucet.nexis.network/api/claim \
   }'
 
 # With authentication token (for higher limits)
-curl -X POST https://faucet.nexis.network/api/claim \
+curl -X POST https://faucet.nex-t1.ai/api/claim \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_DISCORD_TOKEN" \
   -d '{
@@ -254,7 +254,7 @@ curl -X POST https://faucet.nexis.network/api/claim \
 
 **Check on Explorer:**
 ```
-https://explorer.testnet.nexis.network/address/YOUR_ADDRESS
+https://testnet.nex-t1.ai/address/YOUR_ADDRESS
 ```
 
 **Check via RPC:**
@@ -262,7 +262,7 @@ https://explorer.testnet.nexis.network/address/YOUR_ADDRESS
 # Replace with your address
 ADDRESS="0xYourAddressHere"
 
-curl https://rpc.testnet.nexis.network \
+curl https://testnet-rpc.nex-t1.ai \
   -X POST \
   -H "Content-Type: application/json" \
   -d "{
@@ -358,7 +358,7 @@ Once you have Sepolia ETH, bridge it to Base Sepolia:
 
 ```bash
 # Option 1: Web Interface
-Visit: https://bridge.nexis.network
+Visit: https://bridge.nex-t1.ai
 
 # Option 2: CLI Tool
 npx @nexis/bridge-cli deposit \
@@ -411,7 +411,7 @@ async function requestNexisFaucet(address, amount = '10') {
   console.log('🚰 Requesting', amount, 'NZT from faucet...');
 
   try {
-    const response = await axios.post('https://faucet.nexis.network/api/claim', {
+    const response = await axios.post('https://faucet.nex-t1.ai/api/claim', {
       address: address,
       amount: amount
     });
@@ -421,7 +421,7 @@ async function requestNexisFaucet(address, amount = '10') {
       console.log('   Amount:', ethers.formatEther(response.data.amount), 'NZT');
 
       // Wait for confirmation
-      const provider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+      const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nex-t1.ai');
       console.log('   Waiting for confirmation...');
 
       await provider.waitForTransaction(response.data.txHash);
@@ -484,7 +484,7 @@ async function checkBalances(address) {
 
   // Nexis Testnet
   console.log('\n🔵 Nexis Appchain Testnet:');
-  const nexisProvider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+  const nexisProvider = new ethers.JsonRpcProvider('https://testnet-rpc.nex-t1.ai');
   const nexisBalance = await nexisProvider.getBalance(address);
   console.log('   NZT Balance:', ethers.formatEther(nexisBalance));
 
@@ -515,7 +515,7 @@ async function checkBalances(address) {
   const minRequired = ethers.parseEther('1');
   if (nexisBalance < minRequired) {
     console.log('\n⚠️  Low NZT balance! Visit the faucet:');
-    console.log('   https://faucet.nexis.network');
+    console.log('   https://faucet.nex-t1.ai');
   }
 }
 
@@ -562,7 +562,7 @@ checkBalances(address);
 
 **Verify on explorer:**
 ```
-https://explorer.testnet.nexis.network/address/YOUR_ADDRESS
+https://testnet.nex-t1.ai/address/YOUR_ADDRESS
 ```
   </Accordion>
 
@@ -573,7 +573,7 @@ https://explorer.testnet.nexis.network/address/YOUR_ADDRESS
 - Update MetaMask to latest version
 - Clear browser cache
 - Try manual addition instead of automatic
-- Check RPC URL is exactly: `https://rpc.testnet.nexis.network`
+- Check RPC URL is exactly: `https://testnet-rpc.nex-t1.ai`
 - Verify Chain ID is exactly: `84532`
   </Accordion>
 
@@ -586,7 +586,7 @@ https://explorer.testnet.nexis.network/address/YOUR_ADDRESS
 https://sepolia.basescan.org/tx/YOUR_TX_HASH
 
 # Check if it arrived on Nexis
-https://explorer.testnet.nexis.network/address/YOUR_ADDRESS
+https://testnet.nex-t1.ai/address/YOUR_ADDRESS
 ```
 
 **Common causes:**
@@ -602,10 +602,10 @@ https://explorer.testnet.nexis.network/address/YOUR_ADDRESS
 **Test connectivity:**
 ```bash
 # Test main RPC
-curl -i https://rpc.testnet.nexis.network
+curl -i https://testnet-rpc.nex-t1.ai
 
 # Try backup RPC
-curl -i https://rpc-backup.testnet.nexis.network
+curl -i https://testnet-rpc.nex-t1.ai
 ```
 
 **Solutions:**

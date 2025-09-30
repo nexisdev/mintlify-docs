@@ -87,7 +87,7 @@ contract FeeManager {
 <CodeGroup>
 
 ```javascript ethers.js
-const provider = new ethers.JsonRpcProvider('https://rpc.nexis.network');
+const provider = new ethers.JsonRpcProvider('https://rpc.nex-t1.ai');
 
 // Get current fee data
 const feeData = await provider.getFeeData();
@@ -113,7 +113,7 @@ console.log(`Total Cost: ${ethers.formatEther(totalCost)} NZT`);
 ```python Web3.py
 from web3 import Web3
 
-w3 = Web3(Web3.HTTPProvider('https://rpc.nexis.network'))
+w3 = Web3(Web3.HTTPProvider('https://rpc.nex-t1.ai'))
 
 # Get current base fee
 latest_block = w3.eth.get_block('latest')
@@ -137,7 +137,7 @@ print(f"Total Cost: {w3.from_wei(total_fee, 'ether')} NZT")
 
 ```bash cURL
 # Get current gas price
-curl -X POST https://rpc.nexis.network \
+curl -X POST https://rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -149,7 +149,7 @@ curl -X POST https://rpc.nexis.network \
 # Response: {"jsonrpc":"2.0","id":1,"result":"0x3b9aca00"} // 1 gwei
 
 # Estimate gas for transaction
-curl -X POST https://rpc.nexis.network \
+curl -X POST https://rpc.nex-t1.ai \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -715,7 +715,7 @@ contract FeeGovernance {
 <CodeGroup>
 
 ```javascript Track Fee Metrics
-const provider = new ethers.JsonRpcProvider('https://rpc.nexis.network');
+const provider = new ethers.JsonRpcProvider('https://rpc.nex-t1.ai');
 
 async function trackFees() {
   // Get latest block
@@ -762,7 +762,7 @@ import asyncio
 from web3 import Web3
 from datetime import datetime
 
-w3 = Web3(Web3.HTTPProvider('https://rpc.nexis.network'))
+w3 = Web3(Web3.HTTPProvider('https://rpc.nex-t1.ai'))
 
 async def analyze_fees(hours=24):
     """Analyze fees over last N hours"""
@@ -811,7 +811,7 @@ for key, value in metrics.items():
 
 Track live fee metrics:
 
-<Card title="Fee Analytics Dashboard" icon="chart-line" href="https://analytics.nexis.network/fees">
+<Card title="Fee Analytics Dashboard" icon="chart-line" href="https://nex-t1.ai/fees">
   Real-time fee tracking, vault balances, and historical trends
 </Card>
 
@@ -852,7 +852,7 @@ Track live fee metrics:
   <Card title="Staking Rewards" icon="lock" href="/tokenomics/staking">
     Earn from fee distribution through staking
   </Card>
-  <Card title="Fee Analytics" icon="chart-line" href="https://analytics.nexis.network/fees">
+  <Card title="Fee Analytics" icon="chart-line" href="https://nex-t1.ai/fees">
     Live fee tracking and historical data
   </Card>
   <Card title="Gas Optimization Guide" icon="gauge-high" href="/developers/gas-optimization">

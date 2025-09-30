@@ -103,7 +103,7 @@ console.log("  Rewards:", ethers.formatUnits(usdcBalances.rewards, 6), "USDC");
 ```python Python
 from web3 import Web3
 
-w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nexis.network'))
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nex-t1.ai'))
 treasury = w3.eth.contract(address=treasury_address, abi=treasury_abi)
 
 # Query ETH pool balances
@@ -711,7 +711,7 @@ Here's a complete example of distributing rewards to top-performing agents:
 import { ethers } from 'ethers';
 
 // Setup
-const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nexis.network');
+const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nex-t1.ai');
 const rewardsManager = new ethers.Wallet(privateKey, provider);
 
 const treasuryAddress = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0';
@@ -817,7 +817,7 @@ from web3 import Web3
 import json
 
 # Setup
-w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nexis.network'))
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nex-t1.ai'))
 treasury = w3.eth.contract(address=treasury_address, abi=treasury_abi)
 agents = w3.eth.contract(address=agents_address, abi=agents_abi)
 

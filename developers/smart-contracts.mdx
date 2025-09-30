@@ -67,7 +67,7 @@ import { ethers } from 'ethers';
 import AgentsABI from '@nexis-network/contracts/abi/Agents.json';
 import TasksABI from '@nexis-network/contracts/abi/Tasks.json';
 
-const provider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nex-t1.ai');
 const signer = new ethers.Wallet(privateKey, provider);
 
 const agents = new ethers.Contract(AGENTS_ADDRESS, AgentsABI, signer);
@@ -154,7 +154,7 @@ async function stakeForAgent(agentId) {
 from web3 import Web3
 import json
 
-w3 = Web3(Web3.HTTPProvider('https://rpc.testnet.nexis.network'))
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nex-t1.ai'))
 
 agents_contract = w3.eth.contract(
     address=AGENTS_ADDRESS,
@@ -1093,7 +1093,7 @@ class AIMarketplace {
 
   constructor(privateKey: string) {
     this.provider = new ethers.JsonRpcProvider(
-      'https://rpc.testnet.nexis.network'
+      'https://testnet-rpc.nex-t1.ai'
     );
     this.signer = new ethers.Wallet(privateKey, this.provider);
 
