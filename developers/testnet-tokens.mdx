@@ -1,0 +1,943 @@
+---
+title: 'Get Free Crypto Testnet Tokens | AI Blockchain Faucet'
+description: 'Complete guide to getting free testnet tokens for Nexis Appchain development including NZT faucet, Base Sepolia ETH, and bridge usage'
+icon: 'faucet-drip'
+---
+
+# Testnet Tokens & Faucet
+
+Get free testnet tokens to start building on Nexis Appchain. This guide covers all faucet options, network configuration, bridging, and troubleshooting.
+
+## Quick Start
+
+<Steps>
+  <Step title="Get Base Sepolia ETH">
+    Get ETH on Base Sepolia testnet from multiple faucets
+  </Step>
+  <Step title="Bridge to Nexis">
+    Bridge your Base Sepolia ETH to Nexis Appchain testnet
+  </Step>
+  <Step title="Get NZT Tokens">
+    Claim NZT tokens from the Nexis faucet for gas and staking
+  </Step>
+  <Step title="Start Building">
+    Deploy contracts and interact with AI agents
+  </Step>
+</Steps>
+
+## Network Information
+
+### Nexis Appchain Testnet
+
+| Parameter | Value |
+|-----------|-------|
+| **Network Name** | Nexis Appchain Testnet |
+| **Chain ID** | 84532 |
+| **Currency Symbol** | NZT |
+| **RPC URL** | `https://rpc.testnet.nexis.network` |
+| **WebSocket** | `wss://ws.testnet.nexis.network` |
+| **Block Explorer** | `https://explorer.testnet.nexis.network` |
+| **Bridge** | `https://bridge.testnet.nexis.network` |
+| **Faucet** | `https://faucet.nexis.network` |
+
+### Base Sepolia (Parent Chain)
+
+| Parameter | Value |
+|-----------|-------|
+| **Network Name** | Base Sepolia |
+| **Chain ID** | 84532 |
+| **Currency Symbol** | ETH |
+| **RPC URL** | `https://sepolia.base.org` |
+| **Block Explorer** | `https://sepolia.basescan.org` |
+| **Faucet** | Multiple options below |
+
+## Adding Networks to Your Wallet
+
+### MetaMask
+
+<Tabs>
+  <Tab title="Automatic (Recommended)">
+```javascript
+// Add Nexis Testnet
+await window.ethereum.request({
+  method: 'wallet_addEthereumChain',
+  params: [{
+    chainId: '0x14A34', // 84532 in hex
+    chainName: 'Nexis Appchain Testnet',
+    nativeCurrency: {
+      name: 'Nexis',
+      symbol: 'NZT',
+      decimals: 18
+    },
+    rpcUrls: ['https://rpc.testnet.nexis.network'],
+    blockExplorerUrls: ['https://explorer.testnet.nexis.network']
+  }]
+});
+
+// Add Base Sepolia
+await window.ethereum.request({
+  method: 'wallet_addEthereumChain',
+  params: [{
+    chainId: '0x14A34',
+    chainName: 'Base Sepolia',
+    nativeCurrency: {
+      name: 'Ether',
+      symbol: 'ETH',
+      decimals: 18
+    },
+    rpcUrls: ['https://sepolia.base.org'],
+    blockExplorerUrls: ['https://sepolia.basescan.org']
+  }]
+});
+```
+
+Or visit [https://chainlist.org](https://chainlist.org) and search for "Nexis" or "Base Sepolia"
+  </Tab>
+
+  <Tab title="Manual">
+**Nexis Appchain Testnet:**
+
+1. Open MetaMask
+2. Click network dropdown → "Add Network"
+3. Click "Add a network manually"
+4. Enter the following:
+   - Network Name: `Nexis Appchain Testnet`
+   - RPC URL: `https://rpc.testnet.nexis.network`
+   - Chain ID: `84532`
+   - Currency Symbol: `NZT`
+   - Block Explorer: `https://explorer.testnet.nexis.network`
+5. Click "Save"
+
+**Base Sepolia:**
+
+1. Follow same steps above
+2. Use Base Sepolia parameters from the table
+  </Tab>
+</Tabs>
+
+### Rabby Wallet
+
+```javascript
+// Rabby auto-detects networks
+// Just connect to https://app.nexis.network and approve the network switch
+```
+
+### WalletConnect
+
+Most WalletConnect-compatible wallets will auto-detect Nexis when you connect to a dApp. If not, use the manual MetaMask instructions.
+
+### Coinbase Wallet
+
+Coinbase Wallet has Base Sepolia built-in. For Nexis:
+
+1. Go to Settings → Networks
+2. Enable "Testnet Mode"
+3. Add Custom Network with Nexis parameters
+
+## Getting Base Sepolia ETH
+
+Nexis is built on Base, so you need Base Sepolia ETH first. Multiple faucet options available:
+
+### Option 1: Coinbase Wallet Faucet (Recommended)
+
+<Steps>
+  <Step title="Install Coinbase Wallet">
+    Download from [coinbase.com/wallet](https://www.coinbase.com/wallet)
+  </Step>
+  <Step title="Create/Import Wallet">
+    Set up your wallet and switch to Base Sepolia
+  </Step>
+  <Step title="Use Built-in Faucet">
+    Click "Receive" → "Get Testnet ETH" → Receive 0.1 ETH every 24 hours
+  </Step>
+</Steps>
+
+**Pros:**
+- Easy to use
+- No sign-up required
+- 0.1 ETH per day
+- Instant delivery
+
+**Cons:**
+- Requires Coinbase Wallet app
+
+### Option 2: Alchemy Base Sepolia Faucet
+
+**URL:** [https://www.alchemy.com/faucets/base-sepolia](https://www.alchemy.com/faucets/base-sepolia)
+
+<Steps>
+  <Step title="Create Alchemy Account">
+    Sign up at [alchemy.com](https://www.alchemy.com) (free)
+  </Step>
+  <Step title="Navigate to Faucet">
+    Go to faucets page and select Base Sepolia
+  </Step>
+  <Step title="Enter Wallet Address">
+    Paste your wallet address
+  </Step>
+  <Step title="Receive Tokens">
+    Get 0.5 ETH per day
+  </Step>
+</Steps>
+
+**Pros:**
+- Larger amount (0.5 ETH)
+- Reliable service
+- Professional platform
+
+**Cons:**
+- Requires account creation
+- May have verification delays
+
+### Option 3: QuickNode Base Sepolia Faucet
+
+**URL:** [https://faucet.quicknode.com/base/sepolia](https://faucet.quicknode.com/base/sepolia)
+
+<Steps>
+  <Step title="Connect Wallet">
+    Connect MetaMask or WalletConnect
+  </Step>
+  <Step title="Verify Twitter (Optional)">
+    Link Twitter for higher limits
+  </Step>
+  <Step title="Request ETH">
+    Receive 0.05 ETH per request
+  </Step>
+</Steps>
+
+**Rate Limits:**
+- Without Twitter: 0.05 ETH every 24 hours
+- With Twitter: 0.1 ETH every 12 hours
+
+### Option 4: Base Sepolia Community Faucets
+
+**LearnWeb3 Faucet:**
+- URL: [https://learnweb3.io/faucets/base_sepolia](https://learnweb3.io/faucets/base_sepolia)
+- Amount: 0.05 ETH
+- Rate Limit: Once per 24 hours
+
+**ThirdWeb Faucet:**
+- URL: [https://thirdweb.com/base-sepolia-testnet](https://thirdweb.com/base-sepolia-testnet)
+- Amount: 0.1 ETH
+- Requires: ThirdWeb account
+
+**Infura Faucet:**
+- URL: [https://www.infura.io/faucet/sepolia](https://www.infura.io/faucet/sepolia)
+- Amount: 0.5 ETH
+- Requires: Infura account
+
+### Option 5: Sepolia ETH → Base Sepolia Bridge
+
+If you already have Sepolia ETH, bridge it to Base Sepolia:
+
+```bash
+# Use the official Base bridge
+https://bridge.base.org/deposit
+
+# Steps:
+1. Connect wallet with Sepolia ETH
+2. Select amount to bridge
+3. Confirm transaction
+4. Wait ~10 minutes for bridge to complete
+```
+
+## Bridging to Nexis Testnet
+
+Once you have Base Sepolia ETH, bridge it to Nexis:
+
+### Using the Official Bridge
+
+<Steps>
+  <Step title="Visit Bridge">
+    Go to [https://bridge.testnet.nexis.network](https://bridge.testnet.nexis.network)
+  </Step>
+  <Step title="Connect Wallet">
+    Connect MetaMask or your preferred wallet
+  </Step>
+  <Step title="Switch to Base Sepolia">
+    Ensure you're on Base Sepolia network
+  </Step>
+  <Step title="Enter Amount">
+    Enter amount of ETH to bridge (minimum 0.01 ETH)
+  </Step>
+  <Step title="Approve & Bridge">
+    Confirm transaction and wait 2-5 minutes
+  </Step>
+  <Step title="Switch to Nexis">
+    Your bridged ETH will appear as NZT on Nexis
+  </Step>
+</Steps>
+
+### Bridge via Smart Contract
+
+```javascript
+// Using ethers.js v6
+import { ethers } from 'ethers';
+
+const BRIDGE_ADDRESS = '0x4200000000000000000000000000000000000010';
+const BRIDGE_ABI = [
+  'function depositETH(uint32 _minGasLimit, bytes calldata _extraData) payable'
+];
+
+async function bridgeToNexis(amountInEth) {
+  const provider = new ethers.BrowserProvider(window.ethereum);
+  const signer = await provider.getSigner();
+
+  const bridge = new ethers.Contract(BRIDGE_ADDRESS, BRIDGE_ABI, signer);
+
+  // Bridge ETH to Nexis
+  const tx = await bridge.depositETH(
+    200000, // minGasLimit
+    '0x', // extraData
+    {
+      value: ethers.parseEther(amountInEth)
+    }
+  );
+
+  console.log('Bridge transaction:', tx.hash);
+  await tx.wait();
+  console.log('Bridge complete! Switch to Nexis network.');
+}
+
+// Bridge 0.1 ETH
+bridgeToNexis('0.1');
+```
+
+### Bridge Status Monitoring
+
+```javascript
+// Check bridge transaction status
+async function checkBridgeStatus(l1TxHash) {
+  const response = await fetch(
+    `https://bridge.testnet.nexis.network/api/status/${l1TxHash}`
+  );
+
+  const status = await response.json();
+
+  console.log('Bridge Status:', status);
+  // Possible states:
+  // - "pending": Transaction submitted on L1
+  // - "relaying": Being processed by L2
+  // - "complete": Funds available on L2
+  // - "failed": Bridge failed (rare)
+
+  return status;
+}
+
+// Poll until complete
+async function waitForBridge(l1TxHash) {
+  let status = await checkBridgeStatus(l1TxHash);
+
+  while (status.state !== 'complete') {
+    console.log('Waiting for bridge...', status.state);
+    await new Promise(r => setTimeout(r, 10000)); // Wait 10s
+    status = await checkBridgeStatus(l1TxHash);
+  }
+
+  console.log('Bridge complete!');
+  return status;
+}
+```
+
+## Getting NZT Testnet Tokens
+
+### Official Nexis Faucet
+
+**URL:** [https://faucet.nexis.network](https://faucet.nexis.network)
+
+<Steps>
+  <Step title="Connect Wallet">
+    Connect MetaMask on Nexis Testnet
+  </Step>
+  <Step title="Verify (Optional)">
+    Link Twitter/GitHub for higher limits
+  </Step>
+  <Step title="Request NZT">
+    Click "Request Tokens"
+  </Step>
+  <Step title="Receive">
+    Get 10 NZT instantly (enough for ~10,000 transactions)
+  </Step>
+</Steps>
+
+**Rate Limits:**
+- **Standard:** 10 NZT every 24 hours
+- **Verified:** 50 NZT every 12 hours (with social verification)
+- **Developer:** 100 NZT daily (apply on Discord)
+
+### Faucet API for Automation
+
+```bash
+# Request tokens via API
+curl -X POST https://faucet.nexis.network/api/claim \
+  -H "Content-Type: application/json" \
+  -d '{
+    "address": "0xYourAddress",
+    "captcha": "optional-captcha-token"
+  }'
+
+# Response
+{
+  "success": true,
+  "txHash": "0x123...",
+  "amount": "10000000000000000000",
+  "nextClaimTime": "2025-09-31T12:00:00Z"
+}
+```
+
+```javascript
+// JavaScript faucet integration
+async function claimFromFaucet(address) {
+  const response = await fetch('https://faucet.nexis.network/api/claim', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ address }),
+  });
+
+  const data = await response.json();
+
+  if (data.success) {
+    console.log(`Claimed ${ethers.formatEther(data.amount)} NZT`);
+    console.log(`TX: ${data.txHash}`);
+    console.log(`Next claim: ${new Date(data.nextClaimTime)}`);
+  } else {
+    console.error('Faucet error:', data.error);
+  }
+
+  return data;
+}
+```
+
+```python
+# Python faucet script
+import requests
+import time
+
+def claim_faucet(address: str) -> dict:
+    """Claim testnet tokens from Nexis faucet"""
+    url = 'https://faucet.nexis.network/api/claim'
+    payload = {'address': address}
+
+    response = requests.post(url, json=payload)
+    data = response.json()
+
+    if data['success']:
+        print(f"✓ Claimed {int(data['amount']) / 1e18} NZT")
+        print(f"  TX: {data['txHash']}")
+    else:
+        print(f"✗ Error: {data['error']}")
+
+    return data
+
+# Claim for multiple addresses
+addresses = [
+    '0x1234...',
+    '0x5678...',
+    '0xabcd...'
+]
+
+for addr in addresses:
+    claim_faucet(addr)
+    time.sleep(1)  # Rate limiting
+```
+
+## Automated Faucet Scripts
+
+### Multi-Wallet Faucet Script
+
+```bash
+#!/bin/bash
+# multi-faucet.sh - Claim tokens for multiple wallets
+
+ADDRESSES=(
+  "0x1234567890123456789012345678901234567890"
+  "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd"
+  "0x9876543210987654321098765432109876543210"
+)
+
+FAUCET_URL="https://faucet.nexis.network/api/claim"
+
+for address in "${ADDRESSES[@]}"; do
+  echo "Claiming for $address..."
+
+  response=$(curl -s -X POST $FAUCET_URL \
+    -H "Content-Type: application/json" \
+    -d "{\"address\": \"$address\"}")
+
+  success=$(echo $response | jq -r '.success')
+
+  if [ "$success" = "true" ]; then
+    txHash=$(echo $response | jq -r '.txHash')
+    amount=$(echo $response | jq -r '.amount')
+    echo "✓ Success! TX: $txHash"
+  else
+    error=$(echo $response | jq -r '.error')
+    echo "✗ Failed: $error"
+  fi
+
+  sleep 2 # Rate limiting
+done
+```
+
+### Daily Faucet Cron Job
+
+```bash
+# Add to crontab for daily claims
+# crontab -e
+
+# Claim at 12:00 PM daily
+0 12 * * * /usr/bin/bash /path/to/multi-faucet.sh >> /var/log/faucet-claims.log 2>&1
+```
+
+### TypeScript Faucet Manager
+
+```typescript
+// faucet-manager.ts
+import { ethers } from 'ethers';
+
+interface FaucetConfig {
+  url: string;
+  rateLimit: number; // seconds between claims
+  amount: string;
+}
+
+class FaucetManager {
+  private config: FaucetConfig;
+  private lastClaim: Map<string, number> = new Map();
+
+  constructor(config: FaucetConfig) {
+    this.config = config;
+  }
+
+  async claim(address: string): Promise<void> {
+    const now = Date.now();
+    const lastClaimTime = this.lastClaim.get(address) || 0;
+    const timeSinceClaim = (now - lastClaimTime) / 1000;
+
+    if (timeSinceClaim < this.config.rateLimit) {
+      const waitTime = this.config.rateLimit - timeSinceClaim;
+      console.log(`⏳ Wait ${Math.ceil(waitTime)}s before next claim`);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${this.config.url}/api/claim`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        console.log(`✓ Claimed ${ethers.formatEther(data.amount)} NZT`);
+        console.log(`  TX: ${data.txHash}`);
+        this.lastClaim.set(address, now);
+      } else {
+        console.error(`✗ Error: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Network error:', error);
+    }
+  }
+
+  async claimForMultiple(addresses: string[]): Promise<void> {
+    for (const address of addresses) {
+      await this.claim(address);
+      // Wait between claims to avoid rate limiting
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+
+  async autoClaimDaily(addresses: string[]): Promise<void> {
+    console.log('Starting auto-claim service...');
+
+    setInterval(async () => {
+      console.log('Running daily claim...');
+      await this.claimForMultiple(addresses);
+    }, 24 * 60 * 60 * 1000); // Every 24 hours
+
+    // Initial claim
+    await this.claimForMultiple(addresses);
+  }
+}
+
+// Usage
+const faucet = new FaucetManager({
+  url: 'https://faucet.nexis.network',
+  rateLimit: 86400, // 24 hours
+  amount: '10',
+});
+
+const addresses = [
+  '0x1234...',
+  '0x5678...',
+];
+
+faucet.autoClaimDaily(addresses);
+```
+
+## Token Balance Verification
+
+### Check Balance via RPC
+
+```bash
+# Using curl
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_getBalance",
+    "params": ["0xYourAddress", "latest"],
+    "id": 1
+  }'
+
+# Response
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": "0x8ac7230489e80000" // 10 NZT in hex wei
+}
+```
+
+```javascript
+// Using ethers.js
+import { ethers } from 'ethers';
+
+const provider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+
+async function checkBalance(address) {
+  const balance = await provider.getBalance(address);
+  console.log(`Balance: ${ethers.formatEther(balance)} NZT`);
+  return balance;
+}
+
+checkBalance('0xYourAddress');
+```
+
+```python
+# Using web3.py
+from web3 import Web3
+
+w3 = Web3(Web3.HTTPProvider('https://rpc.testnet.nexis.network'))
+
+def check_balance(address: str):
+    balance_wei = w3.eth.get_balance(address)
+    balance_eth = w3.from_wei(balance_wei, 'ether')
+    print(f"Balance: {balance_eth} NZT")
+    return balance_eth
+
+check_balance('0xYourAddress')
+```
+
+### Monitor Balance Changes
+
+```javascript
+// Real-time balance monitoring
+import { ethers } from 'ethers';
+
+const provider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+
+async function monitorBalance(address) {
+  let lastBalance = await provider.getBalance(address);
+  console.log(`Initial balance: ${ethers.formatEther(lastBalance)} NZT`);
+
+  // Poll every 10 seconds
+  setInterval(async () => {
+    const currentBalance = await provider.getBalance(address);
+
+    if (currentBalance !== lastBalance) {
+      const change = currentBalance - lastBalance;
+      const sign = change > 0n ? '+' : '';
+
+      console.log(
+        `Balance changed: ${sign}${ethers.formatEther(change)} NZT`
+      );
+      console.log(`New balance: ${ethers.formatEther(currentBalance)} NZT`);
+
+      lastBalance = currentBalance;
+    }
+  }, 10000);
+}
+
+monitorBalance('0xYourAddress');
+```
+
+## Troubleshooting
+
+### Issue: Faucet Says "Already Claimed"
+
+**Solution:**
+- Wait for the rate limit period (24 hours for standard)
+- Try a different wallet address
+- Verify social accounts for higher limits
+- Check `nextClaimTime` in API response
+
+### Issue: Bridge Transaction Stuck
+
+**Solution:**
+
+```javascript
+// Check bridge status
+async function debugBridge(l1TxHash) {
+  // 1. Verify L1 transaction confirmed
+  const l1Provider = new ethers.JsonRpcProvider('https://sepolia.base.org');
+  const l1Tx = await l1Provider.getTransactionReceipt(l1TxHash);
+
+  if (!l1Tx) {
+    console.log('❌ L1 transaction not found');
+    return;
+  }
+
+  if (l1Tx.status === 0) {
+    console.log('❌ L1 transaction failed');
+    return;
+  }
+
+  console.log('✓ L1 transaction confirmed');
+
+  // 2. Check bridge relay status
+  const bridgeStatus = await fetch(
+    `https://bridge.testnet.nexis.network/api/status/${l1TxHash}`
+  ).then(r => r.json());
+
+  console.log('Bridge status:', bridgeStatus);
+
+  // 3. If stuck, contact support with details
+  if (bridgeStatus.state === 'pending' && Date.now() - l1Tx.blockTimestamp * 1000 > 30 * 60 * 1000) {
+    console.log('⚠️  Bridge taking longer than expected (>30 min)');
+    console.log('Contact support on Discord with TX hash');
+  }
+}
+```
+
+### Issue: Network Not Showing in MetaMask
+
+**Solution:**
+1. Manually add network using instructions above
+2. Clear MetaMask cache: Settings → Advanced → Reset Account
+3. Try importing via Chainlist.org
+4. Check RPC endpoint is reachable: `curl https://rpc.testnet.nexis.network`
+
+### Issue: Insufficient Gas for Transactions
+
+**Solution:**
+
+```javascript
+// Calculate required gas
+async function estimateGasNeeded(contractAddress, calldata) {
+  const provider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+
+  // Estimate gas
+  const gasLimit = await provider.estimateGas({
+    to: contractAddress,
+    data: calldata,
+  });
+
+  // Get gas price
+  const feeData = await provider.getFeeData();
+
+  // Calculate total cost
+  const totalCost = gasLimit * feeData.gasPrice;
+
+  console.log(`Gas Limit: ${gasLimit.toString()}`);
+  console.log(`Gas Price: ${ethers.formatUnits(feeData.gasPrice, 'gwei')} gwei`);
+  console.log(`Total Cost: ${ethers.formatEther(totalCost)} NZT`);
+
+  return totalCost;
+}
+
+// Check if you have enough
+async function canAffordTransaction(address, contractAddress, calldata) {
+  const provider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+
+  const balance = await provider.getBalance(address);
+  const cost = await estimateGasNeeded(contractAddress, calldata);
+
+  if (balance < cost) {
+    const shortfall = cost - balance;
+    console.log(`❌ Insufficient balance`);
+    console.log(`Need ${ethers.formatEther(shortfall)} more NZT`);
+    console.log(`Visit: https://faucet.nexis.network`);
+    return false;
+  }
+
+  console.log('✓ Sufficient balance');
+  return true;
+}
+```
+
+### Issue: Transactions Failing with "Nonce Too Low"
+
+**Solution:**
+
+```javascript
+// Reset nonce
+async function fixNonce(address) {
+  const provider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+
+  // Get pending transaction count
+  const pendingNonce = await provider.getTransactionCount(address, 'pending');
+
+  // Get confirmed transaction count
+  const confirmedNonce = await provider.getTransactionCount(address, 'latest');
+
+  console.log(`Pending nonce: ${pendingNonce}`);
+  console.log(`Confirmed nonce: ${confirmedNonce}`);
+
+  if (pendingNonce !== confirmedNonce) {
+    console.log('⚠️  Stuck transactions detected');
+    console.log('Solution: Wait for pending TXs or speed them up');
+  }
+
+  return confirmedNonce;
+}
+```
+
+## Rate Limits & Best Practices
+
+### Faucet Rate Limits
+
+| Tier | Amount | Frequency | Requirements |
+|------|--------|-----------|--------------|
+| **Anonymous** | 10 NZT | Every 24h | Just wallet address |
+| **Verified** | 50 NZT | Every 12h | Twitter or GitHub |
+| **Developer** | 100 NZT | Daily | Apply on Discord |
+| **API** | 10 NZT | Per request | 10 req/day per IP |
+
+### Best Practices
+
+1. **Use Multiple Wallets**
+```javascript
+// Distribute tokens across test wallets
+const wallets = [
+  '0x1234...', // Main test wallet
+  '0x5678...', // Agent owner wallet
+  '0xabcd...', // User simulation wallet
+];
+
+for (const wallet of wallets) {
+  await claimFromFaucet(wallet);
+}
+```
+
+2. **Monitor Your Balance**
+```javascript
+// Set up low balance alerts
+async function checkBalanceAndAlert(address, threshold = '1.0') {
+  const balance = await provider.getBalance(address);
+
+  if (balance < ethers.parseEther(threshold)) {
+    console.log('⚠️  Low balance alert!');
+    console.log(`Balance: ${ethers.formatEther(balance)} NZT`);
+    console.log('Visit faucet to claim more tokens');
+
+    // Auto-claim if possible
+    await claimFromFaucet(address);
+  }
+}
+```
+
+3. **Cache Faucet Claims**
+```javascript
+// Track claims to avoid hitting rate limits
+const fs = require('fs');
+
+function saveClaim(address) {
+  const claims = JSON.parse(fs.readFileSync('claims.json', 'utf8'));
+  claims[address] = Date.now();
+  fs.writeFileSync('claims.json', JSON.stringify(claims, null, 2));
+}
+
+function canClaim(address) {
+  const claims = JSON.parse(fs.readFileSync('claims.json', 'utf8'));
+  const lastClaim = claims[address] || 0;
+  const hoursSince = (Date.now() - lastClaim) / (1000 * 60 * 60);
+
+  return hoursSince >= 24;
+}
+```
+
+## Alternative Token Sources
+
+### Community Token Pool
+
+Join the [Nexis Discord](https://discord.gg/nexis) and request tokens in the `#testnet-faucet` channel:
+
+```
+!faucet 0xYourAddress
+
+# Receive 10 NZT from community pool
+```
+
+### Developer Grant Program
+
+For larger amounts needed for testing:
+
+1. Apply at [https://nexis.network/grants](https://nexis.network/grants)
+2. Describe your project and testing needs
+3. Receive up to 1,000 NZT for development
+
+### Test Token Swap
+
+Trade testnet tokens with other developers:
+
+```solidity
+// Simple atomic swap for test tokens
+contract TestTokenSwap {
+    function swap(address partner, uint256 amount) external payable {
+        require(msg.value == amount, "Incorrect amount");
+
+        // Partner receives your NZT
+        payable(partner).transfer(amount);
+
+        // You receive their NZT (they call this function with your address)
+    }
+}
+```
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="Official Faucet" icon="faucet" href="https://faucet.nexis.network">
+    Get NZT testnet tokens
+  </Card>
+  <Card title="Bridge" icon="bridge" href="https://bridge.testnet.nexis.network">
+    Bridge from Base Sepolia
+  </Card>
+  <Card title="Block Explorer" icon="magnifying-glass" href="https://explorer.testnet.nexis.network">
+    Track your transactions
+  </Card>
+  <Card title="Discord Support" icon="discord" href="https://discord.gg/nexis">
+    Get help from the community
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<Steps>
+  <Step title="Get Tokens">
+    Claim testnet tokens from the faucet
+  </Step>
+  <Step title="Deploy Contract">
+    Follow the [building guide](/developers/building-on-nexis) to deploy your first contract
+  </Step>
+  <Step title="Register Agent">
+    Create an AI agent using the [agent tutorial](/tutorials/register-agent)
+  </Step>
+  <Step title="Build dApp">
+    Start building your decentralized AI application
+  </Step>
+</Steps>
+
+---
+
+<Tip>
+**Running low on tokens?** Join [Discord](https://discord.gg/nexis) and ask in `#testnet-faucet` - the community is happy to help developers!
+</Tip>
+
+<Note>
+Testnet tokens have no real value and should only be used for testing. Never use your mainnet private keys on testnet!
+</Note>

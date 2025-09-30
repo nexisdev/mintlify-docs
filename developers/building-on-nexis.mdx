@@ -1,0 +1,1457 @@
+---
+title: 'Build AI Blockchain dApps on Nexis | Web3 AI Development'
+description: 'Complete guide to building decentralized AI applications on Nexis Appchain with smart contracts, AI agent integration, testing strategies, and production deployment'
+icon: 'hammer'
+---
+
+# Building on Nexis
+
+Welcome to the comprehensive guide for building decentralized AI applications on Nexis Appchain. This guide covers everything from network setup to production deployment, with a focus on integrating AI agents with blockchain smart contracts.
+
+## Why Nexis for AI dApps?
+
+<CardGroup cols={2}>
+  <Card title="Native AI Primitives" icon="robot">
+    Built-in contracts for agents, tasks, and proof-of-inference
+  </Card>
+  <Card title="High Performance" icon="gauge-high">
+    2-second block times with 1 gwei base fee for AI operations
+  </Card>
+  <Card title="Full EVM Compatibility" icon="ethereum">
+    Use existing tools: Hardhat, Foundry, Remix, ethers.js, wagmi
+  </Card>
+  <Card title="Layer 2 Benefits" icon="layer-group">
+    Low-cost transactions with Ethereum-grade security
+  </Card>
+</CardGroup>
+
+## Quick Start
+
+### Network Configuration
+
+Add Nexis networks to your development environment:
+
+<Tabs>
+  <Tab title="MetaMask">
+```javascript
+// Add Nexis Testnet to MetaMask
+await window.ethereum.request({
+  method: 'wallet_addEthereumChain',
+  params: [{
+    chainId: '0x14A34', // 84532 in hex
+    chainName: 'Nexis Appchain Testnet',
+    nativeCurrency: {
+      name: 'Nexis',
+      symbol: 'NZT',
+      decimals: 18
+    },
+    rpcUrls: ['https://rpc.testnet.nexis.network'],
+    blockExplorerUrls: ['https://explorer.testnet.nexis.network']
+  }]
+});
+```
+  </Tab>
+
+  <Tab title="Hardhat">
+```javascript
+// hardhat.config.js
+require('@nomicfoundation/hardhat-toolbox');
+require('dotenv').config();
+
+module.exports = {
+  solidity: {
+    version: "0.8.20",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200
+      }
+    }
+  },
+  networks: {
+    nexisTestnet: {
+      url: process.env.NEXIS_RPC_URL || "https://rpc.testnet.nexis.network",
+      chainId: 84532,
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      gasPrice: 1000000000, // 1 gwei
+    },
+    nexisMainnet: {
+      url: process.env.NEXIS_MAINNET_RPC || "https://rpc.nexis.network",
+      chainId: 4321, // Update when mainnet launches
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      gasPrice: 1000000000,
+    }
+  },
+  etherscan: {
+    apiKey: {
+      nexisTestnet: process.env.NEXIS_EXPLORER_API_KEY || ""
+    },
+    customChains: [
+      {
+        network: "nexisTestnet",
+        chainId: 84532,
+        urls: {
+          apiURL: "https://api.explorer.testnet.nexis.network/api",
+          browserURL: "https://explorer.testnet.nexis.network"
+        }
+      }
+    ]
+  }
+};
+```
+  </Tab>
+
+  <Tab title="Foundry">
+```toml
+# foundry.toml
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.20"
+optimizer = true
+optimizer_runs = 200
+
+[rpc_endpoints]
+nexis_testnet = "https://rpc.testnet.nexis.network"
+nexis_mainnet = "https://rpc.nexis.network"
+
+[etherscan]
+nexis_testnet = { key = "${NEXIS_EXPLORER_API_KEY}", chain = 84532, url = "https://api.explorer.testnet.nexis.network/api" }
+```
+  </Tab>
+
+  <Tab title="wagmi/viem">
+```typescript
+// chains.ts
+import { defineChain } from 'viem';
+
+export const nexisTestnet = defineChain({
+  id: 84532,
+  name: 'Nexis Appchain Testnet',
+  network: 'nexis-testnet',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Nexis',
+    symbol: 'NZT',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://rpc.testnet.nexis.network'],
+      webSocket: ['wss://ws.testnet.nexis.network'],
+    },
+    public: {
+      http: ['https://rpc.testnet.nexis.network'],
+      webSocket: ['wss://ws.testnet.nexis.network'],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'Nexis Explorer',
+      url: 'https://explorer.testnet.nexis.network',
+    },
+  },
+  contracts: {
+    agents: {
+      address: '0x1234567890123456789012345678901234567890',
+    },
+    tasks: {
+      address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+    },
+    treasury: {
+      address: '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',
+    },
+  },
+  testnet: true,
+});
+
+// config.ts
+import { createConfig, http } from 'wagmi';
+import { nexisTestnet } from './chains';
+
+export const config = createConfig({
+  chains: [nexisTestnet],
+  transports: {
+    [nexisTestnet.id]: http(),
+  },
+});
+```
+  </Tab>
+</Tabs>
+
+## Smart Contract Development Lifecycle
+
+### 1. Setup Your Project
+
+<Tabs>
+  <Tab title="Hardhat">
+```bash
+# Create new project
+mkdir my-nexis-dapp
+cd my-nexis-dapp
+npm init -y
+
+# Install dependencies
+npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+npm install @openzeppelin/contracts dotenv
+
+# Initialize Hardhat
+npx hardhat init
+# Select "Create a TypeScript project"
+
+# Create .env file
+cat > .env << EOF
+PRIVATE_KEY=your_private_key_here
+NEXIS_RPC_URL=https://rpc.testnet.nexis.network
+NEXIS_EXPLORER_API_KEY=your_explorer_api_key
+EOF
+
+# Install Nexis contract interfaces
+npm install @nexis-network/contracts
+```
+  </Tab>
+
+  <Tab title="Foundry">
+```bash
+# Install Foundry if not already installed
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# Create new project
+forge init my-nexis-dapp
+cd my-nexis-dapp
+
+# Install dependencies
+forge install OpenZeppelin/openzeppelin-contracts
+forge install nexis-network/nexis-contracts
+
+# Create .env file
+cat > .env << EOF
+PRIVATE_KEY=your_private_key_here
+NEXIS_RPC_URL=https://rpc.testnet.nexis.network
+NEXIS_EXPLORER_API_KEY=your_explorer_api_key
+EOF
+
+# Load environment variables
+source .env
+```
+  </Tab>
+</Tabs>
+
+### 2. Write Smart Contracts
+
+Create a smart contract that integrates with Nexis AI agents:
+
+```solidity
+// contracts/AIMarketplace.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@nexis-network/contracts/interfaces/IAgents.sol";
+import "@nexis-network/contracts/interfaces/ITasks.sol";
+
+/**
+ * @title AIMarketplace
+ * @notice Decentralized marketplace for AI inference services
+ */
+contract AIMarketplace is Ownable, ReentrancyGuard {
+    IAgents public immutable agentsContract;
+    ITasks public immutable tasksContract;
+
+    struct Service {
+        uint256 agentId;
+        string serviceType; // "text-generation", "image-generation", etc.
+        uint256 pricePerRequest;
+        bool active;
+        uint256 totalRequests;
+        uint256 successfulRequests;
+    }
+
+    struct Request {
+        address requester;
+        uint256 serviceId;
+        uint256 taskId;
+        string inputData;
+        string outputData;
+        uint256 payment;
+        RequestStatus status;
+        uint256 createdAt;
+        uint256 completedAt;
+    }
+
+    enum RequestStatus {
+        Pending,
+        Processing,
+        Completed,
+        Failed,
+        Disputed
+    }
+
+    // State variables
+    uint256 public nextServiceId;
+    uint256 public nextRequestId;
+    uint256 public platformFeePercent = 5; // 5%
+    uint256 public disputeWindow = 24 hours;
+
+    mapping(uint256 => Service) public services;
+    mapping(uint256 => Request) public requests;
+    mapping(uint256 => uint256) public agentToService; // agentId => serviceId
+
+    // Events
+    event ServiceRegistered(
+        uint256 indexed serviceId,
+        uint256 indexed agentId,
+        string serviceType,
+        uint256 pricePerRequest
+    );
+    event ServiceUpdated(uint256 indexed serviceId, uint256 newPrice, bool active);
+    event RequestCreated(
+        uint256 indexed requestId,
+        uint256 indexed serviceId,
+        address indexed requester,
+        uint256 payment
+    );
+    event RequestCompleted(
+        uint256 indexed requestId,
+        uint256 indexed taskId,
+        string outputData
+    );
+    event RequestFailed(uint256 indexed requestId, string reason);
+    event DisputeRaised(uint256 indexed requestId, address indexed disputer);
+
+    constructor(address _agentsContract, address _tasksContract) {
+        agentsContract = IAgents(_agentsContract);
+        tasksContract = ITasks(_tasksContract);
+    }
+
+    /**
+     * @notice Register an AI service
+     * @param agentId ID of the registered agent
+     * @param serviceType Type of AI service offered
+     * @param pricePerRequest Price in wei per inference request
+     */
+    function registerService(
+        uint256 agentId,
+        string calldata serviceType,
+        uint256 pricePerRequest
+    ) external {
+        // Verify caller owns the agent
+        require(
+            agentsContract.getAgent(agentId).owner == msg.sender,
+            "Not agent owner"
+        );
+
+        // Verify agent has sufficient stake
+        require(
+            agentsContract.getAgent(agentId).totalStake >= 1 ether,
+            "Insufficient stake"
+        );
+
+        uint256 serviceId = nextServiceId++;
+
+        services[serviceId] = Service({
+            agentId: agentId,
+            serviceType: serviceType,
+            pricePerRequest: pricePerRequest,
+            active: true,
+            totalRequests: 0,
+            successfulRequests: 0
+        });
+
+        agentToService[agentId] = serviceId;
+
+        emit ServiceRegistered(serviceId, agentId, serviceType, pricePerRequest);
+    }
+
+    /**
+     * @notice Update service parameters
+     */
+    function updateService(
+        uint256 serviceId,
+        uint256 newPrice,
+        bool active
+    ) external {
+        Service storage service = services[serviceId];
+        require(
+            agentsContract.getAgent(service.agentId).owner == msg.sender,
+            "Not service owner"
+        );
+
+        service.pricePerRequest = newPrice;
+        service.active = active;
+
+        emit ServiceUpdated(serviceId, newPrice, active);
+    }
+
+    /**
+     * @notice Request AI inference
+     * @param serviceId ID of the service to use
+     * @param inputData Input data for the AI model
+     */
+    function requestInference(
+        uint256 serviceId,
+        string calldata inputData
+    ) external payable nonReentrant returns (uint256 requestId) {
+        Service storage service = services[serviceId];
+        require(service.active, "Service not active");
+        require(msg.value >= service.pricePerRequest, "Insufficient payment");
+
+        requestId = nextRequestId++;
+
+        // Create task on Tasks contract
+        uint256 taskId = tasksContract.createTask{value: msg.value}(
+            string(abi.encodePacked("AI Inference Request #", _toString(requestId))),
+            msg.value,
+            block.timestamp + 1 hours,
+            abi.encode("serviceId", serviceId, "inputData", inputData)
+        );
+
+        requests[requestId] = Request({
+            requester: msg.sender,
+            serviceId: serviceId,
+            taskId: taskId,
+            inputData: inputData,
+            outputData: "",
+            payment: msg.value,
+            status: RequestStatus.Pending,
+            createdAt: block.timestamp,
+            completedAt: 0
+        });
+
+        service.totalRequests++;
+
+        emit RequestCreated(requestId, serviceId, msg.sender, msg.value);
+    }
+
+    /**
+     * @notice Submit inference result (called by agent)
+     * @param requestId ID of the request
+     * @param outputData Result from AI inference
+     * @param proofURI URI to proof of inference
+     */
+    function submitResult(
+        uint256 requestId,
+        string calldata outputData,
+        string calldata proofURI
+    ) external nonReentrant {
+        Request storage request = requests[requestId];
+        Service storage service = services[request.serviceId];
+
+        require(
+            agentsContract.getAgent(service.agentId).owner == msg.sender,
+            "Not service provider"
+        );
+        require(
+            request.status == RequestStatus.Pending ||
+            request.status == RequestStatus.Processing,
+            "Invalid request status"
+        );
+
+        // Record inference on Agents contract
+        bytes32 inputHash = keccak256(abi.encodePacked(request.inputData));
+        bytes32 outputHash = keccak256(abi.encodePacked(outputData));
+        bytes32 modelHash = keccak256(abi.encodePacked(service.serviceType));
+
+        agentsContract.recordInference(
+            service.agentId,
+            inputHash,
+            outputHash,
+            modelHash,
+            request.taskId,
+            proofURI
+        );
+
+        request.outputData = outputData;
+        request.status = RequestStatus.Completed;
+        request.completedAt = block.timestamp;
+
+        // Calculate payments
+        uint256 platformFee = (request.payment * platformFeePercent) / 100;
+        uint256 providerPayment = request.payment - platformFee;
+
+        // Pay agent owner
+        address agentOwner = agentsContract.getAgent(service.agentId).owner;
+        (bool success, ) = payable(agentOwner).call{value: providerPayment}("");
+        require(success, "Payment failed");
+
+        service.successfulRequests++;
+
+        emit RequestCompleted(requestId, request.taskId, outputData);
+    }
+
+    /**
+     * @notice Raise dispute for a request
+     * @param requestId ID of the request to dispute
+     * @param reason Reason for dispute
+     */
+    function raiseDispute(uint256 requestId, string calldata reason) external {
+        Request storage request = requests[requestId];
+        require(request.requester == msg.sender, "Not requester");
+        require(request.status == RequestStatus.Completed, "Not completed");
+        require(
+            block.timestamp <= request.completedAt + disputeWindow,
+            "Dispute window closed"
+        );
+
+        request.status = RequestStatus.Disputed;
+
+        emit DisputeRaised(requestId, msg.sender);
+    }
+
+    /**
+     * @notice Get service details
+     */
+    function getService(uint256 serviceId)
+        external
+        view
+        returns (Service memory)
+    {
+        return services[serviceId];
+    }
+
+    /**
+     * @notice Get request details
+     */
+    function getRequest(uint256 requestId)
+        external
+        view
+        returns (Request memory)
+    {
+        return requests[requestId];
+    }
+
+    /**
+     * @notice Calculate service success rate
+     */
+    function getSuccessRate(uint256 serviceId)
+        external
+        view
+        returns (uint256)
+    {
+        Service memory service = services[serviceId];
+        if (service.totalRequests == 0) return 0;
+        return (service.successfulRequests * 100) / service.totalRequests;
+    }
+
+    /**
+     * @notice Withdraw accumulated platform fees (owner only)
+     */
+    function withdrawFees() external onlyOwner {
+        uint256 balance = address(this).balance;
+        (bool success, ) = payable(owner()).call{value: balance}("");
+        require(success, "Withdrawal failed");
+    }
+
+    /**
+     * @notice Update platform fee percentage (owner only)
+     */
+    function updatePlatformFee(uint256 newFeePercent) external onlyOwner {
+        require(newFeePercent <= 20, "Fee too high"); // Max 20%
+        platformFeePercent = newFeePercent;
+    }
+
+    // Internal helper functions
+    function _toString(uint256 value) internal pure returns (string memory) {
+        if (value == 0) return "0";
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
+    }
+}
+```
+
+### 3. Write Comprehensive Tests
+
+<Tabs>
+  <Tab title="Hardhat">
+```typescript
+// test/AIMarketplace.test.ts
+import { expect } from "chai";
+import { ethers } from "hardhat";
+import { AIMarketplace, MockAgents, MockTasks } from "../typechain-types";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+
+describe("AIMarketplace", function () {
+  let marketplace: AIMarketplace;
+  let agentsContract: MockAgents;
+  let tasksContract: MockTasks;
+  let owner: SignerWithAddress;
+  let agentOwner: SignerWithAddress;
+  let user: SignerWithAddress;
+
+  const AGENT_ID = 1;
+  const SERVICE_TYPE = "text-generation";
+  const PRICE_PER_REQUEST = ethers.utils.parseEther("0.1");
+
+  beforeEach(async function () {
+    [owner, agentOwner, user] = await ethers.getSigners();
+
+    // Deploy mock contracts
+    const MockAgents = await ethers.getContractFactory("MockAgents");
+    agentsContract = await MockAgents.deploy();
+
+    const MockTasks = await ethers.getContractFactory("MockTasks");
+    tasksContract = await MockTasks.deploy();
+
+    // Deploy marketplace
+    const AIMarketplace = await ethers.getContractFactory("AIMarketplace");
+    marketplace = await AIMarketplace.deploy(
+      agentsContract.address,
+      tasksContract.address
+    );
+
+    // Setup: Register agent with sufficient stake
+    await agentsContract.connect(agentOwner).mockRegisterAgent(
+      AGENT_ID,
+      agentOwner.address,
+      ethers.utils.parseEther("10")
+    );
+  });
+
+  describe("Service Registration", function () {
+    it("Should register a service successfully", async function () {
+      await expect(
+        marketplace
+          .connect(agentOwner)
+          .registerService(AGENT_ID, SERVICE_TYPE, PRICE_PER_REQUEST)
+      )
+        .to.emit(marketplace, "ServiceRegistered")
+        .withArgs(0, AGENT_ID, SERVICE_TYPE, PRICE_PER_REQUEST);
+
+      const service = await marketplace.getService(0);
+      expect(service.agentId).to.equal(AGENT_ID);
+      expect(service.serviceType).to.equal(SERVICE_TYPE);
+      expect(service.pricePerRequest).to.equal(PRICE_PER_REQUEST);
+      expect(service.active).to.be.true;
+    });
+
+    it("Should reject registration from non-owner", async function () {
+      await expect(
+        marketplace
+          .connect(user)
+          .registerService(AGENT_ID, SERVICE_TYPE, PRICE_PER_REQUEST)
+      ).to.be.revertedWith("Not agent owner");
+    });
+
+    it("Should reject registration with insufficient stake", async function () {
+      // Register agent with low stake
+      await agentsContract.connect(user).mockRegisterAgent(
+        2,
+        user.address,
+        ethers.utils.parseEther("0.5")
+      );
+
+      await expect(
+        marketplace
+          .connect(user)
+          .registerService(2, SERVICE_TYPE, PRICE_PER_REQUEST)
+      ).to.be.revertedWith("Insufficient stake");
+    });
+  });
+
+  describe("Inference Requests", function () {
+    beforeEach(async function () {
+      // Register service
+      await marketplace
+        .connect(agentOwner)
+        .registerService(AGENT_ID, SERVICE_TYPE, PRICE_PER_REQUEST);
+    });
+
+    it("Should create inference request", async function () {
+      const inputData = "Generate a poem about AI";
+
+      await expect(
+        marketplace
+          .connect(user)
+          .requestInference(0, inputData, { value: PRICE_PER_REQUEST })
+      )
+        .to.emit(marketplace, "RequestCreated")
+        .withArgs(0, 0, user.address, PRICE_PER_REQUEST);
+
+      const request = await marketplace.getRequest(0);
+      expect(request.requester).to.equal(user.address);
+      expect(request.serviceId).to.equal(0);
+      expect(request.inputData).to.equal(inputData);
+      expect(request.payment).to.equal(PRICE_PER_REQUEST);
+    });
+
+    it("Should reject request with insufficient payment", async function () {
+      await expect(
+        marketplace
+          .connect(user)
+          .requestInference(0, "Input data", {
+            value: ethers.utils.parseEther("0.05"),
+          })
+      ).to.be.revertedWith("Insufficient payment");
+    });
+  });
+
+  describe("Result Submission", function () {
+    const inputData = "Test input";
+    const outputData = "Test output";
+    const proofURI = "ipfs://QmProof...";
+
+    beforeEach(async function () {
+      await marketplace
+        .connect(agentOwner)
+        .registerService(AGENT_ID, SERVICE_TYPE, PRICE_PER_REQUEST);
+
+      await marketplace
+        .connect(user)
+        .requestInference(0, inputData, { value: PRICE_PER_REQUEST });
+    });
+
+    it("Should submit result successfully", async function () {
+      const initialBalance = await ethers.provider.getBalance(
+        agentOwner.address
+      );
+
+      await expect(
+        marketplace
+          .connect(agentOwner)
+          .submitResult(0, outputData, proofURI)
+      )
+        .to.emit(marketplace, "RequestCompleted")
+        .withArgs(0, 1, outputData);
+
+      const request = await marketplace.getRequest(0);
+      expect(request.outputData).to.equal(outputData);
+      expect(request.status).to.equal(2); // Completed
+
+      // Verify payment (95% to agent owner, 5% platform fee)
+      const expectedPayment = PRICE_PER_REQUEST.mul(95).div(100);
+      const finalBalance = await ethers.provider.getBalance(agentOwner.address);
+      expect(finalBalance.sub(initialBalance)).to.be.closeTo(
+        expectedPayment,
+        ethers.utils.parseEther("0.01") // Gas tolerance
+      );
+    });
+
+    it("Should reject submission from non-service-provider", async function () {
+      await expect(
+        marketplace.connect(user).submitResult(0, outputData, proofURI)
+      ).to.be.revertedWith("Not service provider");
+    });
+  });
+
+  describe("Success Rate Calculation", function () {
+    beforeEach(async function () {
+      await marketplace
+        .connect(agentOwner)
+        .registerService(AGENT_ID, SERVICE_TYPE, PRICE_PER_REQUEST);
+    });
+
+    it("Should calculate correct success rate", async function () {
+      // Create 3 requests
+      for (let i = 0; i < 3; i++) {
+        await marketplace
+          .connect(user)
+          .requestInference(0, `Input ${i}`, { value: PRICE_PER_REQUEST });
+      }
+
+      // Complete 2 requests successfully
+      await marketplace
+        .connect(agentOwner)
+        .submitResult(0, "Output 0", "ipfs://proof0");
+      await marketplace
+        .connect(agentOwner)
+        .submitResult(1, "Output 1", "ipfs://proof1");
+
+      // Success rate should be 66% (2 out of 3)
+      const successRate = await marketplace.getSuccessRate(0);
+      expect(successRate).to.equal(66);
+    });
+  });
+});
+```
+  </Tab>
+
+  <Tab title="Foundry">
+```solidity
+// test/AIMarketplace.t.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "forge-std/Test.sol";
+import "../src/AIMarketplace.sol";
+import "./mocks/MockAgents.sol";
+import "./mocks/MockTasks.sol";
+
+contract AIMarketplaceTest is Test {
+    AIMarketplace public marketplace;
+    MockAgents public agentsContract;
+    MockTasks public tasksContract;
+
+    address public owner;
+    address public agentOwner;
+    address public user;
+
+    uint256 constant AGENT_ID = 1;
+    string constant SERVICE_TYPE = "text-generation";
+    uint256 constant PRICE_PER_REQUEST = 0.1 ether;
+
+    event ServiceRegistered(
+        uint256 indexed serviceId,
+        uint256 indexed agentId,
+        string serviceType,
+        uint256 pricePerRequest
+    );
+
+    event RequestCreated(
+        uint256 indexed requestId,
+        uint256 indexed serviceId,
+        address indexed requester,
+        uint256 payment
+    );
+
+    function setUp() public {
+        owner = address(this);
+        agentOwner = makeAddr("agentOwner");
+        user = makeAddr("user");
+
+        // Deploy mocks
+        agentsContract = new MockAgents();
+        tasksContract = new MockTasks();
+
+        // Deploy marketplace
+        marketplace = new AIMarketplace(
+            address(agentsContract),
+            address(tasksContract)
+        );
+
+        // Setup: Register agent with sufficient stake
+        vm.prank(agentOwner);
+        agentsContract.mockRegisterAgent(AGENT_ID, agentOwner, 10 ether);
+    }
+
+    function testRegisterService() public {
+        vm.prank(agentOwner);
+        vm.expectEmit(true, true, false, true);
+        emit ServiceRegistered(0, AGENT_ID, SERVICE_TYPE, PRICE_PER_REQUEST);
+
+        marketplace.registerService(AGENT_ID, SERVICE_TYPE, PRICE_PER_REQUEST);
+
+        AIMarketplace.Service memory service = marketplace.getService(0);
+        assertEq(service.agentId, AGENT_ID);
+        assertEq(service.serviceType, SERVICE_TYPE);
+        assertEq(service.pricePerRequest, PRICE_PER_REQUEST);
+        assertTrue(service.active);
+    }
+
+    function testCannotRegisterServiceAsNonOwner() public {
+        vm.prank(user);
+        vm.expectRevert("Not agent owner");
+        marketplace.registerService(AGENT_ID, SERVICE_TYPE, PRICE_PER_REQUEST);
+    }
+
+    function testRequestInference() public {
+        // Register service
+        vm.prank(agentOwner);
+        marketplace.registerService(AGENT_ID, SERVICE_TYPE, PRICE_PER_REQUEST);
+
+        // Request inference
+        string memory inputData = "Generate a poem about AI";
+
+        vm.deal(user, 1 ether);
+        vm.prank(user);
+        vm.expectEmit(true, true, true, true);
+        emit RequestCreated(0, 0, user, PRICE_PER_REQUEST);
+
+        marketplace.requestInference{value: PRICE_PER_REQUEST}(0, inputData);
+
+        AIMarketplace.Request memory request = marketplace.getRequest(0);
+        assertEq(request.requester, user);
+        assertEq(request.serviceId, 0);
+        assertEq(request.inputData, inputData);
+        assertEq(request.payment, PRICE_PER_REQUEST);
+    }
+
+    function testFuzzRequestInference(uint256 payment) public {
+        vm.assume(payment >= PRICE_PER_REQUEST);
+        vm.assume(payment <= 100 ether);
+
+        vm.prank(agentOwner);
+        marketplace.registerService(AGENT_ID, SERVICE_TYPE, PRICE_PER_REQUEST);
+
+        vm.deal(user, payment);
+        vm.prank(user);
+        marketplace.requestInference{value: payment}(0, "Fuzzy input");
+
+        AIMarketplace.Request memory request = marketplace.getRequest(0);
+        assertEq(request.payment, payment);
+    }
+
+    function testSubmitResult() public {
+        // Setup
+        vm.prank(agentOwner);
+        marketplace.registerService(AGENT_ID, SERVICE_TYPE, PRICE_PER_REQUEST);
+
+        vm.deal(user, 1 ether);
+        vm.prank(user);
+        marketplace.requestInference{value: PRICE_PER_REQUEST}(0, "Input");
+
+        // Submit result
+        uint256 balanceBefore = agentOwner.balance;
+
+        vm.prank(agentOwner);
+        marketplace.submitResult(0, "Output", "ipfs://proof");
+
+        uint256 balanceAfter = agentOwner.balance;
+        uint256 expectedPayment = (PRICE_PER_REQUEST * 95) / 100; // 5% fee
+
+        assertEq(balanceAfter - balanceBefore, expectedPayment);
+
+        AIMarketplace.Request memory request = marketplace.getRequest(0);
+        assertEq(uint(request.status), 2); // Completed
+    }
+}
+```
+  </Tab>
+</Tabs>
+
+### 4. Deploy to Testnet
+
+<Tabs>
+  <Tab title="Hardhat">
+```bash
+# Deploy script
+npx hardhat run scripts/deploy.ts --network nexisTestnet
+
+# Verify contract
+npx hardhat verify --network nexisTestnet \
+  DEPLOYED_ADDRESS \
+  "0x1234..." "0x742d..." # Constructor args
+```
+
+```typescript
+// scripts/deploy.ts
+import { ethers } from "hardhat";
+
+async function main() {
+  const [deployer] = await ethers.getSigners();
+
+  console.log("Deploying contracts with:", deployer.address);
+  console.log("Balance:", ethers.utils.formatEther(await deployer.getBalance()));
+
+  // Contract addresses on Nexis Testnet
+  const AGENTS_CONTRACT = "0x1234567890123456789012345678901234567890";
+  const TASKS_CONTRACT = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb";
+
+  const AIMarketplace = await ethers.getContractFactory("AIMarketplace");
+  const marketplace = await AIMarketplace.deploy(
+    AGENTS_CONTRACT,
+    TASKS_CONTRACT
+  );
+
+  await marketplace.deployed();
+
+  console.log("AIMarketplace deployed to:", marketplace.address);
+
+  // Wait for block confirmations
+  console.log("Waiting for confirmations...");
+  await marketplace.deployTransaction.wait(5);
+
+  console.log("Deployment complete!");
+
+  // Save deployment info
+  const fs = require("fs");
+  const deploymentInfo = {
+    network: "nexisTestnet",
+    contract: "AIMarketplace",
+    address: marketplace.address,
+    deployer: deployer.address,
+    timestamp: new Date().toISOString(),
+    transactionHash: marketplace.deployTransaction.hash,
+  };
+
+  fs.writeFileSync(
+    "deployment.json",
+    JSON.stringify(deploymentInfo, null, 2)
+  );
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+```
+  </Tab>
+
+  <Tab title="Foundry">
+```bash
+# Deploy
+forge create src/AIMarketplace.sol:AIMarketplace \
+  --rpc-url $NEXIS_RPC_URL \
+  --private-key $PRIVATE_KEY \
+  --constructor-args "0x1234..." "0x742d..." \
+  --verify \
+  --etherscan-api-key $NEXIS_EXPLORER_API_KEY
+
+# Or use forge script
+forge script script/Deploy.s.sol:DeployScript \
+  --rpc-url nexis_testnet \
+  --broadcast \
+  --verify
+```
+
+```solidity
+// script/Deploy.s.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "forge-std/Script.sol";
+import "../src/AIMarketplace.sol";
+
+contract DeployScript is Script {
+    function run() external {
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        address agentsContract = vm.envAddress("AGENTS_CONTRACT");
+        address tasksContract = vm.envAddress("TASKS_CONTRACT");
+
+        vm.startBroadcast(deployerPrivateKey);
+
+        AIMarketplace marketplace = new AIMarketplace(
+            agentsContract,
+            tasksContract
+        );
+
+        console.log("AIMarketplace deployed to:", address(marketplace));
+
+        vm.stopBroadcast();
+    }
+}
+```
+  </Tab>
+</Tabs>
+
+## Integrating AI Agents
+
+### Frontend Integration with wagmi
+
+```typescript
+// app/providers.tsx
+'use client';
+
+import { WagmiConfig } from 'wagmi';
+import { RainbowKitProvider } from '@rainbow-me/rainbowkit';
+import { config } from './wagmi-config';
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <WagmiConfig config={config}>
+      <RainbowKitProvider>
+        {children}
+      </RainbowKitProvider>
+    </WagmiConfig>
+  );
+}
+
+// app/components/RequestInference.tsx
+'use client';
+
+import { useState } from 'react';
+import { useAccount, useWriteContract, useWaitForTransaction } from 'wagmi';
+import { parseEther } from 'viem';
+import { MARKETPLACE_ABI, MARKETPLACE_ADDRESS } from '@/constants';
+
+export function RequestInference() {
+  const { address } = useAccount();
+  const [inputData, setInputData] = useState('');
+  const [serviceId, setServiceId] = useState(0);
+
+  const { write, data: txData } = useWriteContract({
+    address: MARKETPLACE_ADDRESS,
+    abi: MARKETPLACE_ABI,
+    functionName: 'requestInference',
+  });
+
+  const { isLoading, isSuccess } = useWaitForTransaction({
+    hash: txData?.hash,
+  });
+
+  const handleRequest = () => {
+    write({
+      args: [BigInt(serviceId), inputData],
+      value: parseEther('0.1'),
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <input
+        type="number"
+        value={serviceId}
+        onChange={(e) => setServiceId(Number(e.target.value))}
+        placeholder="Service ID"
+        className="input"
+      />
+      <textarea
+        value={inputData}
+        onChange={(e) => setInputData(e.target.value)}
+        placeholder="Enter your prompt..."
+        className="textarea"
+      />
+      <button
+        onClick={handleRequest}
+        disabled={!address || isLoading}
+        className="btn btn-primary"
+      >
+        {isLoading ? 'Processing...' : 'Request Inference'}
+      </button>
+      {isSuccess && <p>Request submitted! Check back for results.</p>}
+    </div>
+  );
+}
+```
+
+### Backend AI Agent Integration
+
+```python
+# agent/inference_agent.py
+import asyncio
+from web3 import Web3
+from eth_account import Account
+import openai
+import os
+
+class InferenceAgent:
+    def __init__(self):
+        self.w3 = Web3(Web3.HTTPProvider(os.getenv('NEXIS_RPC_URL')))
+        self.account = Account.from_key(os.getenv('AGENT_PRIVATE_KEY'))
+        self.marketplace_address = os.getenv('MARKETPLACE_ADDRESS')
+        self.marketplace_abi = self.load_abi('AIMarketplace.json')
+        self.marketplace = self.w3.eth.contract(
+            address=self.marketplace_address,
+            abi=self.marketplace_abi
+        )
+        openai.api_key = os.getenv('OPENAI_API_KEY')
+
+    async def listen_for_requests(self):
+        """Listen for new inference requests"""
+        event_filter = self.marketplace.events.RequestCreated.create_filter(
+            fromBlock='latest'
+        )
+
+        print(f"Agent listening for requests...")
+
+        while True:
+            for event in event_filter.get_new_entries():
+                await self.handle_request(event)
+
+            await asyncio.sleep(2)  # Poll every 2 seconds
+
+    async def handle_request(self, event):
+        """Process an inference request"""
+        request_id = event['args']['requestId']
+        service_id = event['args']['serviceId']
+
+        print(f"Processing request #{request_id}...")
+
+        # Get request details
+        request = self.marketplace.functions.getRequest(request_id).call()
+        input_data = request[3]  # inputData field
+
+        # Run AI inference
+        try:
+            output_data = await self.run_inference(input_data)
+
+            # Upload proof to IPFS
+            proof_uri = await self.upload_proof(input_data, output_data)
+
+            # Submit result on-chain
+            await self.submit_result(request_id, output_data, proof_uri)
+
+            print(f"Request #{request_id} completed successfully!")
+
+        except Exception as e:
+            print(f"Error processing request #{request_id}: {e}")
+
+    async def run_inference(self, prompt: str) -> str:
+        """Run AI model inference"""
+        response = await openai.ChatCompletion.acreate(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a helpful AI assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=500
+        )
+
+        return response.choices[0].message.content
+
+    async def upload_proof(self, input_data: str, output_data: str) -> str:
+        """Upload proof of inference to IPFS"""
+        # In production, upload to IPFS/Arweave
+        # For now, return mock URI
+        return f"ipfs://Qm{hash(input_data + output_data)}"
+
+    async def submit_result(self, request_id: int, output: str, proof_uri: str):
+        """Submit inference result on-chain"""
+        nonce = self.w3.eth.get_transaction_count(self.account.address)
+
+        txn = self.marketplace.functions.submitResult(
+            request_id,
+            output,
+            proof_uri
+        ).build_transaction({
+            'from': self.account.address,
+            'nonce': nonce,
+            'gas': 500000,
+            'gasPrice': self.w3.eth.gas_price,
+        })
+
+        signed_txn = self.w3.eth.account.sign_transaction(
+            txn,
+            self.account.key
+        )
+
+        tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+        receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
+
+        print(f"Result submitted in tx: {receipt['transactionHash'].hex()}")
+
+    def load_abi(self, filename: str):
+        """Load contract ABI"""
+        import json
+        with open(f'abis/{filename}', 'r') as f:
+            return json.load(f)['abi']
+
+# Run the agent
+if __name__ == '__main__':
+    agent = InferenceAgent()
+    asyncio.run(agent.listen_for_requests())
+```
+
+## Gas Optimization for AI Operations
+
+### 1. Use Events for Large Data
+
+```solidity
+// ❌ Expensive: Store output data on-chain
+mapping(uint256 => string) public outputs;
+
+function submitResult(uint256 requestId, string calldata output) external {
+    outputs[requestId] = output; // Very expensive!
+}
+
+// ✅ Cheap: Emit event with data
+event ResultSubmitted(
+    uint256 indexed requestId,
+    string output,
+    bytes32 outputHash
+);
+
+function submitResult(uint256 requestId, string calldata output) external {
+    bytes32 outputHash = keccak256(bytes(output));
+    emit ResultSubmitted(requestId, output, outputHash);
+    // Off-chain indexer will store the full output
+}
+```
+
+### 2. Batch Operations
+
+```solidity
+// ❌ Multiple transactions
+for (uint i = 0; i < 10; i++) {
+    marketplace.requestInference(serviceId, inputs[i]);
+}
+
+// ✅ Single batch transaction
+function requestInferenceBatch(
+    uint256 serviceId,
+    string[] calldata inputs
+) external payable {
+    require(msg.value >= inputs.length * pricePerRequest, "Insufficient payment");
+
+    for (uint i = 0; i < inputs.length; i++) {
+        _createRequest(serviceId, inputs[i]);
+    }
+}
+```
+
+### 3. Optimize Storage
+
+```solidity
+// ❌ Expensive: Multiple storage slots
+struct Request {
+    address requester;        // 20 bytes
+    uint256 serviceId;        // 32 bytes
+    uint256 payment;          // 32 bytes
+    bool completed;           // 1 byte
+    uint256 timestamp;        // 32 bytes
+}
+
+// ✅ Packed: Uses fewer storage slots
+struct Request {
+    address requester;        // 20 bytes
+    uint96 payment;           // 12 bytes } Same slot
+    uint64 timestamp;         // 8 bytes  }
+    uint32 serviceId;         // 4 bytes  } Same slot
+    bool completed;           // 1 byte   }
+}
+```
+
+## Common Design Patterns
+
+### 1. Pull Over Push Payments
+
+```solidity
+// ✅ Pull pattern: Users withdraw their earnings
+mapping(address => uint256) public pendingWithdrawals;
+
+function submitResult(uint256 requestId) external {
+    // Instead of sending payment directly:
+    // payable(agentOwner).transfer(payment); // ❌ Push
+
+    // Credit the account:
+    pendingWithdrawals[agentOwner] += payment; // ✅ Pull
+}
+
+function withdraw() external {
+    uint256 amount = pendingWithdrawals[msg.sender];
+    pendingWithdrawals[msg.sender] = 0;
+
+    (bool success, ) = payable(msg.sender).call{value: amount}("");
+    require(success, "Transfer failed");
+}
+```
+
+### 2. Circuit Breaker Pattern
+
+```solidity
+import "@openzeppelin/contracts/security/Pausable.sol";
+
+contract AIMarketplace is Pausable {
+    function requestInference(...) external payable whenNotPaused {
+        // Function only works when not paused
+    }
+
+    function emergencyPause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+}
+```
+
+### 3. Oracle Pattern for Off-Chain Data
+
+```solidity
+contract PriceOracle {
+    mapping(uint256 => uint256) public servicePrices;
+    address public oracle;
+
+    modifier onlyOracle() {
+        require(msg.sender == oracle, "Not oracle");
+        _;
+    }
+
+    function updatePrice(uint256 serviceId, uint256 newPrice) external onlyOracle {
+        servicePrices[serviceId] = newPrice;
+    }
+}
+```
+
+## Testing Strategies
+
+### Unit Tests
+- Test individual contract functions
+- Mock external dependencies
+- Cover edge cases and error conditions
+
+### Integration Tests
+- Test contract interactions
+- Use actual contract addresses on testnet
+- Test full user workflows
+
+### Fuzzing Tests
+```solidity
+// Foundry fuzzing example
+function testFuzz_RequestInference(uint256 payment) public {
+    vm.assume(payment >= PRICE_PER_REQUEST);
+    vm.assume(payment <= 100 ether);
+
+    vm.deal(user, payment);
+    vm.prank(user);
+    marketplace.requestInference{value: payment}(0, "Fuzz input");
+}
+```
+
+### Load Tests
+```typescript
+// Test with many concurrent requests
+describe("Load Testing", () => {
+  it("Should handle 100 concurrent requests", async () => {
+    const promises = [];
+    for (let i = 0; i < 100; i++) {
+      promises.push(
+        marketplace.connect(users[i % 10]).requestInference(
+          0,
+          `Request ${i}`,
+          { value: PRICE }
+        )
+      );
+    }
+    await Promise.all(promises);
+  });
+});
+```
+
+## Production Deployment Checklist
+
+- [ ] **Security Audit**: Get contracts audited by reputable firm
+- [ ] **Test Coverage**: Achieve >90% code coverage
+- [ ] **Gas Optimization**: Profile and optimize expensive operations
+- [ ] **Upgrade Strategy**: Implement proxy pattern if needed
+- [ ] **Monitoring**: Setup event indexing and alerts
+- [ ] **Documentation**: Write complete API documentation
+- [ ] **Emergency Procedures**: Define pause/upgrade procedures
+- [ ] **Testnet Validation**: Run on testnet for 2+ weeks
+- [ ] **Bug Bounty**: Launch bug bounty program
+- [ ] **Mainnet Deployment**: Deploy with ceremony/multisig
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="Testnet Tokens" icon="faucet" href="/developers/testnet-tokens">
+    Get test NZT for development
+  </Card>
+  <Card title="Smart Contracts Reference" icon="file-contract" href="/developers/smart-contracts">
+    Complete contract documentation
+  </Card>
+  <Card title="RPC API Methods" icon="code" href="/developers/rpc-calls">
+    Available RPC endpoints
+  </Card>
+  <Card title="Example dApps" icon="github" href="https://github.com/nexis-network/examples">
+    View complete examples on GitHub
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+1. **Get Testnet Tokens**: Visit the [faucet](/developers/testnet-tokens) to get test NZT
+2. **Deploy Your First Contract**: Follow the [quickstart guide](/quickstart)
+3. **Integrate AI Agents**: Register an agent and create your first task
+4. **Join the Community**: Get help on [Discord](https://discord.gg/nexis)
+
+---
+
+<Note>
+Need help? Join our [Developer Discord](https://discord.gg/nexis) or check [GitHub Discussions](https://github.com/nexis-network/nexis-base-appchain/discussions) for community support.
+</Note>

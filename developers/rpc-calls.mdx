@@ -1,0 +1,1403 @@
+---
+title: 'AI Blockchain RPC API | Web3 Node Endpoints'
+description: 'Comprehensive guide to Nexis Appchain RPC methods including Ethereum JSON-RPC, Optimism extensions, custom AI agent methods, and WebSocket subscriptions'
+icon: 'code'
+---
+
+# RPC API Reference
+
+Complete reference for all RPC methods available on Nexis Appchain, including standard Ethereum JSON-RPC, Optimism-specific methods, and custom Nexis AI agent methods.
+
+## Quick Start
+
+```bash
+# HTTP RPC endpoint
+https://rpc.testnet.nexis.network
+
+# WebSocket endpoint
+wss://ws.testnet.nexis.network
+
+# Example request
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_blockNumber",
+    "params": [],
+    "id": 1
+  }'
+```
+
+## Endpoint Information
+
+<CardGroup cols={2}>
+  <Card title="HTTP RPC" icon="server">
+    `https://rpc.testnet.nexis.network`
+
+    Rate Limit: 100 req/s
+  </Card>
+  <Card title="WebSocket" icon="bolt">
+    `wss://ws.testnet.nexis.network`
+
+    Real-time subscriptions
+  </Card>
+  <Card title="Testnet Chain ID" icon="link">
+    `84532` (0x14A34)
+
+    Same as Base Sepolia
+  </Card>
+  <Card title="Block Time" icon="clock">
+    `2 seconds`
+
+    Fast finality
+  </Card>
+</CardGroup>
+
+## Standard Ethereum JSON-RPC Methods
+
+### Block Methods
+
+#### eth_blockNumber
+
+Get the latest block number.
+
+```bash
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_blockNumber",
+    "params": [],
+    "id": 1
+  }'
+```
+
+```javascript
+// ethers.js
+const blockNumber = await provider.getBlockNumber();
+console.log('Latest block:', blockNumber);
+```
+
+```python
+# web3.py
+block_number = w3.eth.block_number
+print(f"Latest block: {block_number}")
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": "0x1b4" // 436 in decimal
+}
+```
+
+---
+
+#### eth_getBlockByNumber
+
+Get block information by block number.
+
+**Parameters:**
+1. `QUANTITY|TAG` - Block number or tag ("earliest", "latest", "pending", "safe", "finalized")
+2. `Boolean` - If true, returns full transaction objects; if false, only transaction hashes
+
+```bash
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_getBlockByNumber",
+    "params": ["latest", true],
+    "id": 1
+  }'
+```
+
+```javascript
+// ethers.js
+const block = await provider.getBlock('latest');
+console.log('Block:', {
+  number: block.number,
+  hash: block.hash,
+  timestamp: block.timestamp,
+  transactions: block.transactions.length,
+  gasUsed: block.gasUsed.toString(),
+  gasLimit: block.gasLimit.toString(),
+});
+```
+
+```typescript
+// viem
+import { createPublicClient, http } from 'viem';
+import { nexisTestnet } from './chains';
+
+const client = createPublicClient({
+  chain: nexisTestnet,
+  transport: http(),
+});
+
+const block = await client.getBlock({
+  blockTag: 'latest',
+  includeTransactions: true,
+});
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "number": "0x1b4",
+    "hash": "0xabc123...",
+    "parentHash": "0xdef456...",
+    "timestamp": "0x6538b7e0",
+    "transactions": ["0x789...", "0x012..."],
+    "gasUsed": "0x47e7c4",
+    "gasLimit": "0x1c9c380",
+    "baseFeePerGas": "0x3b9aca00",
+    "difficulty": "0x0",
+    "extraData": "0x",
+    "logsBloom": "0x...",
+    "miner": "0x4200000000000000000000000000000000000011",
+    "mixHash": "0x...",
+    "nonce": "0x0000000000000000",
+    "receiptsRoot": "0x...",
+    "sha3Uncles": "0x...",
+    "size": "0x3e8",
+    "stateRoot": "0x...",
+    "totalDifficulty": "0x0",
+    "transactionsRoot": "0x...",
+    "uncles": []
+  }
+}
+```
+
+---
+
+#### eth_getBlockByHash
+
+Get block information by block hash.
+
+**Parameters:**
+1. `DATA` - 32-byte block hash
+2. `Boolean` - If true, returns full transaction objects
+
+```javascript
+const block = await provider.getBlock('0xabc123...');
+```
+
+---
+
+#### eth_getBlockTransactionCountByNumber
+
+Get transaction count in a block.
+
+```bash
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_getBlockTransactionCountByNumber",
+    "params": ["latest"],
+    "id": 1
+  }'
+```
+
+```javascript
+const txCount = await provider.send('eth_getBlockTransactionCountByNumber', ['latest']);
+console.log('Transactions in latest block:', parseInt(txCount, 16));
+```
+
+---
+
+### Transaction Methods
+
+#### eth_getTransactionByHash
+
+Get transaction details by hash.
+
+```bash
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_getTransactionByHash",
+    "params": ["0x123abc..."],
+    "id": 1
+  }'
+```
+
+```javascript
+const tx = await provider.getTransaction('0x123abc...');
+console.log('Transaction:', {
+  from: tx.from,
+  to: tx.to,
+  value: ethers.formatEther(tx.value),
+  gasPrice: ethers.formatUnits(tx.gasPrice, 'gwei'),
+  nonce: tx.nonce,
+  data: tx.data,
+});
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "blockHash": "0xabc...",
+    "blockNumber": "0x1b4",
+    "from": "0x1234...",
+    "to": "0x5678...",
+    "gas": "0x5208",
+    "gasPrice": "0x3b9aca00",
+    "hash": "0x123abc...",
+    "input": "0x",
+    "nonce": "0x0",
+    "r": "0x...",
+    "s": "0x...",
+    "v": "0x25",
+    "transactionIndex": "0x0",
+    "type": "0x2",
+    "value": "0xde0b6b3a7640000",
+    "maxFeePerGas": "0x59682f00",
+    "maxPriorityFeePerGas": "0x3b9aca00"
+  }
+}
+```
+
+---
+
+#### eth_getTransactionReceipt
+
+Get transaction receipt (confirmation status, logs, gas used).
+
+```bash
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_getTransactionReceipt",
+    "params": ["0x123abc..."],
+    "id": 1
+  }'
+```
+
+```javascript
+const receipt = await provider.getTransactionReceipt('0x123abc...');
+console.log('Receipt:', {
+  status: receipt.status, // 1 = success, 0 = failed
+  blockNumber: receipt.blockNumber,
+  gasUsed: receipt.gasUsed.toString(),
+  effectiveGasPrice: ethers.formatUnits(receipt.effectiveGasPrice, 'gwei'),
+  logs: receipt.logs.length,
+});
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "blockHash": "0xabc...",
+    "blockNumber": "0x1b4",
+    "contractAddress": null,
+    "cumulativeGasUsed": "0x5208",
+    "effectiveGasPrice": "0x3b9aca00",
+    "from": "0x1234...",
+    "to": "0x5678...",
+    "gasUsed": "0x5208",
+    "logs": [],
+    "logsBloom": "0x...",
+    "status": "0x1",
+    "transactionHash": "0x123abc...",
+    "transactionIndex": "0x0",
+    "type": "0x2"
+  }
+}
+```
+
+---
+
+#### eth_sendRawTransaction
+
+Send a signed transaction.
+
+```javascript
+// ethers.js
+const wallet = new ethers.Wallet(privateKey, provider);
+
+const tx = await wallet.sendTransaction({
+  to: '0x5678...',
+  value: ethers.parseEther('0.1'),
+  gasLimit: 21000,
+});
+
+console.log('TX hash:', tx.hash);
+await tx.wait(); // Wait for confirmation
+console.log('Confirmed!');
+```
+
+```bash
+# Using cast (Foundry)
+cast send 0x5678... \
+  --value 0.1ether \
+  --private-key $PRIVATE_KEY \
+  --rpc-url https://rpc.testnet.nexis.network
+```
+
+```python
+# web3.py
+from web3 import Web3
+from eth_account import Account
+
+w3 = Web3(Web3.HTTPProvider('https://rpc.testnet.nexis.network'))
+account = Account.from_key('0xYourPrivateKey')
+
+tx = {
+    'from': account.address,
+    'to': '0x5678...',
+    'value': w3.to_wei(0.1, 'ether'),
+    'gas': 21000,
+    'gasPrice': w3.eth.gas_price,
+    'nonce': w3.eth.get_transaction_count(account.address),
+    'chainId': 84532
+}
+
+signed_tx = account.sign_transaction(tx)
+tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+
+print(f"TX hash: {tx_hash.hex()}")
+
+# Wait for receipt
+receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+print(f"Status: {'Success' if receipt['status'] == 1 else 'Failed'}")
+```
+
+---
+
+#### eth_getTransactionCount
+
+Get transaction count (nonce) for an address.
+
+```javascript
+const nonce = await provider.getTransactionCount('0x1234...', 'latest');
+console.log('Nonce:', nonce);
+
+// Get pending nonce (includes pending transactions)
+const pendingNonce = await provider.getTransactionCount('0x1234...', 'pending');
+```
+
+```bash
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_getTransactionCount",
+    "params": ["0x1234...", "latest"],
+    "id": 1
+  }'
+```
+
+---
+
+### Account Methods
+
+#### eth_getBalance
+
+Get account balance.
+
+```javascript
+const balance = await provider.getBalance('0x1234...');
+console.log('Balance:', ethers.formatEther(balance), 'NZT');
+```
+
+```bash
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_getBalance",
+    "params": ["0x1234...", "latest"],
+    "id": 1
+  }'
+```
+
+```python
+balance_wei = w3.eth.get_balance('0x1234...')
+balance_eth = w3.from_wei(balance_wei, 'ether')
+print(f"Balance: {balance_eth} NZT")
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": "0x8ac7230489e80000" // 10 NZT in hex wei
+}
+```
+
+---
+
+#### eth_getCode
+
+Get contract bytecode at an address.
+
+```javascript
+const code = await provider.getCode('0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb');
+console.log('Contract code length:', code.length);
+console.log('Is contract:', code !== '0x');
+```
+
+```bash
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_getCode",
+    "params": ["0x742d...", "latest"],
+    "id": 1
+  }'
+```
+
+---
+
+#### eth_getStorageAt
+
+Get storage value at a specific position.
+
+```javascript
+// Get storage slot 0 of a contract
+const storage = await provider.getStorage(
+  '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+  0 // storage slot
+);
+console.log('Storage at slot 0:', storage);
+```
+
+---
+
+### State Query Methods
+
+#### eth_call
+
+Execute a contract function without creating a transaction (read-only).
+
+```javascript
+// Call a view function
+const contract = new ethers.Contract(address, abi, provider);
+const result = await contract.getAgent(agentId);
+console.log('Agent data:', result);
+
+// Or use provider.call directly
+const data = contract.interface.encodeFunctionData('getAgent', [agentId]);
+const result = await provider.call({
+  to: address,
+  data: data,
+});
+```
+
+```bash
+# Using cast
+cast call 0x742d... "getAgent(uint256)" 1 \
+  --rpc-url https://rpc.testnet.nexis.network
+```
+
+```python
+# web3.py
+contract = w3.eth.contract(address=contract_address, abi=abi)
+result = contract.functions.getAgent(agent_id).call()
+print(f"Agent: {result}")
+```
+
+---
+
+#### eth_estimateGas
+
+Estimate gas needed for a transaction.
+
+```javascript
+const gasEstimate = await provider.estimateGas({
+  to: '0x742d...',
+  data: contract.interface.encodeFunctionData('createTask', [...args]),
+  value: ethers.parseEther('1.0'),
+});
+
+console.log('Estimated gas:', gasEstimate.toString());
+
+// Add buffer (10%) for safety
+const gasLimit = gasEstimate * 110n / 100n;
+```
+
+```bash
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_estimateGas",
+    "params": [{
+      "from": "0x1234...",
+      "to": "0x742d...",
+      "data": "0xabcd..."
+    }],
+    "id": 1
+  }'
+```
+
+---
+
+### Gas & Fee Methods
+
+#### eth_gasPrice
+
+Get current gas price.
+
+```javascript
+const gasPrice = await provider.getFeeData();
+console.log('Gas price:', ethers.formatUnits(gasPrice.gasPrice, 'gwei'), 'gwei');
+console.log('Max fee:', ethers.formatUnits(gasPrice.maxFeePerGas, 'gwei'), 'gwei');
+console.log('Priority fee:', ethers.formatUnits(gasPrice.maxPriorityFeePerGas, 'gwei'), 'gwei');
+```
+
+```bash
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_gasPrice",
+    "params": [],
+    "id": 1
+  }'
+```
+
+---
+
+#### eth_feeHistory
+
+Get historical gas fee data.
+
+**Parameters:**
+1. `QUANTITY` - Number of blocks
+2. `QUANTITY|TAG` - Newest block
+3. `Array` - Reward percentiles (e.g., [25, 50, 75])
+
+```javascript
+const feeHistory = await provider.send('eth_feeHistory', [
+  '0x5', // Last 5 blocks
+  'latest',
+  [25, 50, 75] // 25th, 50th, 75th percentile
+]);
+
+console.log('Fee history:', feeHistory);
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "oldestBlock": "0x1af",
+    "baseFeePerGas": [
+      "0x3b9aca00",
+      "0x3b9aca00",
+      "0x3b9aca00"
+    ],
+    "gasUsedRatio": [0.5, 0.6, 0.4],
+    "reward": [
+      ["0x0", "0x0", "0x0"],
+      ["0x0", "0x0", "0x0"]
+    ]
+  }
+}
+```
+
+---
+
+### Event & Log Methods
+
+#### eth_getLogs
+
+Get event logs matching filter criteria.
+
+**Parameters:**
+- `fromBlock`: Starting block (number or "earliest", "latest")
+- `toBlock`: Ending block
+- `address`: Contract address(es) to filter
+- `topics`: Event signature and indexed parameters
+
+```javascript
+// Get all TaskCreated events
+const logs = await provider.getLogs({
+  address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+  fromBlock: 1000000,
+  toBlock: 'latest',
+  topics: [
+    ethers.id('TaskCreated(uint256,address,string,uint256)')
+  ]
+});
+
+console.log('Found', logs.length, 'TaskCreated events');
+
+// Decode logs
+const iface = new ethers.Interface([
+  'event TaskCreated(uint256 indexed taskId, address indexed creator, string description, uint256 reward)'
+]);
+
+for (const log of logs) {
+  const decoded = iface.parseLog(log);
+  console.log('Task', decoded.args.taskId.toString(), 'created by', decoded.args.creator);
+}
+```
+
+```bash
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_getLogs",
+    "params": [{
+      "address": "0x742d...",
+      "fromBlock": "0xf4240",
+      "toBlock": "latest",
+      "topics": ["0x..."]
+    }],
+    "id": 1
+  }'
+```
+
+**Advanced filtering:**
+```javascript
+// Filter by multiple contracts
+const logs = await provider.getLogs({
+  address: [
+    '0x742d...', // Tasks contract
+    '0x1234...'  // Agents contract
+  ],
+  fromBlock: 1000000,
+  toBlock: 'latest'
+});
+
+// Filter by indexed parameters
+const agentAddress = '0xabcd...';
+const logs = await provider.getLogs({
+  address: '0x1234...', // Agents contract
+  topics: [
+    ethers.id('StakeIncreased(uint256,address,address,uint256,uint256)'),
+    null, // agentId (not filtering)
+    null, // asset (not filtering)
+    ethers.zeroPadValue(agentAddress, 32) // staker address
+  ]
+});
+```
+
+---
+
+#### eth_newFilter
+
+Create a log filter.
+
+```javascript
+const filter = await provider.send('eth_newFilter', [{
+  address: '0x742d...',
+  topics: [ethers.id('TaskCreated(uint256,address,string,uint256)')]
+}]);
+
+console.log('Filter ID:', filter);
+
+// Get changes
+const changes = await provider.send('eth_getFilterChanges', [filter]);
+```
+
+---
+
+#### eth_newBlockFilter
+
+Create a block filter for new blocks.
+
+```javascript
+const filterId = await provider.send('eth_newBlockFilter', []);
+
+// Poll for new blocks
+setInterval(async () => {
+  const newBlocks = await provider.send('eth_getFilterChanges', [filterId]);
+  if (newBlocks.length > 0) {
+    console.log('New blocks:', newBlocks);
+  }
+}, 2000); // Poll every 2 seconds
+```
+
+---
+
+### Chain Information Methods
+
+#### eth_chainId
+
+Get chain ID.
+
+```javascript
+const network = await provider.getNetwork();
+console.log('Chain ID:', network.chainId); // 84532
+```
+
+```bash
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_chainId",
+    "params": [],
+    "id": 1
+  }'
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": "0x14A34" // 84532
+}
+```
+
+---
+
+#### net_version
+
+Get network ID (same as chain ID).
+
+```bash
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "net_version",
+    "params": [],
+    "id": 1
+  }'
+```
+
+---
+
+#### web3_clientVersion
+
+Get client version information.
+
+```bash
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "web3_clientVersion",
+    "params": [],
+    "id": 1
+  }'
+```
+
+**Response:**
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": "op-geth/v1.101315.1-stable/linux-amd64/go1.21.5"
+}
+```
+
+---
+
+## Optimism-Specific Methods
+
+Nexis is built on the OP Stack, so Optimism-specific methods are available.
+
+### optimism_syncStatus
+
+Get L2 sync status relative to L1.
+
+```javascript
+const syncStatus = await provider.send('optimism_syncStatus', []);
+console.log('Sync status:', {
+  unsafeL2: syncStatus.unsafe_l2.number,
+  safeL2: syncStatus.safe_l2.number,
+  finalizedL2: syncStatus.finalized_l2.number,
+  currentL1: syncStatus.current_l1.number,
+});
+```
+
+**Response:**
+```json
+{
+  "unsafe_l2": {
+    "hash": "0xabc...",
+    "number": 1234567,
+    "timestamp": 1234567890,
+    "l1origin": {
+      "hash": "0xdef...",
+      "number": 9876543
+    }
+  },
+  "safe_l2": {
+    "hash": "0x123...",
+    "number": 1234560,
+    "timestamp": 1234567880
+  },
+  "finalized_l2": {
+    "hash": "0x456...",
+    "number": 1234550,
+    "timestamp": 1234567860
+  },
+  "current_l1": {
+    "hash": "0x789...",
+    "number": 9876545,
+    "timestamp": 1234567892
+  }
+}
+```
+
+**Sync states explained:**
+- **Unsafe L2**: Latest block received from sequencer (may be reorged)
+- **Safe L2**: Block derived from finalized L1 data (unlikely to reorg)
+- **Finalized L2**: Block based on finalized L1 block (cannot reorg)
+
+---
+
+### optimism_rollupConfig
+
+Get rollup configuration.
+
+```bash
+curl -X POST https://rpc.testnet.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "optimism_rollupConfig",
+    "params": [],
+    "id": 1
+  }'
+```
+
+**Response:**
+```json
+{
+  "genesis": {
+    "l1": {
+      "hash": "0x...",
+      "number": 1234567
+    },
+    "l2": {
+      "hash": "0x...",
+      "number": 0
+    },
+    "l2_time": 1234567890
+  },
+  "block_time": 2,
+  "max_sequencer_drift": 600,
+  "seq_window_size": 3600,
+  "channel_timeout": 300,
+  "l1_chain_id": 84532,
+  "l2_chain_id": 84532,
+  "batch_inbox_address": "0xff...",
+  "deposit_contract_address": "0x...",
+  "l1_system_config_address": "0x..."
+}
+```
+
+---
+
+### optimism_outputAtBlock
+
+Get output root at a specific block (for withdrawals).
+
+```javascript
+const outputRoot = await provider.send('optimism_outputAtBlock', ['latest']);
+console.log('Output root:', outputRoot);
+```
+
+---
+
+## WebSocket Subscriptions
+
+Connect via WebSocket for real-time events.
+
+### Subscribe to New Blocks
+
+```javascript
+import { ethers } from 'ethers';
+
+const wsProvider = new ethers.WebSocketProvider('wss://ws.testnet.nexis.network');
+
+// Subscribe to new blocks
+wsProvider.on('block', (blockNumber) => {
+  console.log('New block:', blockNumber);
+});
+
+// Or use subscription API
+const subscription = await wsProvider.send('eth_subscribe', ['newHeads']);
+wsProvider.on(subscription, (block) => {
+  console.log('New block:', block.number, block.hash);
+});
+```
+
+---
+
+### Subscribe to Pending Transactions
+
+```javascript
+const subscription = await wsProvider.send('eth_subscribe', ['newPendingTransactions']);
+
+wsProvider.on(subscription, (txHash) => {
+  console.log('Pending TX:', txHash);
+
+  // Get full transaction details
+  wsProvider.getTransaction(txHash).then(tx => {
+    console.log('TX details:', tx);
+  });
+});
+```
+
+---
+
+### Subscribe to Event Logs
+
+```javascript
+// Subscribe to specific contract events
+const subscription = await wsProvider.send('eth_subscribe', [
+  'logs',
+  {
+    address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb',
+    topics: [ethers.id('TaskCreated(uint256,address,string,uint256)')]
+  }
+]);
+
+wsProvider.on(subscription, (log) => {
+  const iface = new ethers.Interface([
+    'event TaskCreated(uint256 indexed taskId, address indexed creator, string description, uint256 reward)'
+  ]);
+
+  const decoded = iface.parseLog(log);
+  console.log('Task created:', decoded.args.taskId.toString());
+});
+```
+
+---
+
+### Python WebSocket Example
+
+```python
+import asyncio
+import websockets
+import json
+
+async def subscribe_blocks():
+    uri = "wss://ws.testnet.nexis.network"
+
+    async with websockets.connect(uri) as ws:
+        # Subscribe to new blocks
+        await ws.send(json.dumps({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "eth_subscribe",
+            "params": ["newHeads"]
+        }))
+
+        subscription_response = await ws.recv()
+        print(f"Subscribed: {subscription_response}")
+
+        # Listen for blocks
+        while True:
+            message = await ws.recv()
+            data = json.loads(message)
+            block = data['params']['result']
+            print(f"New block: {int(block['number'], 16)}")
+
+asyncio.run(subscribe_blocks())
+```
+
+---
+
+## Batch Requests
+
+Send multiple RPC requests in a single HTTP call.
+
+```javascript
+// Using ethers.js
+const [blockNumber, gasPrice, balance] = await Promise.all([
+  provider.getBlockNumber(),
+  provider.getFeeData(),
+  provider.getBalance('0x1234...')
+]);
+
+// Or using raw batch request
+const batchRequest = [
+  {
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'eth_blockNumber',
+    params: []
+  },
+  {
+    jsonrpc: '2.0',
+    id: 2,
+    method: 'eth_gasPrice',
+    params: []
+  },
+  {
+    jsonrpc: '2.0',
+    id: 3,
+    method: 'eth_getBalance',
+    params: ['0x1234...', 'latest']
+  }
+];
+
+const response = await fetch('https://rpc.testnet.nexis.network', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(batchRequest)
+});
+
+const results = await response.json();
+```
+
+---
+
+## Rate Limiting
+
+### Rate Limit Information
+
+| Tier | Limit | Burst | Notes |
+|------|-------|-------|-------|
+| **Free** | 100 req/s | 150 req/s | Public endpoint |
+| **Developer** | 500 req/s | 750 req/s | Register on Discord |
+| **Enterprise** | Custom | Custom | Contact team |
+
+### Handling Rate Limits
+
+```javascript
+class RateLimitedProvider extends ethers.JsonRpcProvider {
+  constructor(url, maxRequestsPerSecond = 10) {
+    super(url);
+    this.maxRPS = maxRequestsPerSecond;
+    this.requestQueue = [];
+    this.processing = false;
+    this.requestCount = 0;
+
+    // Reset counter every second
+    setInterval(() => {
+      this.requestCount = 0;
+      this.processQueue();
+    }, 1000);
+  }
+
+  async send(method, params) {
+    return new Promise((resolve, reject) => {
+      this.requestQueue.push({ method, params, resolve, reject });
+      this.processQueue();
+    });
+  }
+
+  async processQueue() {
+    if (this.processing || this.requestQueue.length === 0) return;
+    if (this.requestCount >= this.maxRPS) return;
+
+    this.processing = true;
+
+    while (this.requestQueue.length > 0 && this.requestCount < this.maxRPS) {
+      const request = this.requestQueue.shift();
+      this.requestCount++;
+
+      try {
+        const result = await super.send(request.method, request.params);
+        request.resolve(result);
+      } catch (error) {
+        if (error.code === 429) {
+          // Rate limited - re-queue
+          this.requestQueue.unshift(request);
+          break;
+        }
+        request.reject(error);
+      }
+    }
+
+    this.processing = false;
+  }
+}
+
+// Usage
+const provider = new RateLimitedProvider(
+  'https://rpc.testnet.nexis.network',
+  10 // 10 requests per second
+);
+```
+
+---
+
+## Error Handling
+
+### Common Error Codes
+
+| Code | Message | Meaning | Solution |
+|------|---------|---------|----------|
+| `-32700` | Parse error | Invalid JSON | Check JSON formatting |
+| `-32600` | Invalid request | Malformed RPC | Verify method and params |
+| `-32601` | Method not found | Unknown method | Check method name |
+| `-32602` | Invalid params | Wrong parameters | Verify param types/count |
+| `-32603` | Internal error | Server error | Retry or contact support |
+| `-32000` | Server error | Generic error | Check error message |
+| `3` | Execution reverted | TX failed | Check contract logic |
+| `429` | Rate limited | Too many requests | Implement backoff |
+
+### Error Handling Examples
+
+```javascript
+async function safeRpcCall(provider, method, params, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await provider.send(method, params);
+    } catch (error) {
+      console.error(`Attempt ${i + 1} failed:`, error.message);
+
+      if (error.code === 429) {
+        // Rate limited - exponential backoff
+        const delay = Math.pow(2, i) * 1000;
+        console.log(`Waiting ${delay}ms before retry...`);
+        await new Promise(r => setTimeout(r, delay));
+      } else if (error.code === -32603) {
+        // Internal error - retry
+        await new Promise(r => setTimeout(r, 1000));
+      } else {
+        // Other error - don't retry
+        throw error;
+      }
+    }
+  }
+
+  throw new Error('Max retries exceeded');
+}
+
+// Usage
+try {
+  const balance = await safeRpcCall(
+    provider,
+    'eth_getBalance',
+    ['0x1234...', 'latest']
+  );
+  console.log('Balance:', balance);
+} catch (error) {
+  console.error('Failed to get balance:', error);
+}
+```
+
+---
+
+## Performance Optimization
+
+### 1. Use Batch Requests
+
+```javascript
+// ❌ Slow: Sequential requests
+const block1 = await provider.getBlock(100);
+const block2 = await provider.getBlock(101);
+const block3 = await provider.getBlock(102);
+
+// ✅ Fast: Parallel batch
+const [block1, block2, block3] = await Promise.all([
+  provider.getBlock(100),
+  provider.getBlock(101),
+  provider.getBlock(102),
+]);
+```
+
+### 2. Cache Immutable Data
+
+```javascript
+class CachingProvider extends ethers.JsonRpcProvider {
+  constructor(url) {
+    super(url);
+    this.cache = new Map();
+  }
+
+  async getBlock(blockTag) {
+    // Only cache by block number (immutable)
+    if (typeof blockTag === 'number') {
+      const cacheKey = `block_${blockTag}`;
+
+      if (this.cache.has(cacheKey)) {
+        return this.cache.get(cacheKey);
+      }
+
+      const block = await super.getBlock(blockTag);
+      this.cache.set(cacheKey, block);
+      return block;
+    }
+
+    // Don't cache 'latest', 'pending', etc.
+    return super.getBlock(blockTag);
+  }
+}
+```
+
+### 3. Use WebSockets for Real-time Data
+
+```javascript
+// ❌ Polling (wasteful)
+setInterval(async () => {
+  const blockNumber = await provider.getBlockNumber();
+  console.log('Block:', blockNumber);
+}, 2000);
+
+// ✅ WebSocket subscription (efficient)
+wsProvider.on('block', (blockNumber) => {
+  console.log('Block:', blockNumber);
+});
+```
+
+---
+
+## Complete Integration Example
+
+```typescript
+// complete-rpc-integration.ts
+import { ethers } from 'ethers';
+
+class NexisRPCClient {
+  private httpProvider: ethers.JsonRpcProvider;
+  private wsProvider: ethers.WebSocketProvider;
+
+  constructor() {
+    this.httpProvider = new ethers.JsonRpcProvider(
+      'https://rpc.testnet.nexis.network'
+    );
+
+    this.wsProvider = new ethers.WebSocketProvider(
+      'wss://ws.testnet.nexis.network'
+    );
+  }
+
+  // Block methods
+  async getLatestBlock() {
+    return await this.httpProvider.getBlock('latest');
+  }
+
+  async getBlockByNumber(blockNumber: number) {
+    return await this.httpProvider.getBlock(blockNumber);
+  }
+
+  // Transaction methods
+  async getTransaction(txHash: string) {
+    return await this.httpProvider.getTransaction(txHash);
+  }
+
+  async sendTransaction(tx: ethers.TransactionRequest) {
+    const signer = await this.httpProvider.getSigner();
+    return await signer.sendTransaction(tx);
+  }
+
+  // Account methods
+  async getBalance(address: string) {
+    return await this.httpProvider.getBalance(address);
+  }
+
+  async getNonce(address: string) {
+    return await this.httpProvider.getTransactionCount(address);
+  }
+
+  // Contract interaction
+  async callContract(
+    address: string,
+    abi: any[],
+    method: string,
+    args: any[]
+  ) {
+    const contract = new ethers.Contract(address, abi, this.httpProvider);
+    return await contract[method](...args);
+  }
+
+  // Event listening
+  subscribeToBlocks(callback: (blockNumber: number) => void) {
+    this.wsProvider.on('block', callback);
+  }
+
+  subscribeToLogs(
+    address: string,
+    topics: string[],
+    callback: (log: ethers.Log) => void
+  ) {
+    const filter = {
+      address,
+      topics,
+    };
+
+    this.wsProvider.on(filter, callback);
+  }
+
+  // Batch requests
+  async batchCall(calls: Array<{
+    method: string;
+    params: any[];
+  }>) {
+    return await Promise.all(
+      calls.map(call => this.httpProvider.send(call.method, call.params))
+    );
+  }
+
+  // Cleanup
+  destroy() {
+    this.wsProvider.destroy();
+  }
+}
+
+// Usage
+const client = new NexisRPCClient();
+
+// Get latest block
+const block = await client.getLatestBlock();
+console.log('Latest block:', block.number);
+
+// Subscribe to new blocks
+client.subscribeToBlocks((blockNumber) => {
+  console.log('New block:', blockNumber);
+});
+
+// Get balance
+const balance = await client.getBalance('0x1234...');
+console.log('Balance:', ethers.formatEther(balance));
+
+// Batch call
+const results = await client.batchCall([
+  { method: 'eth_blockNumber', params: [] },
+  { method: 'eth_gasPrice', params: [] },
+  { method: 'eth_getBalance', params: ['0x1234...', 'latest'] },
+]);
+```
+
+---
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="RPC Infrastructure" icon="server" href="/infrastructure/rpc-nodes">
+    Learn about RPC architecture
+  </Card>
+  <Card title="Run Your Own Node" icon="node" href="/developers/rpc-node">
+    Setup your own RPC node
+  </Card>
+  <Card title="Smart Contracts" icon="file-contract" href="/developers/smart-contracts">
+    Integrate with Nexis contracts
+  </Card>
+  <Card title="Building Guide" icon="hammer" href="/developers/building-on-nexis">
+    Complete development guide
+  </Card>
+</CardGroup>
+
+---
+
+<Tip>
+**Pro Tip:** Use WebSocket subscriptions for real-time updates and HTTP for one-off queries. This combination provides the best performance!
+</Tip>
+
+<Note>
+For production applications, consider running your own [RPC node](/developers/rpc-node) for better reliability and no rate limits.
+</Note>

@@ -584,6 +584,802 @@ print(f'Task created with ID: {task_id}')
   </Card>
 </CardGroup>
 
+---
+
+## AI Blockchain API Overview
+
+Nexis Network provides specialized APIs for AI agent monetization and blockchain-based AI services. Our API stack enables crypto payments, decentralized AI coordination, and intelligent contract automation.
+
+### API Categories
+
+<CardGroup cols={3}>
+  <Card title="Agent APIs" icon="robot">
+    Registration, staking, reputation, and AI agent lifecycle management APIs
+  </Card>
+  <Card title="Economic APIs" icon="coins">
+    Subscriptions, payment streams, tasks, and treasury for AI monetization
+  </Card>
+  <Card title="Infrastructure APIs" icon="server">
+    RPC methods, blockchain queries, and real-time event streams
+  </Card>
+</CardGroup>
+
+---
+
+## Authentication for AI Agents
+
+AI agents interact with Nexis using cryptographic authentication and role-based access control.
+
+### Agent Authentication Methods
+
+<Tabs>
+  <Tab title="Private Key Signing">
+    Most common for AI agent operations. Agent operators sign transactions with private keys.
+
+    ```javascript
+    import { ethers } from 'ethers';
+
+    // AI agent with private key authentication
+    const agentWallet = new ethers.Wallet(privateKey, provider);
+
+    // Sign and send agent operation
+    const agents = new ethers.Contract(agentsAddress, agentsABI, agentWallet);
+    const tx = await agents.recordInference(
+      agentId,
+      inputHash,
+      outputHash,
+      modelHash,
+      taskId,
+      proofURI
+    );
+    ```
+  </Tab>
+
+  <Tab title="Delegation Permissions">
+    Agent owners can delegate specific permissions to operator addresses.
+
+    ```javascript
+    // Agent owner delegates inference permission
+    const PERMISSION_INFERENCE = ethers.keccak256(
+      ethers.toUtf8Bytes("PERMISSION_INFERENCE")
+    );
+
+    await agents.setDelegate(
+      agentId,
+      operatorAddress,
+      PERMISSION_INFERENCE,
+      true
+    );
+
+    // Operator can now record inferences
+    const operatorWallet = new ethers.Wallet(operatorKey, provider);
+    const agentsAsOperator = agents.connect(operatorWallet);
+    await agentsAsOperator.recordInference(...);
+    ```
+  </Tab>
+
+  <Tab title="Multi-Sig Integration">
+    Enterprise AI agents can use multi-signature wallets for enhanced security.
+
+    ```javascript
+    import { ethers } from 'ethers';
+    import Safe from '@safe-global/protocol-kit';
+
+    // Initialize Safe multi-sig
+    const safe = await Safe.create({
+      ethAdapter,
+      safeAddress: multiSigAddress
+    });
+
+    // Create transaction
+    const safeTx = await safe.createTransaction({
+      safeTransactionData: {
+        to: agentsAddress,
+        value: '0',
+        data: encodedFunctionCall
+      }
+    });
+
+    // Collect signatures from required signers
+    const signedTx = await safe.signTransaction(safeTx);
+    await safe.executeTransaction(signedTx);
+    ```
+  </Tab>
+</Tabs>
+
+### API Key Management for AI Services
+
+<Warning>
+Store private keys securely:
+- Use environment variables, never hardcode
+- Implement key rotation policies
+- Use hardware security modules (HSM) for production
+- Separate keys for different environments (dev/staging/prod)
+- Monitor key usage with alerts for suspicious activity
+</Warning>
+
+```javascript
+// Secure key management example
+import { config } from 'dotenv';
+import { SecretsManager } from '@aws-sdk/client-secrets-manager';
+
+// Load from environment (development)
+config();
+const devKey = process.env.AI_AGENT_PRIVATE_KEY;
+
+// Load from secrets manager (production)
+const secretsManager = new SecretsManager({ region: 'us-east-1' });
+const secret = await secretsManager.getSecretValue({
+  SecretId: 'nexis/ai-agent/prod-key'
+});
+const prodKey = JSON.parse(secret.SecretString).privateKey;
+
+// Use appropriate key based on environment
+const agentKey = process.env.NODE_ENV === 'production' ? prodKey : devKey;
+const wallet = new ethers.Wallet(agentKey, provider);
+```
+
+---
+
+## Rate Limiting for AI Operations
+
+Optimize API usage for high-frequency AI agent operations with intelligent rate limiting and batch processing.
+
+### RPC Rate Limits
+
+Standard rate limits apply to JSON-RPC endpoints:
+
+| Tier | Requests/Second | Burst | WebSocket Connections | Monthly Requests |
+|------|----------------|-------|----------------------|------------------|
+| Free | 100 | 200 | 10 | 2.5M |
+| Pro | 1,000 | 2,000 | 50 | 30M |
+| Enterprise | 10,000 | 20,000 | Unlimited | Unlimited |
+
+### Smart Contract Call Optimization
+
+Smart contract calls are limited by gas, not API rate limits. Optimize for cost and performance:
+
+```javascript
+// ❌ Bad: Multiple sequential calls (high latency)
+const agent1 = await agents.getAgent(1);
+const agent2 = await agents.getAgent(2);
+const agent3 = await agents.getAgent(3);
+
+// ✅ Good: Batch read calls with multicall
+import { Contract } from 'ethers';
+
+const multicall = new Contract(multicallAddress, multicallABI, provider);
+
+const calls = [
+  { target: agentsAddress, callData: agents.interface.encodeFunctionData('getAgent', [1]) },
+  { target: agentsAddress, callData: agents.interface.encodeFunctionData('getAgent', [2]) },
+  { target: agentsAddress, callData: agents.interface.encodeFunctionData('getAgent', [3]) }
+];
+
+const results = await multicall.aggregate(calls);
+
+// ✅ Better: Use list queries when available
+const agentList = await agents.listAgents(0, 100); // Get 100 agents in one call
+```
+
+### Handling Rate Limit Errors
+
+```javascript
+class RateLimitedAPI {
+  constructor(provider, retryConfig = {}) {
+    this.provider = provider;
+    this.maxRetries = retryConfig.maxRetries || 3;
+    this.baseDelay = retryConfig.baseDelay || 1000;
+  }
+
+  async callWithRetry(fn, ...args) {
+    for (let attempt = 0; attempt < this.maxRetries; attempt++) {
+      try {
+        return await fn(...args);
+      } catch (error) {
+        // Check if rate limit error
+        if (error.code === -32005 || error.message?.includes('rate limit')) {
+          const delay = this.baseDelay * Math.pow(2, attempt);
+          console.warn(`Rate limited, retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+          throw error; // Re-throw non-rate-limit errors
+        }
+      }
+    }
+
+    throw new Error('Max retries exceeded for rate limited request');
+  }
+}
+
+// Usage
+const api = new RateLimitedAPI(provider);
+
+const balance = await api.callWithRetry(
+  () => provider.getBalance(address)
+);
+```
+
+---
+
+## Batch Operations for Efficiency
+
+Reduce gas costs and latency for AI operations with batching strategies.
+
+### Batch Transaction Submission
+
+```javascript
+// AI agent processing multiple inferences
+class BatchInferenceProcessor {
+  constructor(agents, wallet) {
+    this.agents = agents;
+    this.wallet = wallet;
+    this.pendingInferences = [];
+    this.batchSize = 10;
+    this.batchTimeout = 30000; // 30 seconds
+  }
+
+  async recordInference(agentId, inputHash, outputHash, modelHash, taskId, proofURI) {
+    this.pendingInferences.push({
+      agentId, inputHash, outputHash, modelHash, taskId, proofURI
+    });
+
+    if (this.pendingInferences.length >= this.batchSize) {
+      await this.processBatch();
+    }
+  }
+
+  async processBatch() {
+    if (this.pendingInferences.length === 0) return;
+
+    const batch = this.pendingInferences.splice(0, this.batchSize);
+
+    console.log(`Processing batch of ${batch.length} inferences...`);
+
+    // Submit all inferences in parallel
+    const txPromises = batch.map(inference =>
+      this.agents.recordInference(
+        inference.agentId,
+        inference.inputHash,
+        inference.outputHash,
+        inference.modelHash,
+        inference.taskId,
+        inference.proofURI
+      )
+    );
+
+    const txs = await Promise.all(txPromises);
+
+    // Wait for all confirmations in parallel
+    await Promise.all(txs.map(tx => tx.wait()));
+
+    console.log(`Batch processed: ${batch.length} inferences recorded`);
+  }
+
+  // Start periodic batch processing
+  startAutoProcessing() {
+    setInterval(() => this.processBatch(), this.batchTimeout);
+  }
+}
+
+// Usage
+const processor = new BatchInferenceProcessor(agents, wallet);
+processor.startAutoProcessing();
+
+// Record inferences as they happen
+await processor.recordInference(...inference1);
+await processor.recordInference(...inference2);
+// Automatically batched and submitted
+```
+
+### Event Batching and Filtering
+
+```javascript
+// Efficiently monitor multiple agents for events
+class AgentEventMonitor {
+  constructor(agents, agentIds) {
+    this.agents = agents;
+    this.agentIds = agentIds;
+    this.listeners = new Map();
+  }
+
+  async monitorInferences() {
+    // Single filter for all agents
+    const filter = this.agents.filters.InferenceRecorded(this.agentIds);
+
+    // Batch event processing
+    let eventBuffer = [];
+    const flushInterval = 5000; // 5 seconds
+
+    this.agents.on(filter, (...args) => {
+      eventBuffer.push(args);
+    });
+
+    // Process events in batches
+    setInterval(() => {
+      if (eventBuffer.length > 0) {
+        console.log(`Processing ${eventBuffer.length} inference events...`);
+        this.processEventBatch(eventBuffer);
+        eventBuffer = [];
+      }
+    }, flushInterval);
+  }
+
+  async processEventBatch(events) {
+    // Bulk process events
+    const inferences = events.map(event => ({
+      agentId: event[0],
+      inferenceId: event[1],
+      timestamp: Date.now()
+    }));
+
+    // Bulk insert to database, update analytics, etc.
+    await this.bulkUpdateDatabase(inferences);
+  }
+}
+```
+
+---
+
+## Real-time Subscriptions via WebSocket
+
+Monitor AI agent activity, blockchain events, and payment streams in real-time with WebSocket connections.
+
+### WebSocket Connection Management
+
+```javascript
+import { ethers } from 'ethers';
+
+class RealtimeAIMonitor {
+  constructor(wsUrl, contracts) {
+    this.wsProvider = new ethers.WebSocketProvider(wsUrl);
+    this.contracts = {
+      agents: new ethers.Contract(
+        contracts.agents,
+        agentsABI,
+        this.wsProvider
+      ),
+      tasks: new ethers.Contract(
+        contracts.tasks,
+        tasksABI,
+        this.wsProvider
+      ),
+      subscriptions: new ethers.Contract(
+        contracts.subscriptions,
+        subscriptionsABI,
+        this.wsProvider
+      )
+    };
+
+    this.setupReconnection();
+  }
+
+  setupReconnection() {
+    this.wsProvider.on('error', (error) => {
+      console.error('WebSocket error:', error);
+      this.reconnect();
+    });
+
+    this.wsProvider.on('close', () => {
+      console.warn('WebSocket closed, reconnecting...');
+      this.reconnect();
+    });
+  }
+
+  async reconnect() {
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    this.wsProvider = new ethers.WebSocketProvider(this.wsUrl);
+    this.setupSubscriptions();
+  }
+
+  setupSubscriptions() {
+    // Monitor new agent registrations
+    this.contracts.agents.on('AgentRegistered', (owner, agentId, metadata) => {
+      console.log('New agent registered:', { owner, agentId });
+      this.onNewAgent({ owner, agentId, metadata });
+    });
+
+    // Monitor AI inferences
+    this.contracts.agents.on('InferenceRecorded', (
+      agentId, inferenceId, inputHash, outputHash, modelHash, taskId
+    ) => {
+      console.log('New inference:', { agentId, inferenceId });
+      this.onNewInference({ agentId, inferenceId, taskId });
+    });
+
+    // Monitor task lifecycle
+    this.contracts.tasks.on('TaskCreated', (taskId, creator, asset, reward) => {
+      console.log('New task:', { taskId, creator, reward });
+      this.onNewTask({ taskId, creator, reward });
+    });
+
+    this.contracts.tasks.on('TaskCompleted', (taskId, agentId, recipient, reward) => {
+      console.log('Task completed:', { taskId, agentId, reward });
+      this.onTaskCompleted({ taskId, agentId, reward });
+    });
+
+    // Monitor subscriptions
+    this.contracts.subscriptions.on('SubscriptionCreated', (
+      subId, subscriber, agentId, asset, amountPerEpoch
+    ) => {
+      console.log('New subscription:', { subId, subscriber, agentId });
+      this.onNewSubscription({ subId, subscriber, agentId, amountPerEpoch });
+    });
+
+    // Monitor payment streams
+    this.contracts.subscriptions.on('StreamCreated', (
+      streamId, payer, agentId, asset, totalAmount
+    ) => {
+      console.log('New stream:', { streamId, payer, agentId });
+      this.onNewStream({ streamId, payer, agentId, totalAmount });
+    });
+  }
+
+  // Implement handlers
+  onNewAgent(data) { /* Handle new agent */ }
+  onNewInference(data) { /* Handle new inference */ }
+  onNewTask(data) { /* Handle new task */ }
+  onTaskCompleted(data) { /* Handle completed task */ }
+  onNewSubscription(data) { /* Handle new subscription */ }
+  onNewStream(data) { /* Handle new stream */ }
+}
+
+// Usage
+const monitor = new RealtimeAIMonitor('wss://testnet-ws.nexis.network', {
+  agents: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+  tasks: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+  subscriptions: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9'
+});
+
+monitor.setupSubscriptions();
+```
+
+### Stream-Based Data Processing
+
+```javascript
+// Process blockchain events as streams
+import { pipeline } from 'stream/promises';
+import { Transform } from 'stream';
+
+class EventStream extends Transform {
+  constructor(contract, eventName) {
+    super({ objectMode: true });
+    this.contract = contract;
+    this.eventName = eventName;
+
+    this.contract.on(eventName, (...args) => {
+      this.push({ eventName, args, timestamp: Date.now() });
+    });
+  }
+
+  _transform(chunk, encoding, callback) {
+    callback(null, chunk);
+  }
+}
+
+class EventProcessor extends Transform {
+  constructor() {
+    super({ objectMode: true });
+  }
+
+  _transform(event, encoding, callback) {
+    // Process event
+    const processed = this.processEvent(event);
+    callback(null, processed);
+  }
+
+  processEvent(event) {
+    // Add custom processing logic
+    return {
+      ...event,
+      processed: true,
+      processedAt: Date.now()
+    };
+  }
+}
+
+// Usage
+const eventStream = new EventStream(agents, 'InferenceRecorded');
+const processor = new EventProcessor();
+
+await pipeline(
+  eventStream,
+  processor,
+  async function* (source) {
+    for await (const event of source) {
+      console.log('Processed event:', event);
+      // Store in database, trigger webhooks, etc.
+    }
+  }
+);
+```
+
+---
+
+## API Versioning Strategy
+
+Nexis follows semantic versioning for smart contracts and maintains backwards compatibility for AI agent integrations.
+
+### Contract Versioning
+
+<Tabs>
+  <Tab title="Proxy Pattern">
+    All contracts use UUPS proxy pattern for upgrades without changing addresses.
+
+    ```solidity
+    // Contracts are upgradeable
+    contract Agents is UUPSUpgradeable, AccessControlUpgradeable {
+        function _authorizeUpgrade(address newImplementation)
+            internal
+            override
+            onlyRole(DEFAULT_ADMIN_ROLE)
+        {}
+    }
+    ```
+
+    Agent integrations reference the proxy address, which never changes:
+    ```javascript
+    // Same address across upgrades
+    const AGENTS_ADDRESS = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+    ```
+  </Tab>
+
+  <Tab title="Version Detection">
+    Query contract version to ensure compatibility.
+
+    ```javascript
+    // Check contract version
+    async function checkCompatibility(contract) {
+      try {
+        const version = await contract.version();
+        console.log('Contract version:', version);
+
+        // Parse version (e.g., "1.2.0")
+        const [major, minor, patch] = version.split('.').map(Number);
+
+        // Check minimum required version
+        if (major < 1 || (major === 1 && minor < 2)) {
+          throw new Error('Contract version too old, please upgrade');
+        }
+
+        return { compatible: true, version };
+      } catch (error) {
+        console.error('Version check failed:', error);
+        return { compatible: false, error };
+      }
+    }
+    ```
+  </Tab>
+
+  <Tab title="Migration Handling">
+    Handle contract upgrades gracefully in AI agent code.
+
+    ```javascript
+    class VersionedAgentAPI {
+      constructor(provider, address) {
+        this.provider = provider;
+        this.address = address;
+        this.contract = this.loadContract();
+      }
+
+      async loadContract() {
+        // Detect version and load appropriate ABI
+        const tempContract = new ethers.Contract(
+          this.address,
+          ['function version() view returns (string)'],
+          this.provider
+        );
+
+        const version = await tempContract.version();
+        const abi = this.getABIForVersion(version);
+
+        return new ethers.Contract(this.address, abi, this.provider);
+      }
+
+      getABIForVersion(version) {
+        const [major] = version.split('.').map(Number);
+
+        switch (major) {
+          case 1:
+            return agentsABI_v1;
+          case 2:
+            return agentsABI_v2;
+          default:
+            throw new Error(`Unsupported version: ${version}`);
+        }
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Error Handling Best Practices
+
+Robust error handling for AI agent operations on blockchain.
+
+### Error Categories
+
+```javascript
+class AgentAPIError extends Error {
+  constructor(message, code, details) {
+    super(message);
+    this.name = 'AgentAPIError';
+    this.code = code;
+    this.details = details;
+  }
+}
+
+class AgentErrorHandler {
+  static async handleTransaction(txFunction) {
+    try {
+      const tx = await txFunction();
+      const receipt = await tx.wait();
+
+      if (receipt.status === 0) {
+        throw new AgentAPIError(
+          'Transaction failed',
+          'TX_FAILED',
+          { txHash: receipt.hash }
+        );
+      }
+
+      return receipt;
+    } catch (error) {
+      return this.categorizeError(error);
+    }
+  }
+
+  static categorizeError(error) {
+    // Network errors
+    if (error.code === 'NETWORK_ERROR') {
+      throw new AgentAPIError(
+        'Network connection failed',
+        'NETWORK_ERROR',
+        { originalError: error.message }
+      );
+    }
+
+    // Insufficient funds
+    if (error.code === 'INSUFFICIENT_FUNDS') {
+      throw new AgentAPIError(
+        'Insufficient balance for transaction',
+        'INSUFFICIENT_FUNDS',
+        { required: error.info?.required, balance: error.info?.balance }
+      );
+    }
+
+    // Contract revert
+    if (error.code === 'CALL_EXCEPTION') {
+      const reason = this.parseRevertReason(error);
+      throw new AgentAPIError(
+        `Contract reverted: ${reason}`,
+        'CONTRACT_REVERT',
+        { reason, data: error.data }
+      );
+    }
+
+    // Rate limit
+    if (error.code === -32005) {
+      throw new AgentAPIError(
+        'Rate limit exceeded',
+        'RATE_LIMIT',
+        { retryAfter: error.data?.reset }
+      );
+    }
+
+    // Unknown error
+    throw new AgentAPIError(
+      'Unknown error occurred',
+      'UNKNOWN_ERROR',
+      { originalError: error }
+    );
+  }
+
+  static parseRevertReason(error) {
+    // Extract custom error or revert string
+    if (error.data) {
+      try {
+        // Parse custom error selector
+        const selector = error.data.slice(0, 10);
+        // Map to human-readable message
+        return this.errorMessages[selector] || 'Unknown revert reason';
+      } catch {
+        return error.reason || 'Transaction reverted';
+      }
+    }
+    return error.reason || 'Transaction reverted';
+  }
+
+  static errorMessages = {
+    '0x1234abcd': 'Agent not registered',
+    '0x5678efgh': 'Insufficient stake',
+    // Add more custom error mappings
+  };
+}
+
+// Usage
+try {
+  const receipt = await AgentErrorHandler.handleTransaction(
+    () => agents.recordInference(...)
+  );
+  console.log('Inference recorded successfully');
+} catch (error) {
+  if (error.code === 'INSUFFICIENT_FUNDS') {
+    console.error('Need more funds:', error.details);
+  } else if (error.code === 'CONTRACT_REVERT') {
+    console.error('Contract error:', error.details.reason);
+  } else {
+    console.error('Unexpected error:', error);
+  }
+}
+```
+
+---
+
+## SDK Recommendations with Links
+
+<CardGroup cols={2}>
+  <Card title="JavaScript/TypeScript" icon="js" href="https://docs.ethers.org/">
+    **ethers.js v6** (Recommended)
+    - Modern, TypeScript-first
+    - Tree-shakeable
+    - 88KB gzipped
+
+    ```bash
+    npm install ethers
+    ```
+  </Card>
+
+  <Card title="Python" icon="python" href="https://web3py.readthedocs.io/">
+    **web3.py**
+    - Official Python SDK
+    - Pythonic API
+    - Async support
+
+    ```bash
+    pip install web3
+    ```
+  </Card>
+
+  <Card title="Go" icon="golang" href="https://geth.ethereum.org/docs/developers/dapp-developer/native">
+    **go-ethereum**
+    - Native Go bindings
+    - High performance
+    - Low-level control
+
+    ```bash
+    go get github.com/ethereum/go-ethereum
+    ```
+  </Card>
+
+  <Card title="Rust" icon="rust" href="https://docs.rs/ethers/latest/ethers/">
+    **ethers-rs**
+    - Type-safe
+    - High performance
+    - Async/await
+
+    ```bash
+    cargo add ethers
+    ```
+  </Card>
+</CardGroup>
+
+### SDK Feature Comparison
+
+| Feature | ethers.js | web3.py | go-ethereum | ethers-rs |
+|---------|-----------|---------|-------------|-----------|
+| Contract ABI Parsing | ✅ | ✅ | ✅ | ✅ |
+| Event Filtering | ✅ | ✅ | ✅ | ✅ |
+| WebSocket Support | ✅ | ✅ | ✅ | ✅ |
+| Hardware Wallets | ✅ | ✅ | ❌ | ❌ |
+| ENS Resolution | ✅ | ✅ | ✅ | ✅ |
+| TypeScript Support | ✅ | ❌ | ❌ | ❌ |
+| Bundle Size | 88KB | N/A | N/A | N/A |
+
+---
+
 ## Support and Resources
 
 <Info>

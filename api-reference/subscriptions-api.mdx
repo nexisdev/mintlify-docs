@@ -1,0 +1,2193 @@
+---
+title: 'AI Agent Subscription API | Blockchain Payment Streams'
+description: 'Complete API reference for blockchain-based subscriptions and payment streams for AI agents - Crypto payments, recurring billing, and streaming money for AI monetization'
+icon: 'credit-card'
+---
+
+## Overview
+
+The **Subscriptions** contract enables recurring blockchain payments and continuous money streaming for AI agents on Nexis Network. It provides two distinct payment models designed for AI-as-a-Service monetization, crypto subscription management, and decentralized payment streaming.
+
+**Contract Address (Testnet):** `0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9`
+
+**Key Features:**
+- **Epoch-Based Subscriptions** - Recurring payments with configurable billing periods for blockchain subscriptions
+- **Continuous Payment Streams** - Per-second money streaming for AI usage-based billing
+- **Multi-Asset Support** - ETH and ERC20 token payments for crypto subscriptions
+- **Automated Processing** - Keeper-compatible subscription automation for blockchain billing
+- **Pro-Rata Refunds** - Fair cancellation with prorated crypto refunds
+- **Flexible Metadata** - IPFS/Arweave integration for AI service metadata
+- **Agent Integration** - Direct integration with Nexis Agents Registry for AI payments
+
+## Payment Models Comparison
+
+<CardGroup cols={2}>
+  <Card title="Epoch Subscriptions" icon="calendar">
+    Best for predictable AI services with fixed billing cycles - crypto SaaS subscriptions, monthly AI agent access, recurring blockchain payments
+  </Card>
+  <Card title="Payment Streams" icon="water">
+    Best for continuous AI usage - per-second streaming money, token consumption billing, real-time crypto payments for AI inference
+  </Card>
+</CardGroup>
+
+### When to Use Each Model
+
+| Use Case | Subscription | Stream | Why |
+|----------|-------------|--------|-----|
+| Monthly AI agent access | ✅ | ❌ | Fixed billing cycles for blockchain SaaS |
+| Per-token AI inference | ❌ | ✅ | Continuous usage-based crypto payments |
+| Quarterly AI license | ✅ | ❌ | Predictable subscription periods |
+| Real-time data feeds | ❌ | ✅ | Continuous streaming payments for AI data |
+| Annual AI membership | ✅ | ❌ | Long-term blockchain subscription commitment |
+| Metered AI compute | ❌ | ✅ | Variable usage with streaming money |
+
+---
+
+## Contract Constants
+
+```solidity
+// Roles for subscription and stream management
+bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
+bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
+// Assets
+address internal constant ETH_ASSET = address(0);
+
+// Subscription status values
+uint8 public constant STATUS_ACTIVE = 1;
+uint8 public constant STATUS_PAUSED = 2;
+uint8 public constant STATUS_CANCELLED = 3;
+
+// Stream status values
+uint8 public constant STREAM_ACTIVE = 1;
+uint8 public constant STREAM_PAUSED = 2;
+uint8 public constant STREAM_CANCELLED = 3;
+```
+
+---
+
+## Data Structures
+
+### Subscription
+
+```solidity
+struct Subscription {
+    address subscriber;           // User paying for subscription
+    uint256 agentId;             // AI agent receiving payments
+    address asset;               // Payment token (address(0) = ETH)
+    uint256 amountPerEpoch;      // Cost per billing period
+    uint64 epochDuration;        // Billing period in seconds (e.g., 30 days)
+    uint64 nextDueTime;          // Next payment due timestamp
+    uint64 lastProcessedTime;    // Last successful payment
+    uint64 createdAt;            // Subscription creation time
+    uint256 prepaidEpochs;       // Remaining prepaid periods
+    uint8 status;                // Current status (active/paused/cancelled)
+    string metadataURI;          // AI service description (IPFS/Arweave)
+}
+```
+
+### Stream
+
+```solidity
+struct Stream {
+    address payer;               // User streaming payments
+    uint256 agentId;             // AI agent receiving stream
+    address asset;               // Payment asset
+    uint256 totalAmount;         // Total amount allocated
+    uint256 withdrawn;           // Amount already withdrawn by agent
+    uint64 startTime;            // Stream start timestamp
+    uint64 endTime;              // Stream end timestamp
+    uint64 lastWithdrawTime;     // Last withdrawal timestamp
+    uint8 status;                // Current status
+    string integrationURI;       // Integration metadata
+}
+```
+
+---
+
+## Epoch-Based Subscriptions
+
+Subscriptions provide recurring blockchain payments with configurable billing cycles - ideal for AI SaaS models, monthly crypto subscriptions, and predictable agent monetization.
+
+### createSubscription
+
+Create a new recurring subscription for an AI agent with blockchain payments.
+
+<ParamField path="agentId" type="uint256" required>
+  AI Agent ID to subscribe to (must be registered in Agents contract)
+</ParamField>
+
+<ParamField path="asset" type="address" required>
+  Payment asset (address(0) for ETH, token address for ERC20 crypto subscriptions)
+</ParamField>
+
+<ParamField path="amountPerEpoch" type="uint256" required>
+  Amount to pay per billing cycle (in wei or smallest token unit)
+</ParamField>
+
+<ParamField path="epochDuration" type="uint64" required>
+  Billing period in seconds (e.g., 2592000 for 30 days, 604800 for 7 days)
+</ParamField>
+
+<ParamField path="prefundEpochs" type="uint256" required>
+  Number of periods to prepay upfront (minimum 1 for blockchain subscriptions)
+</ParamField>
+
+<ParamField path="metadataURI" type="string" required>
+  URI to subscription metadata (IPFS/Arweave JSON with AI service details)
+</ParamField>
+
+**Transaction Value:**
+- For ETH subscriptions: `msg.value` must equal `amountPerEpoch * prefundEpochs`
+- For ERC20 crypto subscriptions: Must approve contract first, `msg.value` = 0
+
+**Returns:**
+- `subscriptionId` (uint256) - Unique identifier for the blockchain subscription
+
+**Events Emitted:**
+```solidity
+event SubscriptionCreated(
+    uint256 indexed subscriptionId,
+    address indexed subscriber,
+    uint256 indexed agentId,
+    address asset,
+    uint256 amountPerEpoch,
+    uint64 epochDuration,
+    uint256 prefundEpochs,
+    string metadataURI
+);
+```
+
+**Errors:**
+- `AgentNotRegistered(uint256)` - Agent doesn't exist
+- `ZeroAmount()` - amountPerEpoch is 0
+- `InvalidDuration()` - epochDuration is 0
+- `InvalidPrefund()` - prefundEpochs is 0
+- `InvalidAssetAmount()` - msg.value mismatch for ETH
+
+**Gas Costs:**
+- ETH subscription: ~150,000 gas
+- ERC20 subscription: ~200,000 gas (includes token transfer)
+
+**Best Practices for Epoch Duration:**
+- **Daily (86400s)**: High-frequency AI services, crypto microtransactions
+- **Weekly (604800s)**: Balanced blockchain billing, moderate AI usage
+- **Monthly (2592000s)**: Standard SaaS crypto subscriptions, AI memberships
+- **Quarterly (7776000s)**: Enterprise AI contracts, long-term blockchain commitments
+- **Yearly (31536000s)**: Annual AI licenses, maximum prepayment discount
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript (ETH Subscription)
+import { ethers } from 'ethers';
+
+// Monthly AI agent subscription with crypto payments
+const agentId = 12345;
+const monthlyPrice = ethers.parseEther("0.1"); // 0.1 ETH per month
+const monthInSeconds = 30 * 24 * 60 * 60; // 2592000 seconds
+const prepayMonths = 3; // Prepay 3 months upfront
+
+// Subscription metadata for AI service
+const metadata = {
+  serviceName: "GPT-4 AI Agent API Access",
+  tier: "Pro",
+  features: [
+    "Unlimited API requests",
+    "Priority inference queue",
+    "24/7 support"
+  ],
+  maxRequestsPerDay: 10000,
+  responseTimeGuarantee: "< 2 seconds"
+};
+
+const metadataURI = await uploadToIPFS(JSON.stringify(metadata));
+
+// Create blockchain subscription
+const tx = await subscriptions.createSubscription(
+  agentId,
+  ethers.ZeroAddress, // ETH payment
+  monthlyPrice,
+  monthInSeconds,
+  prepayMonths,
+  metadataURI,
+  {
+    value: monthlyPrice * BigInt(prepayMonths) // Send 0.3 ETH (3 months prepaid)
+  }
+);
+
+const receipt = await tx.wait();
+
+// Extract subscription ID from event
+const event = receipt.logs.find(log =>
+  log.topics[0] === ethers.id('SubscriptionCreated(uint256,address,uint256,address,uint256,uint64,uint256,string)')
+);
+const subscriptionId = Number(event.topics[1]);
+
+console.log("Crypto subscription created:", subscriptionId);
+console.log("Prepaid for", prepayMonths, "months");
+console.log("Next payment due:", new Date((Date.now() + 90 * 24 * 60 * 60 * 1000)).toLocaleDateString());
+```
+
+```javascript JavaScript (ERC20 Token Subscription)
+// Weekly USDC subscription for AI inference API
+const usdcAddress = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
+const usdc = new ethers.Contract(usdcAddress, erc20ABI, wallet);
+
+const weeklyPrice = ethers.parseUnits("50", 6); // 50 USDC per week
+const weekInSeconds = 7 * 24 * 60 * 60;
+const prepayWeeks = 4; // Prepay 1 month
+
+const totalCost = weeklyPrice * BigInt(prepayWeeks); // 200 USDC
+
+// Approve subscription contract to spend tokens
+const approveTx = await usdc.approve(subscriptionsAddress, totalCost);
+await approveTx.wait();
+
+// Create ERC20 crypto subscription
+const tx = await subscriptions.createSubscription(
+  agentId,
+  usdcAddress,
+  weeklyPrice,
+  weekInSeconds,
+  prepayWeeks,
+  "ipfs://QmSubscriptionMetadata..."
+);
+
+await tx.wait();
+console.log("USDC subscription created for AI agent");
+```
+
+```python Python (ETH Subscription)
+from web3 import Web3
+import json
+import time
+
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nexis.network'))
+subscriptions = w3.eth.contract(address=subscriptions_address, abi=subscriptions_abi)
+
+# Monthly ETH subscription for AI agent
+agent_id = 12345
+monthly_price = w3.to_wei(0.1, 'ether')
+month_seconds = 30 * 24 * 60 * 60
+prepay_months = 3
+
+# Upload metadata to IPFS
+metadata = {
+    "serviceName": "AI Agent Monthly Access",
+    "tier": "Pro",
+    "features": ["Unlimited requests", "Priority support"]
+}
+metadata_uri = upload_to_ipfs(json.dumps(metadata))
+
+# Create subscription
+tx = subscriptions.functions.createSubscription(
+    agent_id,
+    '0x0000000000000000000000000000000000000000',  # ETH
+    monthly_price,
+    month_seconds,
+    prepay_months,
+    metadata_uri
+).build_transaction({
+    'from': subscriber_account.address,
+    'value': monthly_price * prepay_months,  # 0.3 ETH prepaid
+    'gas': 200000,
+    'gasPrice': w3.eth.gas_price,
+    'nonce': w3.eth.get_transaction_count(subscriber_account.address)
+})
+
+signed_tx = subscriber_account.sign_transaction(tx)
+tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+# Extract subscription ID
+sub_event = subscriptions.events.SubscriptionCreated().process_receipt(receipt)
+subscription_id = sub_event[0]['args']['subscriptionId']
+
+print(f"Blockchain subscription created: {subscription_id}")
+print(f"Prepaid: {prepay_months} months ({monthly_price * prepay_months / 10**18} ETH)")
+```
+
+```typescript TypeScript (AI SaaS Integration)
+import { ethers, Contract, Wallet, JsonRpcProvider } from 'ethers';
+
+interface SubscriptionMetadata {
+  serviceName: string;
+  tier: 'Basic' | 'Pro' | 'Enterprise';
+  features: string[];
+  maxRequestsPerDay: number;
+  aiModel: string;
+}
+
+class AISubscriptionManager {
+  private subscriptions: Contract;
+  private wallet: Wallet;
+
+  constructor(
+    provider: JsonRpcProvider,
+    privateKey: string,
+    subscriptionsAddress: string,
+    abi: any[]
+  ) {
+    this.wallet = new Wallet(privateKey, provider);
+    this.subscriptions = new Contract(subscriptionsAddress, abi, this.wallet);
+  }
+
+  async createMonthlySubscription(
+    agentId: number,
+    priceETH: string,
+    metadata: SubscriptionMetadata
+  ): Promise<number> {
+    // Upload metadata to IPFS
+    const metadataURI = await this.uploadMetadata(metadata);
+
+    // Create subscription
+    const monthlyPrice = ethers.parseEther(priceETH);
+    const monthSeconds = 30 * 24 * 60 * 60;
+    const prepayMonths = 1;
+
+    const tx = await this.subscriptions.createSubscription(
+      agentId,
+      ethers.ZeroAddress,
+      monthlyPrice,
+      monthSeconds,
+      prepayMonths,
+      metadataURI,
+      { value: monthlyPrice }
+    );
+
+    const receipt = await tx.wait();
+    const event = receipt.logs.find((log: any) =>
+      log.topics[0] === ethers.id('SubscriptionCreated(uint256,address,uint256,address,uint256,uint64,uint256,string)')
+    );
+
+    return Number(event?.topics[1]);
+  }
+
+  private async uploadMetadata(metadata: SubscriptionMetadata): Promise<string> {
+    // Upload to IPFS or Arweave
+    // Return URI
+    return "ipfs://Qm...";
+  }
+}
+
+// Usage
+const manager = new AISubscriptionManager(
+  provider,
+  process.env.PRIVATE_KEY!,
+  '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
+  subscriptionsABI
+);
+
+const subscriptionId = await manager.createMonthlySubscription(
+  12345,
+  "0.1",
+  {
+    serviceName: "GPT-4 AI Agent",
+    tier: "Pro",
+    features: ["Unlimited API calls", "Priority inference"],
+    maxRequestsPerDay: 10000,
+    aiModel: "gpt-4-turbo"
+  }
+);
+
+console.log("Subscription created:", subscriptionId);
+```
+
+```solidity Solidity (Contract Integration)
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+interface ISubscriptions {
+    function createSubscription(
+        uint256 agentId,
+        address asset,
+        uint256 amountPerEpoch,
+        uint64 epochDuration,
+        uint256 prefundEpochs,
+        string calldata metadataURI
+    ) external payable returns (uint256 subscriptionId);
+}
+
+contract AIServicePlatform {
+    ISubscriptions public subscriptions;
+
+    constructor(address _subscriptions) {
+        subscriptions = ISubscriptions(_subscriptions);
+    }
+
+    // Create monthly subscription for user
+    function subscribeToAgent(uint256 agentId) external payable returns (uint256) {
+        require(msg.value >= 0.1 ether, "Insufficient payment");
+
+        uint256 subscriptionId = subscriptions.createSubscription{value: msg.value}(
+            agentId,
+            address(0), // ETH
+            0.1 ether,  // Monthly price
+            30 days,    // Epoch duration
+            1,          // 1 month prepaid
+            "ipfs://QmMetadata..."
+        );
+
+        return subscriptionId;
+    }
+}
+```
+
+</CodeGroup>
+
+---
+
+### fundSubscription
+
+Add more epochs to an existing subscription (extend/renew blockchain subscription).
+
+<ParamField path="subscriptionId" type="uint256" required>
+  Subscription ID to fund
+</ParamField>
+
+<ParamField path="epochs" type="uint256" required>
+  Number of additional billing periods to prepay
+</ParamField>
+
+**Transaction Value:**
+- For ETH: `msg.value` must equal `subscription.amountPerEpoch * epochs`
+- For ERC20: Must approve tokens first
+
+**Events Emitted:**
+```solidity
+event SubscriptionFunded(
+    uint256 indexed subscriptionId,
+    address indexed funder,
+    uint256 epochs,
+    uint256 amount
+);
+```
+
+**Errors:**
+- `SubscriptionNotFound()` - Invalid subscription ID
+- `SubscriptionNotActive()` - Subscription is cancelled
+- `InvalidAssetAmount()` - Payment amount mismatch
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+// Extend subscription by 6 more months
+const subscriptionId = 123;
+const additionalMonths = 6;
+
+const subscription = await subscriptions.getSubscription(subscriptionId);
+const extensionCost = subscription.amountPerEpoch * BigInt(additionalMonths);
+
+const tx = await subscriptions.fundSubscription(
+  subscriptionId,
+  additionalMonths,
+  { value: extensionCost }
+);
+
+await tx.wait();
+console.log("Subscription extended by", additionalMonths, "months");
+console.log("Total cost:", ethers.formatEther(extensionCost), "ETH");
+```
+
+```python Python
+# Renew annual subscription
+subscription_id = 123
+additional_years = 1
+
+subscription = subscriptions.functions.getSubscription(subscription_id).call()
+renewal_cost = subscription[3] * additional_years  # amountPerEpoch field
+
+tx = subscriptions.functions.fundSubscription(
+    subscription_id,
+    additional_years
+).build_transaction({
+    'from': subscriber.address,
+    'value': renewal_cost,
+    'gas': 150000,
+    'gasPrice': w3.eth.gas_price,
+    'nonce': w3.eth.get_transaction_count(subscriber.address)
+})
+
+signed = subscriber.sign_transaction(tx)
+tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
+w3.eth.wait_for_transaction_receipt(tx_hash)
+
+print(f"Subscription renewed for {additional_years} year(s)")
+```
+
+</CodeGroup>
+
+---
+
+### processSubscription
+
+Process a pending subscription payment (callable by KEEPER_ROLE or anyone for automation).
+
+<ParamField path="subscriptionId" type="uint256" required>
+  Subscription ID to process
+</ParamField>
+
+**Requirements:**
+- Subscription must be active
+- Current time must be >= nextDueTime
+- Subscription must have prepaid epochs remaining
+
+**Behavior:**
+- Decrements prepaidEpochs by 1
+- Transfers amountPerEpoch to agent owner
+- Updates nextDueTime to nextDueTime + epochDuration
+- Updates lastProcessedTime to current timestamp
+
+**Events Emitted:**
+```solidity
+event SubscriptionProcessed(
+    uint256 indexed subscriptionId,
+    uint256 indexed agentId,
+    address indexed recipient,
+    uint256 amount,
+    uint64 nextDueTime
+);
+```
+
+**Errors:**
+- `SubscriptionNotFound()` - Invalid ID
+- `SubscriptionNotActive()` - Not active
+- `PaymentNotDue()` - Too early to process
+- `NoPrepaidEpochs()` - Out of prepaid funds
+
+**Keeper Integration:**
+
+<CodeGroup>
+
+```javascript JavaScript (Chainlink Keeper Bot)
+// Automated subscription processor
+import { ethers } from 'ethers';
+
+class SubscriptionKeeper {
+  constructor(provider, privateKey, subscriptionsAddress, abi) {
+    this.wallet = new ethers.Wallet(privateKey, provider);
+    this.subscriptions = new ethers.Contract(subscriptionsAddress, abi, this.wallet);
+  }
+
+  async checkAndProcess() {
+    const subscriptionCount = await this.subscriptions.subscriptionCount();
+    const now = Math.floor(Date.now() / 1000);
+
+    for (let i = 1; i <= subscriptionCount; i++) {
+      try {
+        const sub = await this.subscriptions.getSubscription(i);
+
+        // Check if payment is due
+        if (
+          sub.status === 1 && // Active
+          sub.prepaidEpochs > 0 &&
+          sub.nextDueTime <= now
+        ) {
+          console.log(`Processing subscription ${i}...`);
+
+          const tx = await this.subscriptions.processSubscription(i);
+          const receipt = await tx.wait();
+
+          console.log(`✓ Processed subscription ${i} in tx ${receipt.hash}`);
+        }
+      } catch (error) {
+        console.error(`Error processing subscription ${i}:`, error.message);
+      }
+    }
+  }
+
+  // Run continuously
+  async start(intervalSeconds = 60) {
+    console.log("Subscription keeper started");
+    setInterval(() => this.checkAndProcess(), intervalSeconds * 1000);
+  }
+}
+
+// Usage
+const keeper = new SubscriptionKeeper(
+  provider,
+  process.env.KEEPER_PRIVATE_KEY,
+  subscriptionsAddress,
+  subscriptionsABI
+);
+
+keeper.start(60); // Check every minute
+```
+
+```python Python (Event-Driven Processor)
+import time
+from web3 import Web3
+
+class SubscriptionProcessor:
+    def __init__(self, w3, contract, keeper_account):
+        self.w3 = w3
+        self.contract = contract
+        self.keeper = keeper_account
+
+    def process_due_subscriptions(self):
+        subscription_count = self.contract.functions.subscriptionCount().call()
+        current_time = int(time.time())
+        processed_count = 0
+
+        for sub_id in range(1, subscription_count + 1):
+            try:
+                sub = self.contract.functions.getSubscription(sub_id).call()
+
+                # Check if processing is due
+                if (sub[9] == 1 and  # status = active
+                    sub[8] > 0 and    # prepaidEpochs > 0
+                    sub[5] <= current_time):  # nextDueTime <= now
+
+                    print(f"Processing subscription {sub_id}...")
+
+                    tx = self.contract.functions.processSubscription(
+                        sub_id
+                    ).transact({
+                        'from': self.keeper.address,
+                        'gas': 200000
+                    })
+
+                    receipt = self.w3.eth.wait_for_transaction_receipt(tx)
+                    print(f"✓ Processed in block {receipt.blockNumber}")
+                    processed_count += 1
+
+            except Exception as e:
+                print(f"Error processing {sub_id}: {e}")
+
+        return processed_count
+
+    def run_forever(self, interval_seconds=60):
+        print("Subscription processor started")
+        while True:
+            count = self.process_due_subscriptions()
+            print(f"Processed {count} subscriptions")
+            time.sleep(interval_seconds)
+
+# Usage
+processor = SubscriptionProcessor(w3, subscriptions, keeper_account)
+processor.run_forever(60)
+```
+
+```javascript JavaScript (Event Listener)
+// Listen for SubscriptionCreated events and monitor them
+async function monitorSubscriptions() {
+  // Listen for new subscriptions
+  subscriptions.on("SubscriptionCreated", async (subId, subscriber, agentId) => {
+    console.log("New subscription:", subId);
+
+    // Get subscription details
+    const sub = await subscriptions.getSubscription(subId);
+
+    // Schedule processing at nextDueTime
+    scheduleProcessing(subId, sub.nextDueTime);
+  });
+
+  // Process at scheduled time
+  function scheduleProcessing(subId, dueTime) {
+    const delay = Number(dueTime) * 1000 - Date.now();
+
+    if (delay > 0) {
+      setTimeout(async () => {
+        try {
+          const tx = await subscriptions.processSubscription(subId);
+          await tx.wait();
+          console.log(`Processed subscription ${subId}`);
+
+          // Reschedule for next epoch
+          const sub = await subscriptions.getSubscription(subId);
+          if (sub.prepaidEpochs > 0) {
+            scheduleProcessing(subId, sub.nextDueTime);
+          }
+        } catch (error) {
+          console.error(`Error processing ${subId}:`, error);
+        }
+      }, delay);
+    }
+  }
+}
+
+monitorSubscriptions();
+```
+
+</CodeGroup>
+
+---
+
+### cancelSubscription
+
+Cancel a subscription and receive pro-rata refund for unused prepaid epochs.
+
+<ParamField path="subscriptionId" type="uint256" required>
+  Subscription ID to cancel
+</ParamField>
+
+**Requirements:**
+- Caller must be the subscriber
+- Subscription must be active or paused
+
+**Refund Calculation:**
+- Full refund for all remaining prepaid epochs
+- If current epoch is partially used, pro-rata refund based on time remaining
+- Formula: `refund = prepaidEpochs * amountPerEpoch + partialEpochRefund`
+- Partial refund: `(epochDuration - timeUsedInCurrentEpoch) * amountPerEpoch / epochDuration`
+
+**Events Emitted:**
+```solidity
+event SubscriptionCancelled(
+    uint256 indexed subscriptionId,
+    address indexed subscriber,
+    uint256 refundAmount
+);
+```
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+// Cancel subscription with refund
+const subscriptionId = 123;
+
+// Get subscription details before cancelling
+const sub = await subscriptions.getSubscription(subscriptionId);
+const now = Math.floor(Date.now() / 1000);
+
+// Calculate expected refund
+const timeUsedInEpoch = now - Number(sub.lastProcessedTime);
+const timeRemainingInEpoch = Number(sub.epochDuration) - timeUsedInEpoch;
+const partialRefund = (sub.amountPerEpoch * BigInt(timeRemainingInEpoch)) / BigInt(sub.epochDuration);
+const fullEpochsRefund = sub.amountPerEpoch * sub.prepaidEpochs;
+const expectedRefund = fullEpochsRefund + partialRefund;
+
+console.log("Expected refund:", ethers.formatEther(expectedRefund), "ETH");
+console.log("  Full epochs:", sub.prepaidEpochs);
+console.log("  Partial epoch refund:", ethers.formatEther(partialRefund), "ETH");
+
+// Cancel
+const tx = await subscriptions.cancelSubscription(subscriptionId);
+const receipt = await tx.wait();
+
+// Extract actual refund from event
+const event = receipt.logs.find(log =>
+  log.topics[0] === ethers.id('SubscriptionCancelled(uint256,address,uint256)')
+);
+
+console.log("Subscription cancelled");
+console.log("Refund received:", ethers.formatEther(event.data), "ETH");
+```
+
+```python Python
+# Cancel subscription
+subscription_id = 123
+
+# Get subscription info
+sub = subscriptions.functions.getSubscription(subscription_id).call()
+
+# Cancel
+tx = subscriptions.functions.cancelSubscription(subscription_id).transact({
+    'from': subscriber.address,
+    'gas': 150000
+})
+
+receipt = w3.eth.wait_for_transaction_receipt(tx)
+
+# Get refund amount from event
+cancel_event = subscriptions.events.SubscriptionCancelled().process_receipt(receipt)
+refund = cancel_event[0]['args']['refundAmount']
+
+print(f"Subscription cancelled")
+print(f"Refund: {w3.from_wei(refund, 'ether')} ETH")
+```
+
+</CodeGroup>
+
+---
+
+### getSubscription
+
+Query subscription details.
+
+<ParamField path="subscriptionId" type="uint256" required>
+  Subscription ID
+</ParamField>
+
+**Returns:**
+- `Subscription` struct with all fields
+
+**Example:**
+
+```javascript JavaScript
+const sub = await subscriptions.getSubscription(subscriptionId);
+
+console.log("Subscription Details:");
+console.log("  Subscriber:", sub.subscriber);
+console.log("  Agent ID:", sub.agentId);
+console.log("  Price per epoch:", ethers.formatEther(sub.amountPerEpoch), "ETH");
+console.log("  Epoch duration:", sub.epochDuration / 86400, "days");
+console.log("  Prepaid epochs:", sub.prepaidEpochs);
+console.log("  Status:", ["", "Active", "Paused", "Cancelled"][sub.status]);
+console.log("  Next payment:", new Date(Number(sub.nextDueTime) * 1000));
+console.log("  Last processed:", new Date(Number(sub.lastProcessedTime) * 1000));
+console.log("  Metadata:", sub.metadataURI);
+```
+
+---
+
+## Continuous Payment Streams
+
+Payment streams provide per-second money streaming - ideal for real-time AI usage billing, token consumption, and continuous crypto payments.
+
+### createStream
+
+Create a continuous payment stream to an AI agent.
+
+<ParamField path="agentId" type="uint256" required>
+  AI Agent ID receiving the stream
+</ParamField>
+
+<ParamField path="asset" type="address" required>
+  Payment asset (address(0) for ETH, token for ERC20 streams)
+</ParamField>
+
+<ParamField path="totalAmount" type="uint256" required>
+  Total amount to stream over the duration
+</ParamField>
+
+<ParamField path="start" type="uint64" required>
+  Stream start timestamp (Unix seconds)
+</ParamField>
+
+<ParamField path="end" type="uint64" required>
+  Stream end timestamp (must be > start)
+</ParamField>
+
+<ParamField path="integrationURI" type="string" required>
+  URI to integration metadata (usage tracking, API endpoints)
+</ParamField>
+
+**Transaction Value:**
+- For ETH streams: `msg.value` must equal `totalAmount`
+- For ERC20 streams: Must approve tokens first
+
+**Rate Calculation:**
+- Rate per second = `totalAmount / (end - start)`
+- Example: 1 ETH over 30 days = 0.000000385802 ETH/second
+
+**Returns:**
+- `streamId` (uint256) - Unique stream identifier
+
+**Events Emitted:**
+```solidity
+event StreamCreated(
+    uint256 indexed streamId,
+    address indexed payer,
+    uint256 indexed agentId,
+    address asset,
+    uint256 totalAmount,
+    uint64 startTime,
+    uint64 endTime,
+    uint256 ratePerSecond
+);
+```
+
+**Errors:**
+- `AgentNotRegistered()` - Agent doesn't exist
+- `InvalidDuration()` - end <= start
+- `ZeroAmount()` - totalAmount is 0
+
+**Gas Costs:**
+- ETH stream: ~180,000 gas
+- ERC20 stream: ~230,000 gas
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript (Real-time AI Inference Billing)
+// Stream 1 ETH over 30 days for continuous AI inference
+const agentId = 12345;
+const totalAmount = ethers.parseEther("1.0");
+const durationDays = 30;
+const durationSeconds = durationDays * 24 * 60 * 60;
+
+const startTime = Math.floor(Date.now() / 1000);
+const endTime = startTime + durationSeconds;
+
+// Calculate rate per second
+const ratePerSecond = totalAmount / BigInt(durationSeconds);
+console.log("Rate:", ethers.formatEther(ratePerSecond), "ETH/second");
+console.log("Rate per day:", ethers.formatEther(ratePerSecond * BigInt(86400)), "ETH/day");
+
+// Integration metadata
+const integration = {
+  apiEndpoint: "https://api.myagent.com/inference",
+  usageTracking: "https://usage.myagent.com",
+  model: "gpt-4-turbo",
+  billingModel: "per-token",
+  estimatedTokens: 1000000
+};
+
+const integrationURI = await uploadToIPFS(JSON.stringify(integration));
+
+// Create stream
+const tx = await subscriptions.createStream(
+  agentId,
+  ethers.ZeroAddress, // ETH
+  totalAmount,
+  startTime,
+  endTime,
+  integrationURI,
+  { value: totalAmount }
+);
+
+const receipt = await tx.wait();
+
+const event = receipt.logs.find(log =>
+  log.topics[0] === ethers.id('StreamCreated(uint256,address,uint256,address,uint256,uint64,uint64,uint256)')
+);
+const streamId = Number(event.topics[1]);
+
+console.log("Payment stream created:", streamId);
+console.log("Streaming", ethers.formatEther(totalAmount), "ETH over", durationDays, "days");
+```
+
+```javascript JavaScript (Token-Based AI Usage)
+// Stream USDC for metered AI compute usage
+const usdcAddress = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
+const usdc = new ethers.Contract(usdcAddress, erc20ABI, wallet);
+
+const totalBudget = ethers.parseUnits("1000", 6); // $1000 USDC
+const durationDays = 90; // 3 months
+const durationSeconds = durationDays * 24 * 60 * 60;
+
+const startTime = Math.floor(Date.now() / 1000);
+const endTime = startTime + durationSeconds;
+
+// Approve USDC
+await usdc.approve(subscriptionsAddress, totalBudget);
+
+// Create stream
+const tx = await subscriptions.createStream(
+  agentId,
+  usdcAddress,
+  totalBudget,
+  startTime,
+  endTime,
+  "ipfs://QmIntegrationMetadata..."
+);
+
+await tx.wait();
+console.log("USDC stream created for AI usage billing");
+console.log("Budget:", ethers.formatUnits(totalBudget, 6), "USDC over", durationDays, "days");
+```
+
+```python Python (Continuous Data Feed Payment)
+# Stream ETH for real-time AI data feed access
+agent_id = 12345
+total_amount = w3.to_wei(2, 'ether')
+duration_days = 60
+duration_seconds = duration_days * 24 * 60 * 60
+
+start_time = int(time.time())
+end_time = start_time + duration_seconds
+
+# Calculate streaming rate
+rate_per_second = total_amount / duration_seconds
+rate_per_hour = rate_per_second * 3600
+
+print(f"Stream rate: {w3.from_wei(rate_per_second, 'ether')} ETH/second")
+print(f"Stream rate: {w3.from_wei(rate_per_hour, 'ether')} ETH/hour")
+
+# Integration metadata
+integration = {
+    "serviceName": "Real-time Market Data AI",
+    "dataFeeds": ["crypto-prices", "trading-signals", "sentiment-analysis"],
+    "updateFrequency": "1 second",
+    "apiEndpoint": "wss://api.data.com/stream"
+}
+integration_uri = upload_to_ipfs(json.dumps(integration))
+
+# Create stream
+tx = subscriptions.functions.createStream(
+    agent_id,
+    '0x0000000000000000000000000000000000000000',  # ETH
+    total_amount,
+    start_time,
+    end_time,
+    integration_uri
+).build_transaction({
+    'from': payer.address,
+    'value': total_amount,
+    'gas': 250000,
+    'gasPrice': w3.eth.gas_price,
+    'nonce': w3.eth.get_transaction_count(payer.address)
+})
+
+signed = payer.sign_transaction(tx)
+tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
+receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+stream_event = subscriptions.events.StreamCreated().process_receipt(receipt)
+stream_id = stream_event[0]['args']['streamId']
+
+print(f"Payment stream created: {stream_id}")
+print(f"Streaming {total_amount / 10**18} ETH over {duration_days} days")
+```
+
+```typescript TypeScript (Enterprise AI Contract)
+interface StreamMetadata {
+  contractName: string;
+  aiServices: string[];
+  sla: {
+    uptime: string;
+    responseTime: string;
+    support: string;
+  };
+  billingModel: string;
+}
+
+async function createEnterpriseStream(
+  agentId: number,
+  monthlyBudgetETH: string,
+  durationMonths: number
+): Promise<number> {
+  const totalAmount = ethers.parseEther(monthlyBudgetETH).mul(durationMonths);
+  const durationSeconds = durationMonths * 30 * 24 * 60 * 60;
+
+  const startTime = Math.floor(Date.now() / 1000);
+  const endTime = startTime + durationSeconds;
+
+  const metadata: StreamMetadata = {
+    contractName: "Enterprise AI Platform License",
+    aiServices: [
+      "Multi-model inference",
+      "Custom fine-tuning",
+      "Dedicated infrastructure",
+      "Priority support"
+    ],
+    sla: {
+      uptime: "99.9%",
+      responseTime: "<500ms P99",
+      support: "24/7 dedicated team"
+    },
+    billingModel: "continuous-stream"
+  };
+
+  const metadataURI = await uploadToIPFS(metadata);
+
+  const tx = await subscriptions.createStream(
+    agentId,
+    ethers.ZeroAddress,
+    totalAmount,
+    startTime,
+    endTime,
+    metadataURI,
+    { value: totalAmount }
+  );
+
+  const receipt = await tx.wait();
+  const event = receipt.logs[0];
+  return Number(event.topics[1]);
+}
+
+// Create 12-month enterprise stream
+const streamId = await createEnterpriseStream(
+  12345,
+  "10", // 10 ETH/month
+  12   // 12 months
+);
+
+console.log("Enterprise stream created:", streamId);
+console.log("Total commitment: 120 ETH over 12 months");
+```
+
+</CodeGroup>
+
+---
+
+### withdrawFromStream
+
+Withdraw accrued payments from a stream (callable by agent owner).
+
+<ParamField path="streamId" type="uint256" required>
+  Stream ID to withdraw from
+</ParamField>
+
+**Requirements:**
+- Caller must be agent owner
+- Stream must be active
+- Must have accrued amount available
+
+**Accrued Calculation:**
+- If current time < endTime: `accrued = (currentTime - lastWithdrawTime) * ratePerSecond`
+- If current time >= endTime: `accrued = totalAmount - withdrawn`
+
+**Events Emitted:**
+```solidity
+event StreamWithdrawn(
+    uint256 indexed streamId,
+    uint256 indexed agentId,
+    address indexed recipient,
+    uint256 amount
+);
+```
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+// Withdraw accrued amount from stream
+const streamId = 456;
+
+// Get stream details
+const stream = await subscriptions.getStream(streamId);
+const now = Math.floor(Date.now() / 1000);
+
+// Calculate accrued amount
+const duration = Number(stream.endTime) - Number(stream.startTime);
+const ratePerSecond = stream.totalAmount / BigInt(duration);
+const elapsedSinceLastWithdraw = now - Number(stream.lastWithdrawTime);
+const accruedAmount = ratePerSecond * BigInt(Math.min(elapsedSinceLastWithdraw, Number(stream.endTime) - Number(stream.lastWithdrawTime)));
+
+console.log("Accrued amount:", ethers.formatEther(accruedAmount), "ETH");
+console.log("Already withdrawn:", ethers.formatEther(stream.withdrawn), "ETH");
+console.log("Total amount:", ethers.formatEther(stream.totalAmount), "ETH");
+
+// Withdraw
+const tx = await subscriptions.withdrawFromStream(streamId);
+const receipt = await tx.wait();
+
+console.log("Withdrawn from stream");
+```
+
+```python Python
+# Automated withdrawal script for AI agent
+import time
+
+def withdraw_from_all_streams(subscriptions, agent_account):
+    """Periodically withdraw from all active streams"""
+    stream_count = subscriptions.functions.streamCount().call()
+
+    for stream_id in range(1, stream_count + 1):
+        try:
+            stream = subscriptions.functions.getStream(stream_id).call()
+
+            # Check if this is our agent's stream and it's active
+            # (need to check if agent owner matches our account)
+            if stream[8] == 1:  # status = active
+                # Calculate accrued
+                now = int(time.time())
+                duration = stream[6] - stream[5]  # endTime - startTime
+                rate_per_second = stream[3] / duration  # totalAmount / duration
+                elapsed = now - stream[7]  # now - lastWithdrawTime
+                accrued = min(rate_per_second * elapsed, stream[3] - stream[4])
+
+                if accrued > 0:
+                    print(f"Withdrawing {accrued / 10**18} ETH from stream {stream_id}")
+
+                    tx = subscriptions.functions.withdrawFromStream(
+                        stream_id
+                    ).transact({
+                        'from': agent_account.address,
+                        'gas': 150000
+                    })
+
+                    w3.eth.wait_for_transaction_receipt(tx)
+                    print(f"✓ Withdrawn from stream {stream_id}")
+
+        except Exception as e:
+            print(f"Error withdrawing from stream {stream_id}: {e}")
+
+# Run every hour
+while True:
+    withdraw_from_all_streams(subscriptions, agent_owner)
+    time.sleep(3600)  # 1 hour
+```
+
+</CodeGroup>
+
+---
+
+### cancelStream
+
+Cancel a stream and return unstreamed funds to payer.
+
+<ParamField path="streamId" type="uint256" required>
+  Stream ID to cancel
+</ParamField>
+
+**Requirements:**
+- Callable by payer or agent owner
+- Stream must be active
+
+**Refund Calculation:**
+- Agent receives all accrued amount up to cancellation time
+- Payer receives refund for remaining time
+- Formula: `refund = totalAmount - accrued - withdrawn`
+
+**Events Emitted:**
+```solidity
+event StreamCancelled(
+    uint256 indexed streamId,
+    address indexed canceller,
+    uint256 payerRefund,
+    uint256 agentPayout
+);
+```
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript (Payer Cancels)
+// Payer cancels stream early
+const streamId = 456;
+
+// Get current stream state
+const stream = await subscriptions.getStream(streamId);
+const now = Math.floor(Date.now() / 1000);
+
+// Calculate what agent has earned
+const duration = Number(stream.endTime) - Number(stream.startTime);
+const ratePerSecond = stream.totalAmount / BigInt(duration);
+const timeElapsed = now - Number(stream.startTime);
+const accruedAmount = ratePerSecond * BigInt(timeElapsed);
+const payerRefund = stream.totalAmount - accruedAmount - stream.withdrawn;
+
+console.log("Cancelling stream...");
+console.log("  Agent earned:", ethers.formatEther(accruedAmount), "ETH");
+console.log("  Payer refund:", ethers.formatEther(payerRefund), "ETH");
+
+const tx = await subscriptions.cancelStream(streamId);
+const receipt = await tx.wait();
+
+console.log("Stream cancelled");
+```
+
+```javascript JavaScript (Agent Owner Cancels)
+// Agent decides to end stream early (returns funds to payer)
+const streamId = 456;
+
+// Agent owner calls cancel
+const tx = await subscriptions.connect(agentOwnerWallet).cancelStream(streamId);
+await tx.wait();
+
+console.log("Stream cancelled by agent owner");
+console.log("Accrued amount withdrawn, remaining funds returned to payer");
+```
+
+</CodeGroup>
+
+---
+
+### getStream
+
+Query stream details.
+
+<ParamField path="streamId" type="uint256" required>
+  Stream ID
+</ParamField>
+
+**Returns:**
+- `Stream` struct with all fields
+
+**Example:**
+
+```javascript JavaScript
+const stream = await subscriptions.getStream(streamId);
+
+const duration = Number(stream.endTime) - Number(stream.startTime);
+const ratePerSecond = stream.totalAmount / BigInt(duration);
+const now = Math.floor(Date.now() / 1000);
+const progress = Math.min(100, ((now - Number(stream.startTime)) / duration) * 100);
+
+console.log("Stream Details:");
+console.log("  Payer:", stream.payer);
+console.log("  Agent ID:", stream.agentId);
+console.log("  Total amount:", ethers.formatEther(stream.totalAmount), "ETH");
+console.log("  Duration:", duration / 86400, "days");
+console.log("  Rate:", ethers.formatEther(ratePerSecond), "ETH/second");
+console.log("  Rate per day:", ethers.formatEther(ratePerSecond * BigInt(86400)), "ETH/day");
+console.log("  Withdrawn:", ethers.formatEther(stream.withdrawn), "ETH");
+console.log("  Progress:", progress.toFixed(2), "%");
+console.log("  Status:", ["", "Active", "Paused", "Cancelled"][stream.status]);
+console.log("  Start:", new Date(Number(stream.startTime) * 1000));
+console.log("  End:", new Date(Number(stream.endTime) * 1000));
+```
+
+---
+
+## Complete Integration Examples
+
+### SaaS Platform with Subscriptions
+
+<CodeGroup>
+
+```javascript JavaScript
+// Complete AI SaaS platform with subscription management
+import { ethers } from 'ethers';
+
+class AISaaSPlatform {
+  constructor(provider, privateKey, contracts) {
+    this.wallet = new ethers.Wallet(privateKey, provider);
+    this.subscriptions = new ethers.Contract(
+      contracts.subscriptions,
+      subscriptionsABI,
+      this.wallet
+    );
+    this.agents = new ethers.Contract(
+      contracts.agents,
+      agentsABI,
+      this.wallet
+    );
+  }
+
+  // Subscription tiers
+  tiers = {
+    basic: {
+      name: "Basic",
+      priceETH: "0.05",
+      features: ["10k requests/month", "Standard models", "Email support"]
+    },
+    pro: {
+      name: "Pro",
+      priceETH: "0.15",
+      features: ["100k requests/month", "Advanced models", "Priority support", "API access"]
+    },
+    enterprise: {
+      name: "Enterprise",
+      priceETH: "0.50",
+      features: ["Unlimited requests", "Custom models", "24/7 support", "Dedicated infra"]
+    }
+  };
+
+  async subscribeToPlan(agentId, tierName, durationMonths = 1) {
+    const tier = this.tiers[tierName];
+    if (!tier) throw new Error("Invalid tier");
+
+    const monthlyPrice = ethers.parseEther(tier.priceETH);
+    const monthSeconds = 30 * 24 * 60 * 60;
+
+    // Create metadata
+    const metadata = {
+      plan: tier.name,
+      features: tier.features,
+      subscribedAt: new Date().toISOString(),
+      autoRenew: true
+    };
+
+    const metadataURI = await this.uploadMetadata(metadata);
+
+    // Create subscription
+    const totalCost = monthlyPrice * BigInt(durationMonths);
+
+    const tx = await this.subscriptions.createSubscription(
+      agentId,
+      ethers.ZeroAddress,
+      monthlyPrice,
+      monthSeconds,
+      durationMonths,
+      metadataURI,
+      { value: totalCost }
+    );
+
+    const receipt = await tx.wait();
+    const event = receipt.logs.find(log =>
+      log.topics[0] === ethers.id('SubscriptionCreated(uint256,address,uint256,address,uint256,uint64,uint256,string)')
+    );
+
+    const subscriptionId = Number(event.topics[1]);
+
+    return {
+      subscriptionId,
+      tier: tier.name,
+      duration: durationMonths,
+      totalCost: ethers.formatEther(totalCost),
+      nextBilling: new Date(Date.now() + durationMonths * 30 * 24 * 60 * 60 * 1000)
+    };
+  }
+
+  async upgradeSubscription(subscriptionId, newTierName) {
+    // Get current subscription
+    const currentSub = await this.subscriptions.getSubscription(subscriptionId);
+
+    // Cancel current (get refund)
+    await this.subscriptions.cancelSubscription(subscriptionId);
+
+    // Create new subscription with upgraded tier
+    const agentId = currentSub.agentId;
+    return await this.subscribeToPlan(agentId, newTierName, 1);
+  }
+
+  async getSubscriptionStatus(subscriptionId) {
+    const sub = await this.subscriptions.getSubscription(subscriptionId);
+    const now = Math.floor(Date.now() / 1000);
+
+    return {
+      id: subscriptionId,
+      active: sub.status === 1,
+      subscriber: sub.subscriber,
+      agentId: Number(sub.agentId),
+      pricePerMonth: ethers.formatEther(sub.amountPerEpoch),
+      remainingMonths: Number(sub.prepaidEpochs),
+      nextBilling: new Date(Number(sub.nextDueTime) * 1000),
+      daysUntilBilling: Math.ceil((Number(sub.nextDueTime) - now) / 86400)
+    };
+  }
+
+  async listUserSubscriptions(userAddress) {
+    // Query events to find user's subscriptions
+    const filter = this.subscriptions.filters.SubscriptionCreated(null, userAddress);
+    const events = await this.subscriptions.queryFilter(filter);
+
+    const subscriptions = await Promise.all(
+      events.map(async (event) => {
+        const subId = Number(event.args.subscriptionId);
+        return await this.getSubscriptionStatus(subId);
+      })
+    );
+
+    return subscriptions.filter(sub => sub.active);
+  }
+
+  private async uploadMetadata(metadata) {
+    // Upload to IPFS/Arweave
+    // Return URI
+    return "ipfs://Qm...";
+  }
+}
+
+// Usage
+const platform = new AISaaSPlatform(provider, privateKey, {
+  subscriptions: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
+  agents: '0x5FbDB2315678afecb367f032d93F642f64180aa3'
+});
+
+// User subscribes to Pro plan for 6 months
+const subscription = await platform.subscribeToPlan(12345, 'pro', 6);
+console.log("Subscription created:", subscription);
+
+// Check subscription status
+const status = await platform.getSubscriptionStatus(subscription.subscriptionId);
+console.log("Status:", status);
+
+// Upgrade to Enterprise
+const upgraded = await platform.upgradeSubscription(subscription.subscriptionId, 'enterprise');
+console.log("Upgraded to Enterprise:", upgraded);
+
+// List all user's active subscriptions
+const userSubs = await platform.listUserSubscriptions(wallet.address);
+console.log("User subscriptions:", userSubs);
+```
+
+</CodeGroup>
+
+### Usage-Based AI Billing with Streams
+
+<CodeGroup>
+
+```typescript TypeScript
+// Real-time AI inference billing with payment streams
+import { ethers, Contract } from 'ethers';
+
+interface UsageMetrics {
+  tokensProcessed: number;
+  inferenceCount: number;
+  computeSeconds: number;
+}
+
+class AIUsageBilling {
+  private subscriptions: Contract;
+  private agents: Contract;
+  private wallet: ethers.Wallet;
+
+  // Track usage per stream
+  private usageTracking: Map<number, UsageMetrics> = new Map();
+
+  constructor(provider: ethers.Provider, privateKey: string, addresses: any) {
+    this.wallet = new ethers.Wallet(privateKey, provider);
+    this.subscriptions = new ethers.Contract(
+      addresses.subscriptions,
+      subscriptionsABI,
+      this.wallet
+    );
+    this.agents = new ethers.Contract(addresses.agents, agentsABI, this.wallet);
+  }
+
+  // Create stream based on estimated usage
+  async createUsageStream(
+    agentId: number,
+    estimatedTokens: number,
+    durationDays: number,
+    pricePerMiltonTokens: string // ETH per 1M tokens
+  ): Promise<number> {
+    const pricePerMillion = ethers.parseEther(pricePerMiltonTokens);
+    const estimatedCost = (pricePerMillion * BigInt(estimatedTokens)) / BigInt(1_000_000);
+
+    const durationSeconds = durationDays * 24 * 60 * 60;
+    const startTime = Math.floor(Date.now() / 1000);
+    const endTime = startTime + durationSeconds;
+
+    const metadata = {
+      billingModel: "usage-based",
+      tokenPrice: pricePerMiltonTokens,
+      estimatedTokens,
+      metering: {
+        method: "real-time",
+        granularity: "per-request",
+        reporting: "daily"
+      }
+    };
+
+    const metadataURI = await this.uploadToIPFS(metadata);
+
+    const tx = await this.subscriptions.createStream(
+      agentId,
+      ethers.ZeroAddress,
+      estimatedCost,
+      startTime,
+      endTime,
+      metadataURI,
+      { value: estimatedCost }
+    );
+
+    const receipt = await tx.wait();
+    const streamId = this.extractStreamId(receipt);
+
+    // Initialize usage tracking
+    this.usageTracking.set(streamId, {
+      tokensProcessed: 0,
+      inferenceCount: 0,
+      computeSeconds: 0
+    });
+
+    return streamId;
+  }
+
+  // Record usage for a stream
+  async recordUsage(
+    streamId: number,
+    tokensUsed: number,
+    computeTimeSeconds: number
+  ) {
+    const metrics = this.usageTracking.get(streamId) || {
+      tokensProcessed: 0,
+      inferenceCount: 0,
+      computeSeconds: 0
+    };
+
+    metrics.tokensProcessed += tokensUsed;
+    metrics.inferenceCount += 1;
+    metrics.computeSeconds += computeTimeSeconds;
+
+    this.usageTracking.set(streamId, metrics);
+
+    // Check if budget is depleting too fast
+    await this.checkBudgetHealth(streamId);
+  }
+
+  // Monitor stream health
+  private async checkBudgetHealth(streamId: number) {
+    const stream = await this.subscriptions.getStream(streamId);
+    const metrics = this.usageTracking.get(streamId);
+
+    if (!metrics) return;
+
+    const now = Math.floor(Date.now() / 1000);
+    const totalDuration = Number(stream.endTime) - Number(stream.startTime);
+    const elapsedDuration = now - Number(stream.startTime);
+    const remainingDuration = Number(stream.endTime) - now;
+
+    // Calculate expected vs actual spending
+    const expectedSpent = (stream.totalAmount * BigInt(elapsedDuration)) / BigInt(totalDuration);
+    const actualSpent = stream.withdrawn;
+
+    const spendingRate = Number(actualSpent) / Number(expectedSpent);
+
+    // Alert if spending 50% faster than expected
+    if (spendingRate > 1.5) {
+      console.warn(`⚠️ Stream ${streamId} spending faster than expected!`);
+      console.warn(`  Expected rate: ${ethers.formatEther(expectedSpent)} ETH`);
+      console.warn(`  Actual spent: ${ethers.formatEther(actualSpent)} ETH`);
+      console.warn(`  Will run out in: ${(remainingDuration / spendingRate / 86400).toFixed(1)} days`);
+
+      // Optionally: Send notification, suggest top-up
+    }
+  }
+
+  // Get comprehensive usage report
+  async getUsageReport(streamId: number) {
+    const stream = await this.subscriptions.getStream(streamId);
+    const metrics = this.usageTracking.get(streamId);
+
+    if (!metrics) {
+      throw new Error("No usage metrics found");
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const duration = Number(stream.endTime) - Number(stream.startTime);
+    const elapsed = now - Number(stream.startTime);
+    const remaining = Number(stream.endTime) - now;
+
+    const ratePerSecond = stream.totalAmount / BigInt(duration);
+    const accruedAmount = ratePerSecond * BigInt(Math.min(elapsed, duration));
+    const remainingBudget = stream.totalAmount - stream.withdrawn;
+
+    // Calculate effective costs
+    const costPerToken = metrics.tokensProcessed > 0
+      ? Number(stream.withdrawn) / metrics.tokensProcessed
+      : 0;
+
+    const costPerInference = metrics.inferenceCount > 0
+      ? Number(stream.withdrawn) / metrics.inferenceCount
+      : 0;
+
+    return {
+      streamId,
+      status: ["", "Active", "Paused", "Cancelled"][stream.status],
+      budget: {
+        total: ethers.formatEther(stream.totalAmount),
+        withdrawn: ethers.formatEther(stream.withdrawn),
+        accrued: ethers.formatEther(accruedAmount),
+        remaining: ethers.formatEther(remainingBudget)
+      },
+      time: {
+        duration: `${duration / 86400} days`,
+        elapsed: `${elapsed / 86400} days`,
+        remaining: `${remaining / 86400} days`,
+        progress: `${((elapsed / duration) * 100).toFixed(1)}%`
+      },
+      usage: {
+        totalTokens: metrics.tokensProcessed,
+        totalInferences: metrics.inferenceCount,
+        totalComputeSeconds: metrics.computeSeconds,
+        avgTokensPerInference: Math.round(metrics.tokensProcessed / metrics.inferenceCount)
+      },
+      costs: {
+        costPerToken: `${(costPerToken * 1e18).toFixed(8)} ETH`,
+        costPerMillionTokens: ethers.formatEther(BigInt(Math.round(costPerToken * 1_000_000 * 1e18))),
+        costPerInference: ethers.formatEther(BigInt(Math.round(costPerInference * 1e18))),
+        costPerComputeSecond: ethers.formatEther(
+          BigInt(Math.round((Number(stream.withdrawn) / metrics.computeSeconds) * 1e18))
+        )
+      }
+    };
+  }
+
+  // Top up stream if running low
+  async extendStream(streamId: number, additionalAmountETH: string) {
+    // Cancel current stream
+    const stream = await this.subscriptions.getStream(streamId);
+    await this.subscriptions.cancelStream(streamId);
+
+    // Calculate remaining time
+    const now = Math.floor(Date.now() / 1000);
+    const remainingDuration = Number(stream.endTime) - now;
+
+    // Create new stream with additional budget
+    const additionalAmount = ethers.parseEther(additionalAmountETH);
+    const refundAmount = stream.totalAmount - stream.withdrawn;
+    const newTotal = refundAmount + additionalAmount;
+
+    const newStreamId = await this.subscriptions.createStream(
+      stream.agentId,
+      stream.asset,
+      newTotal,
+      now,
+      now + remainingDuration,
+      stream.integrationURI,
+      { value: additionalAmount } // Only send additional amount
+    );
+
+    // Transfer usage metrics
+    const metrics = this.usageTracking.get(streamId);
+    if (metrics) {
+      this.usageTracking.set(newStreamId, metrics);
+      this.usageTracking.delete(streamId);
+    }
+
+    return newStreamId;
+  }
+
+  private extractStreamId(receipt: any): number {
+    const event = receipt.logs.find((log: any) =>
+      log.topics[0] === ethers.id('StreamCreated(uint256,address,uint256,address,uint256,uint64,uint64,uint256)')
+    );
+    return Number(event.topics[1]);
+  }
+
+  private async uploadToIPFS(data: any): Promise<string> {
+    // Implementation
+    return "ipfs://Qm...";
+  }
+}
+
+// Usage example
+const billing = new AIUsageBilling(provider, privateKey, {
+  subscriptions: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
+  agents: '0x5FbDB2315678afecb367f032d93F642f64180aa3'
+});
+
+// Create stream for estimated 10M tokens over 30 days at $0.02 per 1M tokens
+const streamId = await billing.createUsageStream(
+  12345,
+  10_000_000, // 10M tokens
+  30,         // 30 days
+  "0.0001"    // 0.0001 ETH per 1M tokens
+);
+
+// Record usage when AI processes requests
+await billing.recordUsage(streamId, 50000, 2.5); // 50k tokens, 2.5s compute
+
+// Get comprehensive report
+const report = await billing.getUsageReport(streamId);
+console.log("Usage Report:", JSON.stringify(report, null, 2));
+
+// Extend if needed
+if (report.budget.remaining < "0.1") {
+  await billing.extendStream(streamId, "1.0"); // Add 1 ETH
+}
+```
+
+</CodeGroup>
+
+---
+
+## Events Reference
+
+```solidity
+// Subscription events
+event SubscriptionCreated(
+    uint256 indexed subscriptionId,
+    address indexed subscriber,
+    uint256 indexed agentId,
+    address asset,
+    uint256 amountPerEpoch,
+    uint64 epochDuration,
+    uint256 prefundEpochs,
+    string metadataURI
+);
+
+event SubscriptionFunded(
+    uint256 indexed subscriptionId,
+    address indexed funder,
+    uint256 epochs,
+    uint256 amount
+);
+
+event SubscriptionProcessed(
+    uint256 indexed subscriptionId,
+    uint256 indexed agentId,
+    address indexed recipient,
+    uint256 amount,
+    uint64 nextDueTime
+);
+
+event SubscriptionCancelled(
+    uint256 indexed subscriptionId,
+    address indexed subscriber,
+    uint256 refundAmount
+);
+
+event SubscriptionPaused(
+    uint256 indexed subscriptionId,
+    address indexed subscriber
+);
+
+event SubscriptionResumed(
+    uint256 indexed subscriptionId,
+    address indexed subscriber
+);
+
+// Stream events
+event StreamCreated(
+    uint256 indexed streamId,
+    address indexed payer,
+    uint256 indexed agentId,
+    address asset,
+    uint256 totalAmount,
+    uint64 startTime,
+    uint64 endTime,
+    uint256 ratePerSecond
+);
+
+event StreamWithdrawn(
+    uint256 indexed streamId,
+    uint256 indexed agentId,
+    address indexed recipient,
+    uint256 amount
+);
+
+event StreamCancelled(
+    uint256 indexed streamId,
+    address indexed canceller,
+    uint256 payerRefund,
+    uint256 agentPayout
+);
+
+event StreamPaused(
+    uint256 indexed streamId,
+    address indexed pauser
+);
+
+event StreamResumed(
+    uint256 indexed streamId,
+    address indexed resumer
+);
+```
+
+---
+
+## Error Reference
+
+```solidity
+// Subscription errors
+error SubscriptionNotFound(uint256 subscriptionId);
+error SubscriptionNotActive();
+error PaymentNotDue();
+error NoPrepaidEpochs();
+error InvalidDuration();
+error InvalidPrefund();
+error InvalidAssetAmount();
+
+// Stream errors
+error StreamNotFound(uint256 streamId);
+error StreamNotActive();
+error NoAccruedAmount();
+error InvalidEndTime();
+error StreamEnded();
+
+// General errors
+error AgentNotRegistered(uint256 agentId);
+error ZeroAmount();
+error UnauthorizedCaller();
+error InvalidAddress();
+```
+
+---
+
+## Best Practices
+
+### Subscription Management
+
+<AccordionGroup>
+  <Accordion title="Choose the Right Epoch Duration">
+    - **Short epochs (daily/weekly)**: Higher gas costs, but more flexibility for users
+    - **Long epochs (monthly/yearly)**: Lower gas costs, better for stable services
+    - Consider user preferences and service stability
+    - Monthly (30 days) is the sweet spot for most AI SaaS use cases
+  </Accordion>
+
+  <Accordion title="Prepayment Strategy">
+    - Require minimum 1 month prepayment for commitment
+    - Offer discounts for longer prepayment (3, 6, 12 months)
+    - Example: 5% off for 6 months, 10% off for 12 months
+    - Balance user flexibility with business cash flow needs
+  </Accordion>
+
+  <Accordion title="Automated Processing">
+    - Implement keeper bots for reliable subscription processing
+    - Use Chainlink Keepers or custom automation
+    - Process subscriptions within 24 hours of due time
+    - Monitor gas prices and batch process when possible
+    - Send notifications before processing payments
+  </Accordion>
+
+  <Accordion title="Handling Failed Payments">
+    - Grace period: Allow 3-7 days after nextDueTime
+    - Send notifications when prepaidEpochs runs low
+    - Pause service access when subscription expires
+    - Implement automatic renewal with user opt-in
+  </Accordion>
+</AccordionGroup>
+
+### Payment Stream Best Practices
+
+<AccordionGroup>
+  <Accordion title="Budget Planning">
+    - Start with conservative estimates (overestimate usage)
+    - Monitor spending rate vs. expected rate
+    - Set up alerts at 50%, 75%, 90% budget depletion
+    - Allow easy top-ups without canceling stream
+  </Accordion>
+
+  <Accordion title="Withdrawal Frequency">
+    - Balance gas costs with cash flow needs
+    - Daily withdrawals for high-value streams
+    - Weekly/monthly for lower-value streams
+    - Automate withdrawals based on accrued amount thresholds
+  </Accordion>
+
+  <Accordion title="Usage Tracking">
+    - Record usage off-chain for detailed analytics
+    - Periodically verify on-chain stream balance
+    - Provide real-time dashboards for users
+    - Alert users when usage exceeds projections
+  </Accordion>
+
+  <Accordion title="Stream Duration">
+    - Match stream duration to service commitment
+    - Typical range: 7-90 days for flexibility
+    - Longer streams (6-12 months) for enterprise
+    - Enable early cancellation with pro-rata refunds
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="What happens if I run out of prepaid epochs?">
+    The subscription remains in the system but stops processing. Users lose access to the service until they call `fundSubscription()` to add more epochs. The agent does not receive payments during this time.
+  </Accordion>
+
+  <Accordion title="Can I change the price of an existing subscription?">
+    No, the amountPerEpoch is immutable once created. To change pricing, cancel the current subscription and create a new one with the updated price.
+  </Accordion>
+
+  <Accordion title="How are refunds calculated when cancelling?">
+    Full refunds for all remaining prepaid epochs, plus a pro-rata refund for the current partially-used epoch based on time remaining: `(epochDuration - timeUsed) * amountPerEpoch / epochDuration`.
+  </Accordion>
+
+  <Accordion title="What's the difference between pausing and cancelling?">
+    **Pausing**: Temporarily stops payments but keeps prepaid funds. Can be resumed later. Good for temporary service interruptions.
+    **Cancelling**: Permanently ends subscription and refunds remaining prepaid funds. Cannot be reactivated.
+  </Accordion>
+
+  <Accordion title="Can streams run in the past or future?">
+    Streams can start in the past (backfill) or future (scheduled). However, if startTime is in the past, the accrued amount is calculated from startTime, not current time. For future streams, no funds are available until startTime is reached.
+  </Accordion>
+
+  <Accordion title="What happens if the agent is unregistered?">
+    Subscriptions and streams validate agent registration at creation. If an agent is unregistered after creation, payments continue but the agent owner may no longer have access to withdraw. Consider implementing governance to handle this scenario.
+  </Accordion>
+
+  <Accordion title="How do I implement usage-based billing with subscriptions?">
+    Subscriptions are best for fixed recurring billing. For usage-based models, use payment streams or combine both: subscription for base access + stream for metered usage.
+  </Accordion>
+
+  <Accordion title="Can I offer free trials?">
+    Yes, create a subscription with amountPerEpoch = 0 for the trial period. After trial, user must create a paid subscription. Alternatively, use off-chain trial management and require subscription before API access.
+  </Accordion>
+
+  <Accordion title="What are the gas costs?">
+    - createSubscription: ~150k-200k gas
+    - fundSubscription: ~80k-120k gas
+    - processSubscription: ~100k-150k gas
+    - cancelSubscription: ~120k-180k gas
+    - createStream: ~180k-230k gas
+    - withdrawFromStream: ~100k-150k gas
+    - cancelStream: ~150k-200k gas
+
+    Exact costs vary based on asset type (ETH vs ERC20) and state changes.
+  </Accordion>
+
+  <Accordion title="How do I handle subscription renewals?">
+    Two approaches:
+    1. **Auto-renewal**: User pre-funds with many epochs (e.g., 12 months)
+    2. **Manual renewal**: Send notifications when prepaidEpochs is low, user calls fundSubscription()
+
+    Implement reminders at prepaidEpochs = 2, 1, and 0.
+  </Accordion>
+
+  <Accordion title="Can I batch process multiple subscriptions?">
+    Yes, create a keeper contract that iterates through due subscriptions and calls processSubscription() for each. This amortizes gas costs across multiple operations.
+  </Accordion>
+
+  <Accordion title="What's the minimum stream duration?">
+    No enforced minimum, but very short streams (< 1 hour) have high overhead. The stream's rate per second is calculated as totalAmount / duration, so ensure the rate is meaningful for your use case.
+  </Accordion>
+
+  <Accordion title="How precise are stream payments?">
+    Streams calculate accrued amount based on seconds elapsed. Precision is limited by block timestamps (typically 12 seconds on mainnet). For very high-value streams, consider this granularity in your pricing model.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Security Considerations
+
+<Warning>
+**Critical Security Practices:**
+- Always validate agent registration before creating subscriptions/streams
+- Verify asset addresses to prevent fake token attacks
+- Implement rate limiting on subscription creation to prevent spam
+- Monitor for unusual withdrawal patterns (potential exploits)
+- Use multi-sig wallets for administrative functions
+- Audit metadata URIs for malicious content before display
+</Warning>
+
+### Contract Security
+
+- **Reentrancy Protection**: All external calls use nonReentrant modifier
+- **Access Control**: Role-based permissions (KEEPER_ROLE, PAUSER_ROLE)
+- **Integer Overflow**: Uses Solidity 0.8+ built-in overflow checks
+- **Zero Address Checks**: Validates addresses before transfers
+- **Asset Validation**: Distinguishes ETH (address(0)) from ERC20 tokens
+
+### User Protection
+
+- **Pro-Rata Refunds**: Fair cancellation with time-based refunds
+- **Withdrawal Limits**: Agents can only withdraw accrued amounts
+- **Transparency**: All financial operations emit detailed events
+- **Emergency Stop**: PAUSER_ROLE can pause contract in emergencies
+
+---
+
+## Analytics and Monitoring
+
+### Key Metrics to Track
+
+<CardGroup cols={2}>
+  <Card title="Subscription Metrics" icon="chart-line">
+    - Total active subscriptions
+    - Monthly recurring revenue (MRR)
+    - Churn rate
+    - Average subscription duration
+    - Prepayment distribution
+    - Renewal rate
+  </Card>
+
+  <Card title="Stream Metrics" icon="wave-square">
+    - Total active streams
+    - Average stream value
+    - Withdrawal frequency
+    - Budget depletion rate
+    - Early cancellation rate
+    - Usage vs. budget ratio
+  </Card>
+</CardGroup>
+
+### Example Monitoring Queries
+
+```javascript
+// Calculate MRR for all active subscriptions
+async function calculateMRR(subscriptions) {
+  let totalMRR = BigInt(0);
+  const subscriptionCount = await subscriptions.subscriptionCount();
+
+  for (let i = 1; i <= subscriptionCount; i++) {
+    const sub = await subscriptions.getSubscription(i);
+
+    if (sub.status === 1) { // Active
+      // Normalize to monthly equivalent
+      const monthlyAmount = (sub.amountPerEpoch * BigInt(2592000)) / sub.epochDuration;
+      totalMRR += monthlyAmount;
+    }
+  }
+
+  console.log("Monthly Recurring Revenue:", ethers.formatEther(totalMRR), "ETH");
+  return totalMRR;
+}
+
+// Calculate average stream value
+async function getStreamAnalytics(subscriptions) {
+  const streamCount = await subscriptions.streamCount();
+  let totalValue = BigInt(0);
+  let activeCount = 0;
+
+  for (let i = 1; i <= streamCount; i++) {
+    const stream = await subscriptions.getStream(i);
+
+    if (stream.status === 1) { // Active
+      totalValue += stream.totalAmount;
+      activeCount++;
+    }
+  }
+
+  const avgValue = activeCount > 0 ? totalValue / BigInt(activeCount) : BigInt(0);
+
+  return {
+    activeStreams: activeCount,
+    totalValue: ethers.formatEther(totalValue),
+    averageValue: ethers.formatEther(avgValue)
+  };
+}
+```
+
+---
+
+## Production Deployment Checklist
+
+<Steps>
+  <Step title="Smart Contract Deployment">
+    - Deploy Subscriptions contract via proxy
+    - Verify contract on block explorer
+    - Grant KEEPER_ROLE to automation address
+    - Grant PAUSER_ROLE to security multi-sig
+    - Test with small amounts first
+  </Step>
+
+  <Step title="Infrastructure Setup">
+    - Deploy keeper bot for subscription processing
+    - Set up monitoring and alerting
+    - Configure backup RPC endpoints
+    - Implement rate limiting
+    - Set up error logging
+  </Step>
+
+  <Step title="Integration Testing">
+    - Test full subscription lifecycle (create → process → cancel)
+    - Test full stream lifecycle (create → withdraw → cancel)
+    - Test edge cases (expired subscriptions, depleted streams)
+    - Verify refund calculations
+    - Test keeper automation
+  </Step>
+
+  <Step title="User Experience">
+    - Build subscription dashboard
+    - Implement email/notification system
+    - Create renewal reminders
+    - Add usage analytics
+    - Document API endpoints
+  </Step>
+
+  <Step title="Security Audit">
+    - Professional smart contract audit
+    - Penetration testing
+    - Gas optimization review
+    - Emergency response plan
+    - Bug bounty program
+  </Step>
+</Steps>
+
+---
+
+## Support and Resources
+
+<Info>
+Need help with subscriptions and payment streams?
+
+- **Documentation**: [https://docs.nexis.network](https://docs.nexis.network)
+- **Discord**: [https://discord.gg/nexis](https://discord.gg/nexis)
+- **GitHub**: [https://github.com/nexis-network](https://github.com/nexis-network)
+- **Support Email**: subscriptions@nexis.network
+- **Example Code**: [https://github.com/nexis-network/examples](https://github.com/nexis-network/examples)
+</Info>
+
+<CardGroup cols={3}>
+  <Card title="Agents API" icon="robot" href="/api-reference/agents-api">
+    AI Agent registration and management for subscription integration
+  </Card>
+  <Card title="Tasks API" icon="list-check" href="/api-reference/tasks-api">
+    Task-based payments and escrow for AI work
+  </Card>
+  <Card title="Treasury API" icon="vault" href="/api-reference/treasury-api">
+    Revenue distribution and pool management
+  </Card>
+  <Card title="RPC Methods" icon="server" href="/api-reference/rpc-methods">
+    Blockchain RPC endpoints for payment monitoring
+  </Card>
+  <Card title="Code Examples" icon="code" href="/developers/examples">
+    Working examples for subscription and stream integration
+  </Card>
+  <Card title="Tutorials" icon="book" href="/tutorials">
+    Step-by-step guides for payment implementation
+  </Card>
+</CardGroup>
