@@ -1,33 +1,595 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: 'API Reference'
+description: 'Complete API reference for Nexis Appchain - Smart Contract APIs and RPC Methods'
+icon: 'code'
 ---
 
+## Overview
+
+Nexis Appchain provides two primary API interfaces for developers:
+
+1. **Smart Contract APIs** - Direct interaction with on-chain contracts (Agents, Tasks, Treasury)
+2. **JSON-RPC APIs** - Standard Ethereum JSON-RPC methods plus Optimism-specific extensions
+
+This reference covers all available methods, parameters, return values, events, and error codes to help you build powerful decentralized AI applications on Nexis.
+
+## Smart Contract API vs RPC API
+
+<CardGroup cols={2}>
+  <Card title="Smart Contract API" icon="file-contract">
+    Direct contract calls using web3 libraries. Used for agent registration, task management, staking, and treasury operations.
+  </Card>
+  <Card title="JSON-RPC API" icon="server">
+    Standard Ethereum RPC methods for blockchain queries, transaction submission, and network status. Compatible with all Ethereum tooling.
+  </Card>
+</CardGroup>
+
+### When to Use Each API
+
+| Use Case | API Type | Example |
+|----------|----------|---------|
+| Register an AI agent | Smart Contract | `Agents.register()` |
+| Stake tokens for an agent | Smart Contract | `Agents.stakeERC20()` |
+| Post a new task | Smart Contract | `Tasks.postTask()` |
+| Query account balance | JSON-RPC | `eth_getBalance` |
+| Send signed transaction | JSON-RPC | `eth_sendRawTransaction` |
+| Get block information | JSON-RPC | `eth_getBlockByNumber` |
+
+## Network Endpoints
+
+### Mainnet
+
+```
+RPC URL: https://rpc.nexis.network
+Chain ID: 2370
+Currency: NZT
+Block Explorer: https://explorer.nexis.network
+```
+
+### Testnet
+
+```
+RPC URL: https://testnet-rpc.nexis.network
+Chain ID: 2371
+Currency: NZT
+Block Explorer: https://testnet-explorer.nexis.network
+```
+
+### Local Development
+
+```
+RPC URL: http://localhost:8545
+Chain ID: 1337
+```
+
+## Contract Addresses
+
+<Tabs>
+  <Tab title="Mainnet">
+    ```solidity
+    Agents Registry: 0x... (TBD)
+    Tasks Contract:  0x... (TBD)
+    Treasury:        0x... (TBD)
+    ```
+  </Tab>
+  <Tab title="Testnet">
+    ```solidity
+    Agents Registry: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+    Tasks Contract:  0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+    Treasury:        0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0
+    ```
+  </Tab>
+</Tabs>
+
+## Authentication and Access
+
+### Smart Contract Authentication
+
+Smart contracts use **on-chain authentication** through:
+
+1. **Owner Verification** - Only the registered owner can perform certain actions
+2. **Role-Based Access Control (RBAC)** - Admin roles for privileged operations
+3. **Delegation Permissions** - Owners can delegate specific permissions to operators
+
+```solidity
+// Example: Only agent owner or delegate can update metadata
+modifier onlyOwnerOrDelegate(uint256 agentId, bytes32 permission) {
+    require(_isAuthorized(agentId, permission, msg.sender));
+    _;
+}
+```
+
+### RPC API Authentication
+
+The JSON-RPC API is **publicly accessible** and does not require authentication for read operations. Write operations require:
+
+- **Signed transactions** with valid private keys
+- **Sufficient gas** for transaction execution
+- **Proper nonce management** for transaction ordering
+
+<Warning>
+Never expose private keys in client-side code. Use secure key management solutions and sign transactions server-side or in secure wallets.
+</Warning>
+
+## Rate Limits
+
+| Endpoint Type | Rate Limit | Burst Limit |
+|---------------|------------|-------------|
+| JSON-RPC (Free Tier) | 100 requests/second | 200 requests |
+| JSON-RPC (Pro Tier) | 1,000 requests/second | 2,000 requests |
+| WebSocket Connections | 10 connections/IP | 20 connections |
+| Smart Contract Calls | Unlimited (gas-limited) | N/A |
+
 <Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
+Rate limits apply to RPC endpoints only. Smart contract interactions are limited by network gas limits and block space, not API rate limits.
 </Note>
 
-## Welcome
+### Rate Limit Headers
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+RPC responses include rate limit information:
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1638360000
+```
 
-## Authentication
+## Error Handling
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+### Smart Contract Errors
+
+Nexis contracts use custom errors for gas efficiency:
+
+```solidity
+error AgentNotRegistered(uint256 agentId);
+error NotAgentOwner(uint256 agentId, address expectedOwner, address actualCaller);
+error ZeroAmount();
+error AmountTooLarge(uint256 requested, uint256 available);
+error InsufficientStake();
+```
+
+### Error Response Format
 
 ```json
-"security": [
-  {
-    "bearerAuth": []
+{
+  "error": {
+    "code": "AGENT_NOT_REGISTERED",
+    "message": "Agent ID 12345 is not registered",
+    "details": {
+      "agentId": 12345
+    }
   }
-]
+}
 ```
+
+### Common Error Codes
+
+| Error Code | Description | Resolution |
+|------------|-------------|------------|
+| `AGENT_NOT_REGISTERED` | Agent ID does not exist | Register the agent first |
+| `NOT_AGENT_OWNER` | Caller is not the owner | Use the correct account |
+| `ZERO_AMOUNT` | Amount parameter is zero | Provide a non-zero amount |
+| `INSUFFICIENT_STAKE` | Not enough staked tokens | Stake more tokens |
+| `INVALID_STATUS` | Task is in wrong state | Check task status |
+| `DEADLINE_EXPIRED` | Time deadline passed | Submit before deadline |
+
+### JSON-RPC Error Codes
+
+Standard Ethereum JSON-RPC error codes:
+
+| Code | Message | Description |
+|------|---------|-------------|
+| -32700 | Parse error | Invalid JSON |
+| -32600 | Invalid request | Missing required fields |
+| -32601 | Method not found | RPC method does not exist |
+| -32602 | Invalid params | Invalid method parameters |
+| -32603 | Internal error | Server internal error |
+| -32000 | Server error | Generic server error |
+
+## Quick Start Examples
+
+### Connect to Nexis Network
+
+<CodeGroup>
+
+```javascript JavaScript (ethers.js v6)
+import { ethers } from 'ethers';
+
+// Connect to Nexis testnet
+const provider = new ethers.JsonRpcProvider(
+  'https://testnet-rpc.nexis.network'
+);
+
+// Get chain ID
+const network = await provider.getNetwork();
+console.log('Chain ID:', network.chainId); // 2371
+
+// Get latest block
+const blockNumber = await provider.getBlockNumber();
+console.log('Latest block:', blockNumber);
+```
+
+```javascript JavaScript (ethers.js v5)
+const { ethers } = require('ethers');
+
+// Connect to Nexis testnet
+const provider = new ethers.providers.JsonRpcProvider(
+  'https://testnet-rpc.nexis.network'
+);
+
+// Get chain ID
+const network = await provider.getNetwork();
+console.log('Chain ID:', network.chainId);
+```
+
+```python Python (web3.py)
+from web3 import Web3
+
+# Connect to Nexis testnet
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nexis.network'))
+
+# Verify connection
+print('Connected:', w3.is_connected())
+print('Chain ID:', w3.eth.chain_id)
+print('Latest block:', w3.eth.block_number)
+```
+
+```go Go
+package main
+
+import (
+    "context"
+    "fmt"
+    "github.com/ethereum/go-ethereum/ethclient"
+)
+
+func main() {
+    // Connect to Nexis testnet
+    client, err := ethclient.Dial("https://testnet-rpc.nexis.network")
+    if err != nil {
+        panic(err)
+    }
+
+    // Get chain ID
+    chainID, err := client.ChainID(context.Background())
+    if err != nil {
+        panic(err)
+    }
+    fmt.Println("Chain ID:", chainID)
+
+    // Get latest block
+    blockNumber, err := client.BlockNumber(context.Background())
+    if err != nil {
+        panic(err)
+    }
+    fmt.Println("Latest block:", blockNumber)
+}
+```
+
+```rust Rust
+use ethers::prelude::*;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Connect to Nexis testnet
+    let provider = Provider::<Http>::try_from(
+        "https://testnet-rpc.nexis.network"
+    )?;
+
+    // Get chain ID
+    let chain_id = provider.get_chainid().await?;
+    println!("Chain ID: {}", chain_id);
+
+    // Get latest block
+    let block_number = provider.get_block_number().await?;
+    println!("Latest block: {}", block_number);
+
+    Ok(())
+}
+```
+
+</CodeGroup>
+
+### Register an AI Agent
+
+<CodeGroup>
+
+```javascript JavaScript
+import { ethers } from 'ethers';
+
+// Contract ABI (simplified)
+const agentsABI = [
+  "function register(uint256 agentId, string metadata, string serviceURI)",
+  "event AgentRegistered(address indexed owner, uint256 indexed agentId, string metadata, string serviceURI)"
+];
+
+// Connect wallet
+const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nexis.network');
+const wallet = new ethers.Wallet(privateKey, provider);
+
+// Contract instance
+const agentsAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+const agents = new ethers.Contract(agentsAddress, agentsABI, wallet);
+
+// Register agent
+const agentId = 12345;
+const metadata = JSON.stringify({
+  name: 'GPT-4 Agent',
+  model: 'gpt-4',
+  capabilities: ['text-generation', 'code-generation']
+});
+const serviceURI = 'https://api.myagent.com/inference';
+
+const tx = await agents.register(agentId, metadata, serviceURI);
+console.log('Transaction hash:', tx.hash);
+
+// Wait for confirmation
+const receipt = await tx.wait();
+console.log('Agent registered in block:', receipt.blockNumber);
+```
+
+```python Python
+from web3 import Web3
+import json
+
+# Connect to network
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nexis.network'))
+
+# Contract setup
+agents_address = '0x5FbDB2315678afecb367f032d93F642f64180aa3'
+agents_abi = [...] # Load ABI from file
+
+agents = w3.eth.contract(address=agents_address, abi=agents_abi)
+
+# Prepare transaction
+agent_id = 12345
+metadata = json.dumps({
+    'name': 'GPT-4 Agent',
+    'model': 'gpt-4',
+    'capabilities': ['text-generation', 'code-generation']
+})
+service_uri = 'https://api.myagent.com/inference'
+
+# Build and sign transaction
+tx = agents.functions.register(
+    agent_id,
+    metadata,
+    service_uri
+).build_transaction({
+    'from': account.address,
+    'nonce': w3.eth.get_transaction_count(account.address),
+    'gas': 500000,
+    'gasPrice': w3.eth.gas_price
+})
+
+signed_tx = account.sign_transaction(tx)
+tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+
+print(f'Transaction hash: {tx_hash.hex()}')
+
+# Wait for confirmation
+receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+print(f'Agent registered in block: {receipt.blockNumber}')
+```
+
+</CodeGroup>
+
+### Query Agent Information
+
+<CodeGroup>
+
+```javascript JavaScript
+// Get agent owner
+const owner = await agents.agentOwner(agentId);
+console.log('Agent owner:', owner);
+
+// Get agent metadata
+const metadata = await agents.agentMetadata(agentId);
+console.log('Metadata:', JSON.parse(metadata));
+
+// Get agent service URI
+const serviceURI = await agents.agentServiceURI(agentId);
+console.log('Service URI:', serviceURI);
+
+// Get stake balances
+const stakeInfo = await agents.stakeBalances(agentId, ethers.ZeroAddress); // ETH
+console.log('Total stake:', ethers.formatEther(stakeInfo.total));
+console.log('Locked stake:', ethers.formatEther(stakeInfo.locked));
+console.log('Available stake:', ethers.formatEther(stakeInfo.available));
+```
+
+```python Python
+# Get agent owner
+owner = agents.functions.agentOwner(agent_id).call()
+print(f'Agent owner: {owner}')
+
+# Get agent metadata
+metadata = agents.functions.agentMetadata(agent_id).call()
+print(f'Metadata: {json.loads(metadata)}')
+
+# Get agent service URI
+service_uri = agents.functions.agentServiceURI(agent_id).call()
+print(f'Service URI: {service_uri}')
+
+# Get stake balances (ETH)
+stake_info = agents.functions.stakeBalances(
+    agent_id,
+    '0x0000000000000000000000000000000000000000'
+).call()
+print(f'Total stake: {w3.from_wei(stake_info[0], "ether")} ETH')
+print(f'Locked stake: {w3.from_wei(stake_info[1], "ether")} ETH')
+print(f'Available stake: {w3.from_wei(stake_info[2], "ether")} ETH')
+```
+
+</CodeGroup>
+
+### Post a Task
+
+<CodeGroup>
+
+```javascript JavaScript
+const tasksAddress = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
+const tasks = new ethers.Contract(tasksAddress, tasksABI, wallet);
+
+// Task parameters
+const taskParams = {
+  asset: ethers.ZeroAddress, // ETH
+  reward: ethers.parseEther('0.1'), // 0.1 ETH reward
+  bond: ethers.parseEther('0.05'), // 0.05 ETH bond required
+  claimWindow: 3600, // 1 hour to claim
+  completionWindow: 86400, // 24 hours to complete
+  metadataURI: 'ipfs://Qm...',
+  inputURI: 'ipfs://Qm...'
+};
+
+// Post task with ETH reward
+const tx = await tasks.postTask(
+  taskParams.asset,
+  taskParams.reward,
+  taskParams.bond,
+  taskParams.claimWindow,
+  taskParams.completionWindow,
+  taskParams.metadataURI,
+  taskParams.inputURI,
+  { value: taskParams.reward } // Send ETH with transaction
+);
+
+const receipt = await tx.wait();
+
+// Get task ID from event
+const event = receipt.logs.find(log =>
+  log.topics[0] === ethers.id('TaskCreated(uint256,address,address,uint256,uint256,uint64,uint64,string)')
+);
+const taskId = ethers.toNumber(event.topics[1]);
+console.log('Task created with ID:', taskId);
+```
+
+```python Python
+tasks_address = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512'
+tasks = w3.eth.contract(address=tasks_address, abi=tasks_abi)
+
+# Task parameters
+reward_wei = w3.to_wei(0.1, 'ether')
+bond_wei = w3.to_wei(0.05, 'ether')
+
+# Post task
+tx = tasks.functions.postTask(
+    '0x0000000000000000000000000000000000000000',  # ETH
+    reward_wei,
+    bond_wei,
+    3600,  # 1 hour claim window
+    86400,  # 24 hour completion window
+    'ipfs://Qm...',
+    'ipfs://Qm...'
+).build_transaction({
+    'from': account.address,
+    'value': reward_wei,  # Send ETH reward
+    'nonce': w3.eth.get_transaction_count(account.address),
+    'gas': 500000,
+    'gasPrice': w3.eth.gas_price
+})
+
+signed_tx = account.sign_transaction(tx)
+tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+# Get task ID from event
+task_created_event = tasks.events.TaskCreated().process_receipt(receipt)
+task_id = task_created_event[0]['args']['taskId']
+print(f'Task created with ID: {task_id}')
+```
+
+</CodeGroup>
+
+## API Security Best Practices
+
+<AccordionGroup>
+  <Accordion title="Secure Private Key Management">
+    - Never hardcode private keys in source code
+    - Use environment variables or secure key management services
+    - Implement key rotation policies
+    - Use hardware wallets for production deployments
+    - Consider multi-signature wallets for high-value operations
+  </Accordion>
+
+  <Accordion title="Transaction Security">
+    - Always validate transaction parameters before signing
+    - Implement nonce management to prevent replay attacks
+    - Set appropriate gas limits to prevent excessive costs
+    - Use EIP-1559 transactions for predictable gas fees
+    - Verify contract addresses before interaction
+  </Accordion>
+
+  <Accordion title="Smart Contract Interaction">
+    - Validate all input parameters
+    - Check contract return values and events
+    - Handle errors gracefully with try-catch blocks
+    - Implement transaction retry logic with exponential backoff
+    - Monitor transaction status and confirmations
+  </Accordion>
+
+  <Accordion title="RPC Endpoint Security">
+    - Use HTTPS endpoints only
+    - Implement rate limiting on client side
+    - Cache responses where appropriate
+    - Use WebSocket connections for real-time updates
+    - Implement connection retry logic
+  </Accordion>
+</AccordionGroup>
+
+## SDK and Libraries
+
+<CardGroup cols={2}>
+  <Card title="JavaScript/TypeScript" icon="js">
+    - ethers.js v6 (recommended)
+    - web3.js
+    - viem
+  </Card>
+  <Card title="Python" icon="python">
+    - web3.py
+    - brownie
+    - ape
+  </Card>
+  <Card title="Go" icon="golang">
+    - go-ethereum (geth)
+    - abigen
+  </Card>
+  <Card title="Rust" icon="rust">
+    - ethers-rs
+    - web3
+    - alloy
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Agents API" icon="robot" href="/api-reference/agents-api">
+    Complete reference for the Agents contract - registration, staking, inference, and reputation management
+  </Card>
+  <Card title="Tasks API" icon="list-check" href="/api-reference/tasks-api">
+    Complete reference for the Tasks contract - posting, claiming, submitting, and dispute resolution
+  </Card>
+  <Card title="Treasury API" icon="vault" href="/api-reference/treasury-api">
+    Complete reference for the Treasury contract - pool management, rewards, and distributions
+  </Card>
+  <Card title="RPC Methods" icon="server" href="/api-reference/rpc-methods">
+    Complete JSON-RPC API reference - standard Ethereum methods and Optimism extensions
+  </Card>
+  <Card title="Code Examples" icon="code" href="/developers/examples">
+    Working code examples for common use cases and integration patterns
+  </Card>
+  <Card title="Tutorials" icon="book" href="/tutorials">
+    Step-by-step guides to build AI agent applications on Nexis
+  </Card>
+</CardGroup>
+
+## Support and Resources
+
+<Info>
+Need help? Join our developer community:
+- Discord: https://discord.gg/nexis
+- GitHub: https://github.com/nexis-network
+- Documentation: https://docs.nexis.network
+- Email: developers@nexis.network
+</Info>

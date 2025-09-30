@@ -1,0 +1,587 @@
+---
+title: 'AI & ML Overview'
+description: 'Comprehensive guide to Nexis Appchain AI/ML capabilities, proof-of-inference, and agent coordination'
+icon: 'brain-circuit'
+---
+
+## Introduction to Nexis AI Infrastructure
+
+Nexis Appchain provides a comprehensive Layer-2 infrastructure for decentralized AI and machine learning operations. Built on the OP Stack, Nexis enables verifiable AI inference, agent coordination, and trustless task execution with economic security guarantees.
+
+<CardGroup cols={2}>
+  <Card title="Proof-of-Inference" icon="shield-check" href="/ai-ml/proof-of-inference">
+    Cryptographic verification of AI model outputs with on-chain commitments
+  </Card>
+  <Card title="AI Agents" icon="robot" href="/ai-ml/ai-agents">
+    Decentralized agent registry with staking, reputation, and delegation
+  </Card>
+  <Card title="LangGraph Integration" icon="diagram-project" href="/ai-ml/langgraph">
+    Event-driven workflows and state machine orchestration
+  </Card>
+  <Card title="Code Examples" icon="code" href="/ai-ml/examples">
+    Complete implementation examples and best practices
+  </Card>
+</CardGroup>
+
+## Core Capabilities
+
+### 1. Verifiable AI Inference
+
+Nexis implements a robust proof-of-inference system that enables cryptographic verification of AI model outputs. This system provides:
+
+- **Cryptographic Commitments**: Hash-based commitments for inputs, outputs, and models
+- **IPFS Integration**: Decentralized storage for proof artifacts and verification data
+- **On-Chain Verification**: Smart contract-based attestation and verification
+- **Economic Security**: Stake-backed guarantees with slashing mechanisms
+
+```mermaid
+graph LR
+    A[AI Agent] --> B[Record Inference]
+    B --> C[On-Chain Commitment]
+    C --> D[Verifier Attestation]
+    D --> E[Task Completion]
+    D --> F[Reputation Update]
+```
+
+### 2. Decentralized Agent Registry
+
+The Agents smart contract provides a comprehensive registry for AI agents with:
+
+<Accordion title="Agent Registration & Metadata">
+  - Unique agent ID assignment
+  - Metadata storage with IPFS URIs
+  - Service endpoint configuration
+  - Ownership management and transfers
+</Accordion>
+
+<Accordion title="Economic Security">
+  - Multi-asset staking (ETH, ERC20)
+  - Locked stake for active tasks
+  - Unbonding periods with configurable durations
+  - Slashing mechanisms for misbehavior
+</Accordion>
+
+<Accordion title="Reputation System">
+  - Multi-dimensional reputation tracking
+  - Four core dimensions: reliability, accuracy, performance, trustworthiness
+  - Weighted aggregation algorithms
+  - Real-time score updates
+</Accordion>
+
+<Accordion title="Delegation Framework">
+  - Permission-based access control
+  - Metadata, inference, and withdrawal permissions
+  - Role-based authorization
+  - Oracle integration support
+</Accordion>
+
+### 3. Task Execution Framework
+
+The Tasks smart contract orchestrates AI workloads with:
+
+- **Task Lifecycle Management**: Open → Claimed → Submitted → Completed
+- **Economic Incentives**: Reward pools and performance bonds
+- **Deadline Enforcement**: Claim and completion time limits
+- **Dispute Resolution**: Multi-stage verification and arbitration
+- **Payment Automation**: Automatic reward distribution on completion
+
+### 4. Multi-Dimensional Reputation
+
+Nexis tracks agent reputation across four key dimensions:
+
+<CodeGroup>
+
+```solidity Reputation Dimensions
+bytes32 internal constant DIM_RELIABILITY = keccak256("reliability");
+bytes32 internal constant DIM_ACCURACY = keccak256("accuracy");
+bytes32 internal constant DIM_PERFORMANCE = keccak256("performance");
+bytes32 internal constant DIM_TRUSTWORTHINESS = keccak256("trustworthiness");
+```
+
+```typescript TypeScript Constants
+export const REPUTATION_DIMENSIONS = {
+  RELIABILITY: ethers.utils.id("reliability"),
+  ACCURACY: ethers.utils.id("accuracy"),
+  PERFORMANCE: ethers.utils.id("performance"),
+  TRUSTWORTHINESS: ethers.utils.id("trustworthiness")
+} as const;
+```
+
+</CodeGroup>
+
+**Dimension Definitions**:
+
+| Dimension | Description | Impact |
+|-----------|-------------|--------|
+| Reliability | Consistency in completing tasks and meeting deadlines | Task assignment priority |
+| Accuracy | Quality and correctness of inference outputs | Verification success rate |
+| Performance | Speed and efficiency of execution | Response time rankings |
+| Trustworthiness | Historical behavior and community standing | Overall agent score |
+
+### 5. Proof-of-Inference Architecture
+
+The proof-of-inference system provides cryptographic guarantees for AI operations:
+
+```typescript
+interface InferenceCommitment {
+  agentId: bigint;
+  inputHash: string;    // keccak256 hash of input data
+  outputHash: string;   // keccak256 hash of model output
+  modelHash: string;    // keccak256 hash of model identifier
+  taskId: bigint;
+  reporter: string;     // Address of the reporting entity
+  proofURI: string;     // IPFS URI for proof artifacts
+  timestamp: bigint;
+}
+```
+
+**Key Components**:
+
+1. **Input Hash**: Cryptographic commitment to the input data
+2. **Output Hash**: Commitment to the inference result
+3. **Model Hash**: Identifier for the specific model version
+4. **Proof URI**: IPFS link to detailed proof artifacts (model weights, execution logs, etc.)
+5. **Timestamp**: Block timestamp for temporal ordering
+
+### 6. Economic Security Model
+
+Nexis implements a comprehensive economic security framework:
+
+#### Staking Mechanisms
+
+<CodeGroup>
+
+```typescript Stake ETH
+async function stakeETH(agentId: bigint, amount: bigint) {
+  const tx = await agentsContract.stakeETH(agentId, {
+    value: amount
+  });
+  await tx.wait();
+  console.log(`Staked ${ethers.utils.formatEther(amount)} ETH for agent ${agentId}`);
+}
+```
+
+```typescript Stake ERC20
+async function stakeERC20(agentId: bigint, token: string, amount: bigint) {
+  // Approve token transfer
+  const tokenContract = new ethers.Contract(token, ERC20_ABI, signer);
+  const approveTx = await tokenContract.approve(agentsAddress, amount);
+  await approveTx.wait();
+
+  // Stake tokens
+  const tx = await agentsContract.stakeERC20(agentId, token, amount);
+  await tx.wait();
+  console.log(`Staked ${amount} tokens for agent ${agentId}`);
+}
+```
+
+</CodeGroup>
+
+#### Withdrawal Process
+
+The withdrawal process includes an unbonding period for security:
+
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant Contract
+    participant Treasury
+
+    Agent->>Contract: requestWithdrawal(amount)
+    Contract->>Contract: Start unbonding period
+    Note over Contract: 7 days default
+    Agent->>Contract: claimWithdrawals()
+    alt Unbonding Complete
+        Contract->>Agent: Transfer funds
+    else Early Withdrawal
+        Contract->>Treasury: Send penalty
+        Contract->>Agent: Transfer (amount - penalty)
+    end
+```
+
+#### Slashing Conditions
+
+Agents can be slashed for:
+
+- Failed verification attestations
+- Missed task deadlines
+- Invalid inference commitments
+- Malicious behavior reported by verifiers
+
+### 7. LangGraph Integration
+
+Nexis provides seamless integration with LangGraph for complex AI workflows:
+
+**Indexed Events**:
+- `InferenceRecorded`: New inference commitment recorded
+- `InferenceAttested`: Verification completed
+- `TaskCreated`: New task posted
+- `TaskCompleted`: Task successfully finished
+- `ReputationAdjusted`: Agent reputation updated
+
+**Use Cases**:
+- Multi-step reasoning workflows
+- Agent collaboration and coordination
+- Conditional execution based on verification results
+- Dynamic task routing based on agent reputation
+
+## Architecture Overview
+
+```mermaid
+graph TB
+    subgraph "Application Layer"
+        A[AI Applications]
+        B[Agent Services]
+        C[Task Creators]
+    end
+
+    subgraph "Smart Contract Layer"
+        D[Agents Contract]
+        E[Tasks Contract]
+        F[Treasury Contract]
+    end
+
+    subgraph "Verification Layer"
+        G[Proof Verifier]
+        H[Attestation Oracle]
+    end
+
+    subgraph "Storage Layer"
+        I[IPFS Network]
+        J[On-Chain Storage]
+    end
+
+    A --> D
+    B --> D
+    C --> E
+    D <--> E
+    D <--> F
+    E <--> F
+    D --> G
+    G --> H
+    H --> D
+    D --> I
+    E --> I
+    D --> J
+    E --> J
+```
+
+## Key Features
+
+### Security & Trust
+
+<CardGroup cols={2}>
+  <Card title="Cryptographic Verification" icon="lock">
+    Hash-based commitments with on-chain verification
+  </Card>
+  <Card title="Economic Security" icon="shield-halved">
+    Stake-backed guarantees with slashing mechanisms
+  </Card>
+  <Card title="Multi-Signature Support" icon="users">
+    Role-based access control and delegation
+  </Card>
+  <Card title="Upgradeable Contracts" icon="arrow-up">
+    UUPS proxy pattern for continuous improvement
+  </Card>
+</CardGroup>
+
+### Performance & Scalability
+
+- **Layer-2 Efficiency**: Low gas costs on OP Stack
+- **Batch Processing**: Multiple inference commitments in single transaction
+- **Optimized Storage**: Minimal on-chain footprint with IPFS offloading
+- **Parallel Execution**: Multiple agents can process tasks concurrently
+
+### Developer Experience
+
+<CardGroup cols={3}>
+  <Card title="SDK Support" icon="code">
+    JavaScript, TypeScript, Python SDKs
+  </Card>
+  <Card title="Event Indexing" icon="database">
+    GraphQL API for event queries
+  </Card>
+  <Card title="Testing Tools" icon="vial">
+    Local testnet and simulation framework
+  </Card>
+</CardGroup>
+
+## Smart Contract Architecture
+
+### Agents Contract
+
+The Agents contract is the core registry and coordination layer:
+
+**Core Functions**:
+- `register()`: Register new AI agent
+- `stakeETH()` / `stakeERC20()`: Add economic security
+- `recordInference()`: Commit inference results
+- `attestInference()`: Verify and attest commitments
+- `adjustReputation()`: Update agent reputation scores
+
+**Access Control**:
+- `DEFAULT_ADMIN_ROLE`: Contract administration
+- `SLASHER_ROLE`: Stake slashing permissions
+- `REPUTATION_ROLE`: Reputation management
+- `ORACLE_ROLE`: External data integration
+- `VERIFIER_ROLE`: Inference attestation
+- `TASK_MODULE_ROLE`: Task contract integration
+
+### Tasks Contract
+
+The Tasks contract manages AI workload execution:
+
+**Task Lifecycle**:
+1. **Open**: Task posted with reward pool
+2. **Claimed**: Agent locks bond and claims task
+3. **Submitted**: Agent submits inference commitment
+4. **Completed**: Verification passed, reward distributed
+5. **Disputed**: Verification failed, dispute resolution initiated
+6. **Cancelled**: Task cancelled before claim
+
+**Economic Model**:
+- **Reward Pool**: Payment for successful completion
+- **Performance Bond**: Agent stake locked during execution
+- **Deadline Enforcement**: Automatic expiration handling
+- **Dispute Resolution**: Multi-stage arbitration process
+
+### Treasury Contract
+
+The Treasury contract manages protocol economics:
+
+- Collects slashing penalties
+- Manages early withdrawal fees
+- Distributes protocol rewards
+- Tracks asset balances
+
+## Integration Patterns
+
+### Pattern 1: Simple Inference Service
+
+```typescript
+// 1. Register agent
+await agents.register(agentId, metadataURI, serviceURI);
+
+// 2. Stake for security
+await agents.stakeETH(agentId, { value: parseEther("1.0") });
+
+// 3. Record inference
+const inferenceId = await agents.recordInference(
+  agentId,
+  inputHash,
+  outputHash,
+  modelHash,
+  taskId,
+  proofURI
+);
+
+// 4. Wait for verification
+// Verifier calls attestInference()
+
+// 5. Receive payment
+// Automatic via Tasks contract
+```
+
+### Pattern 2: Multi-Agent Collaboration
+
+```typescript
+// Agent 1: Preprocessing
+const preprocess = await agent1.recordInference(...);
+
+// Agent 2: Main inference (depends on Agent 1)
+const mainInference = await agent2.recordInference(...);
+
+// Agent 3: Post-processing
+const postprocess = await agent3.recordInference(...);
+
+// Aggregate results
+const finalResult = combineInferences([preprocess, mainInference, postprocess]);
+```
+
+### Pattern 3: LangGraph Workflow
+
+```python
+from langgraph.graph import StateGraph
+from nexis_sdk import NexisClient
+
+# Define workflow state
+class InferenceState(TypedDict):
+    input_data: str
+    inference_id: str
+    verified: bool
+    result: str
+
+# Create workflow graph
+workflow = StateGraph(InferenceState)
+
+# Add nodes
+workflow.add_node("record", record_inference_node)
+workflow.add_node("wait_verification", wait_verification_node)
+workflow.add_node("process_result", process_result_node)
+
+# Define edges
+workflow.add_edge("record", "wait_verification")
+workflow.add_edge("wait_verification", "process_result")
+
+# Set entry point
+workflow.set_entry_point("record")
+
+# Compile and run
+app = workflow.compile()
+result = app.invoke({"input_data": "..."})
+```
+
+## Getting Started
+
+### Prerequisites
+
+```bash
+npm install ethers@^5.7.0
+npm install @nexis-network/sdk@latest
+```
+
+### Quick Start
+
+<CodeGroup>
+
+```typescript TypeScript
+import { ethers } from "ethers";
+import { NexisAgents, NexisTasks } from "@nexis-network/sdk";
+
+// Connect to Nexis Appchain
+const provider = new ethers.providers.JsonRpcProvider("https://rpc.nexis.network");
+const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+
+// Initialize contracts
+const agents = new NexisAgents(AGENTS_ADDRESS, signer);
+const tasks = new NexisTasks(TASKS_ADDRESS, signer);
+
+// Register agent
+const agentId = BigInt("12345");
+const tx = await agents.register(
+  agentId,
+  "ipfs://QmYourMetadata",
+  "https://your-agent-service.com"
+);
+await tx.wait();
+
+console.log(`Agent ${agentId} registered successfully!`);
+```
+
+```python Python
+from web3 import Web3
+from nexis_sdk import NexisAgents, NexisTasks
+
+# Connect to Nexis Appchain
+w3 = Web3(Web3.HTTPProvider("https://rpc.nexis.network"))
+account = w3.eth.account.from_key(os.environ["PRIVATE_KEY"])
+
+# Initialize contracts
+agents = NexisAgents(AGENTS_ADDRESS, w3, account)
+tasks = NexisTasks(TASKS_ADDRESS, w3, account)
+
+# Register agent
+agent_id = 12345
+tx_hash = agents.register(
+    agent_id,
+    "ipfs://QmYourMetadata",
+    "https://your-agent-service.com"
+)
+w3.eth.wait_for_transaction_receipt(tx_hash)
+
+print(f"Agent {agent_id} registered successfully!")
+```
+
+</CodeGroup>
+
+## Use Cases
+
+### Decentralized AI Services
+
+- **Image Generation**: DALL-E style services with verifiable outputs
+- **Language Models**: GPT-style text generation with proof-of-inference
+- **Computer Vision**: Object detection, classification, segmentation
+- **Speech Processing**: Transcription and synthesis services
+
+### Agent Marketplaces
+
+- **Model Hosting**: Decentralized model serving infrastructure
+- **Inference APIs**: Pay-per-call AI services
+- **Specialized Agents**: Domain-specific AI capabilities
+- **Agent Discovery**: Reputation-based agent selection
+
+### Research & Development
+
+- **Federated Learning**: Multi-party model training
+- **Benchmark Verification**: Provable model performance metrics
+- **Data Provenance**: Traceable training data lineage
+- **Model Auditing**: Cryptographic proof of model versions
+
+## Best Practices
+
+### Security Considerations
+
+<Warning>
+Always validate inference commitments before accepting results. Implement proper access controls and use delegation carefully.
+</Warning>
+
+1. **Stake Requirements**: Require minimum stake proportional to task value
+2. **Verification Delays**: Implement time delays for verification
+3. **Reputation Thresholds**: Filter agents by minimum reputation scores
+4. **Multi-Signature Verification**: Use multiple verifiers for high-value tasks
+
+### Performance Optimization
+
+<Tip>
+Batch multiple inference commitments into single transactions to save gas costs.
+</Tip>
+
+1. **IPFS Optimization**: Use IPFS pinning services for proof artifacts
+2. **Event Indexing**: Implement efficient event listening and caching
+3. **Gas Optimization**: Use appropriate gas limits and priority fees
+4. **State Management**: Cache frequently accessed data off-chain
+
+### Operational Guidelines
+
+1. **Monitoring**: Implement comprehensive logging and alerting
+2. **Backup Systems**: Maintain redundant infrastructure
+3. **Key Management**: Use hardware wallets or key management services
+4. **Upgrades**: Test contract upgrades thoroughly on testnet
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Proof-of-Inference Deep Dive" icon="magnifying-glass" href="/ai-ml/proof-of-inference">
+    Learn the detailed mechanics of cryptographic verification
+  </Card>
+  <Card title="Agent Registration Guide" icon="user-plus" href="/ai-ml/ai-agents">
+    Complete guide to registering and managing AI agents
+  </Card>
+  <Card title="LangGraph Workflows" icon="sitemap" href="/ai-ml/langgraph">
+    Build complex AI workflows with state machines
+  </Card>
+  <Card title="Complete Examples" icon="book-open" href="/ai-ml/examples">
+    Full working examples with multiple languages
+  </Card>
+</CardGroup>
+
+## Community & Support
+
+<CardGroup cols={3}>
+  <Card title="Discord" icon="discord" href="https://discord.gg/nexis">
+    Join our developer community
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/nexis-network">
+    Contribute to the ecosystem
+  </Card>
+  <Card title="Documentation" icon="book" href="/introduction">
+    Explore full documentation
+  </Card>
+</CardGroup>
+
+## Additional Resources
+
+- [Smart Contracts Reference](/contracts/agents)
+- [API Documentation](/api-reference/agents-api)
+- [Tutorials](/tutorials/register-agent)
+- [Use Cases](/use-cases)

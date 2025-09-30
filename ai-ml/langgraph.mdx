@@ -1,0 +1,1324 @@
+---
+title: 'LangGraph Integration'
+description: 'Event-driven AI workflows and state machine orchestration with LangGraph on Nexis Appchain'
+icon: 'diagram-project'
+---
+
+## Overview
+
+LangGraph integration enables complex, stateful AI workflows by leveraging on-chain events from the Nexis Agents and Tasks contracts. By indexing blockchain events, you can build sophisticated agent coordination systems with conditional execution, multi-agent collaboration, and automated verification flows.
+
+<CardGroup cols={2}>
+  <Card title="Event Indexing" icon="database">
+    Real-time indexing of on-chain events
+  </Card>
+  <Card title="State Machines" icon="sitemap">
+    Complex workflow orchestration with LangGraph
+  </Card>
+  <Card title="Agent Coordination" icon="users-gear">
+    Multi-agent collaboration patterns
+  </Card>
+  <Card title="Verification Loops" icon="arrows-rotate">
+    Automated verification and retry logic
+  </Card>
+</CardGroup>
+
+## Architecture
+
+```mermaid
+graph TB
+    subgraph "Blockchain Layer"
+        A[Agents Contract]
+        B[Tasks Contract]
+        C[Events]
+    end
+
+    subgraph "Indexing Layer"
+        D[Event Listener]
+        E[Event Store]
+        F[GraphQL API]
+    end
+
+    subgraph "LangGraph Layer"
+        G[State Graph]
+        H[Nodes]
+        I[Edges]
+        J[Conditions]
+    end
+
+    subgraph "Application Layer"
+        K[Workflow Executor]
+        L[Agent Services]
+        M[User Interface]
+    end
+
+    A --> C
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    I --> J
+    J --> K
+    K --> L
+    L --> A
+    L --> B
+    M --> K
+```
+
+## Key Events
+
+### Agents Contract Events
+
+The Agents contract emits several events that can trigger workflows:
+
+<CodeGroup>
+
+```solidity Event Definitions
+event InferenceRecorded(
+    uint256 indexed agentId,
+    bytes32 indexed inferenceId,
+    bytes32 indexed inputHash,
+    bytes32 outputHash,
+    bytes32 modelHash,
+    uint256 taskId,
+    address reporter,
+    string proofURI
+);
+
+event InferenceAttested(
+    bytes32 indexed inferenceId,
+    uint256 indexed agentId,
+    uint256 indexed taskId,
+    address verifier,
+    bool success,
+    string uri
+);
+
+event ReputationAdjusted(
+    uint256 indexed agentId,
+    bytes32 indexed dimension,
+    int256 newScore,
+    string reason
+);
+
+event StakeSlashed(
+    uint256 indexed agentId,
+    address indexed asset,
+    uint256 amount
+);
+```
+
+```typescript TypeScript Event Types
+interface InferenceRecordedEvent {
+  agentId: bigint;
+  inferenceId: string;
+  inputHash: string;
+  outputHash: string;
+  modelHash: string;
+  taskId: bigint;
+  reporter: string;
+  proofURI: string;
+  blockNumber: number;
+  timestamp: number;
+}
+
+interface InferenceAttestedEvent {
+  inferenceId: string;
+  agentId: bigint;
+  taskId: bigint;
+  verifier: string;
+  success: boolean;
+  uri: string;
+  blockNumber: number;
+  timestamp: number;
+}
+
+interface ReputationAdjustedEvent {
+  agentId: bigint;
+  dimension: string;
+  newScore: bigint;
+  reason: string;
+  blockNumber: number;
+  timestamp: number;
+}
+```
+
+</CodeGroup>
+
+### Tasks Contract Events
+
+```solidity
+event TaskCreated(
+    uint256 indexed taskId,
+    address indexed creator,
+    address indexed asset,
+    uint256 reward,
+    uint256 bond,
+    uint64 claimDeadline,
+    uint64 completionDeadline,
+    string metadataURI
+);
+
+event TaskClaimed(
+    uint256 indexed taskId,
+    uint256 indexed agentId,
+    address indexed claimant,
+    uint256 bond
+);
+
+event TaskSubmitted(
+    uint256 indexed taskId,
+    bytes32 inferenceId,
+    address indexed submitter
+);
+
+event TaskCompleted(
+    uint256 indexed taskId,
+    uint256 indexed agentId,
+    address indexed recipient,
+    uint256 reward
+);
+
+event TaskDisputed(
+    uint256 indexed taskId,
+    uint256 indexed agentId,
+    bytes32 inferenceId
+);
+```
+
+## Event Indexing
+
+### Setting Up Event Listener
+
+<CodeGroup>
+
+```typescript TypeScript Event Listener
+import { ethers } from "ethers";
+import { NexisAgents, NexisTasks } from "@nexis-network/sdk";
+
+class EventIndexer {
+  private provider: ethers.providers.JsonRpcProvider;
+  private agents: NexisAgents;
+  private tasks: NexisTasks;
+  private eventStore: Map<string, any[]>;
+
+  constructor(rpcUrl: string, agentsAddress: string, tasksAddress: string) {
+    this.provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+    this.agents = new NexisAgents(agentsAddress, this.provider);
+    this.tasks = new NexisTasks(tasksAddress, this.provider);
+    this.eventStore = new Map();
+  }
+
+  async startIndexing() {
+    // Listen for InferenceRecorded events
+    this.agents.on("InferenceRecorded", async (
+      agentId,
+      inferenceId,
+      inputHash,
+      outputHash,
+      modelHash,
+      taskId,
+      reporter,
+      proofURI,
+      event
+    ) => {
+      const eventData = {
+        type: "InferenceRecorded",
+        agentId: agentId.toString(),
+        inferenceId,
+        inputHash,
+        outputHash,
+        modelHash,
+        taskId: taskId.toString(),
+        reporter,
+        proofURI,
+        blockNumber: event.blockNumber,
+        timestamp: (await event.getBlock()).timestamp,
+        transactionHash: event.transactionHash
+      };
+
+      this.storeEvent(inferenceId, eventData);
+      await this.triggerWorkflow(eventData);
+    });
+
+    // Listen for InferenceAttested events
+    this.agents.on("InferenceAttested", async (
+      inferenceId,
+      agentId,
+      taskId,
+      verifier,
+      success,
+      uri,
+      event
+    ) => {
+      const eventData = {
+        type: "InferenceAttested",
+        inferenceId,
+        agentId: agentId.toString(),
+        taskId: taskId.toString(),
+        verifier,
+        success,
+        uri,
+        blockNumber: event.blockNumber,
+        timestamp: (await event.getBlock()).timestamp,
+        transactionHash: event.transactionHash
+      };
+
+      this.storeEvent(inferenceId, eventData);
+      await this.triggerWorkflow(eventData);
+    });
+
+    // Listen for TaskCreated events
+    this.tasks.on("TaskCreated", async (
+      taskId,
+      creator,
+      asset,
+      reward,
+      bond,
+      claimDeadline,
+      completionDeadline,
+      metadataURI,
+      event
+    ) => {
+      const eventData = {
+        type: "TaskCreated",
+        taskId: taskId.toString(),
+        creator,
+        asset,
+        reward: reward.toString(),
+        bond: bond.toString(),
+        claimDeadline: claimDeadline.toString(),
+        completionDeadline: completionDeadline.toString(),
+        metadataURI,
+        blockNumber: event.blockNumber,
+        timestamp: (await event.getBlock()).timestamp,
+        transactionHash: event.transactionHash
+      };
+
+      this.storeEvent(`task-${taskId}`, eventData);
+      await this.triggerWorkflow(eventData);
+    });
+
+    // Listen for TaskCompleted events
+    this.tasks.on("TaskCompleted", async (
+      taskId,
+      agentId,
+      recipient,
+      reward,
+      event
+    ) => {
+      const eventData = {
+        type: "TaskCompleted",
+        taskId: taskId.toString(),
+        agentId: agentId.toString(),
+        recipient,
+        reward: reward.toString(),
+        blockNumber: event.blockNumber,
+        timestamp: (await event.getBlock()).timestamp,
+        transactionHash: event.transactionHash
+      };
+
+      this.storeEvent(`task-${taskId}`, eventData);
+      await this.triggerWorkflow(eventData);
+    });
+
+    console.log("Event indexer started");
+  }
+
+  private storeEvent(key: string, event: any) {
+    if (!this.eventStore.has(key)) {
+      this.eventStore.set(key, []);
+    }
+    this.eventStore.get(key)!.push(event);
+  }
+
+  private async triggerWorkflow(event: any) {
+    // This will be implemented with LangGraph
+    console.log(`Event triggered: ${event.type}`);
+  }
+
+  public getEvents(key: string): any[] {
+    return this.eventStore.get(key) || [];
+  }
+
+  public async getHistoricalEvents(
+    eventType: string,
+    fromBlock: number,
+    toBlock: number
+  ) {
+    const contract = eventType.includes("Task") ? this.tasks : this.agents;
+    const filter = contract.filters[eventType]();
+    const events = await contract.queryFilter(filter, fromBlock, toBlock);
+    return events;
+  }
+}
+
+// Usage
+const indexer = new EventIndexer(
+  "https://rpc.nexis.network",
+  AGENTS_ADDRESS,
+  TASKS_ADDRESS
+);
+
+await indexer.startIndexing();
+```
+
+```python Python Event Listener
+from web3 import Web3
+from web3.contract import Contract
+import asyncio
+from typing import Dict, List, Callable
+import time
+
+class EventIndexer:
+    def __init__(self, rpc_url: str, agents_address: str, tasks_address: str):
+        self.w3 = Web3(Web3.HTTPProvider(rpc_url))
+        self.agents = self.w3.eth.contract(address=agents_address, abi=AGENTS_ABI)
+        self.tasks = self.w3.eth.contract(address=tasks_address, abi=TASKS_ABI)
+        self.event_store: Dict[str, List] = {}
+        self.workflow_handlers: Dict[str, List[Callable]] = {}
+
+    def start_indexing(self):
+        """Start listening for events."""
+        # Create event filters
+        inference_recorded_filter = self.agents.events.InferenceRecorded.create_filter(fromBlock='latest')
+        inference_attested_filter = self.agents.events.InferenceAttested.create_filter(fromBlock='latest')
+        task_created_filter = self.tasks.events.TaskCreated.create_filter(fromBlock='latest')
+        task_completed_filter = self.tasks.events.TaskCompleted.create_filter(fromBlock='latest')
+
+        print("Event indexer started")
+
+        # Poll for events
+        while True:
+            # Check InferenceRecorded events
+            for event in inference_recorded_filter.get_new_entries():
+                self._handle_inference_recorded(event)
+
+            # Check InferenceAttested events
+            for event in inference_attested_filter.get_new_entries():
+                self._handle_inference_attested(event)
+
+            # Check TaskCreated events
+            for event in task_created_filter.get_new_entries():
+                self._handle_task_created(event)
+
+            # Check TaskCompleted events
+            for event in task_completed_filter.get_new_entries():
+                self._handle_task_completed(event)
+
+            time.sleep(2)  # Poll every 2 seconds
+
+    def _handle_inference_recorded(self, event):
+        """Handle InferenceRecorded event."""
+        args = event['args']
+        block = self.w3.eth.get_block(event['blockNumber'])
+
+        event_data = {
+            'type': 'InferenceRecorded',
+            'agentId': args['agentId'],
+            'inferenceId': args['inferenceId'].hex(),
+            'inputHash': args['inputHash'].hex(),
+            'outputHash': args['outputHash'].hex(),
+            'modelHash': args['modelHash'].hex(),
+            'taskId': args['taskId'],
+            'reporter': args['reporter'],
+            'proofURI': args['proofURI'],
+            'blockNumber': event['blockNumber'],
+            'timestamp': block['timestamp'],
+            'transactionHash': event['transactionHash'].hex()
+        }
+
+        self._store_event(args['inferenceId'].hex(), event_data)
+        self._trigger_workflow(event_data)
+
+    def _handle_inference_attested(self, event):
+        """Handle InferenceAttested event."""
+        args = event['args']
+        block = self.w3.eth.get_block(event['blockNumber'])
+
+        event_data = {
+            'type': 'InferenceAttested',
+            'inferenceId': args['inferenceId'].hex(),
+            'agentId': args['agentId'],
+            'taskId': args['taskId'],
+            'verifier': args['verifier'],
+            'success': args['success'],
+            'uri': args['uri'],
+            'blockNumber': event['blockNumber'],
+            'timestamp': block['timestamp'],
+            'transactionHash': event['transactionHash'].hex()
+        }
+
+        self._store_event(args['inferenceId'].hex(), event_data)
+        self._trigger_workflow(event_data)
+
+    def _handle_task_created(self, event):
+        """Handle TaskCreated event."""
+        args = event['args']
+        block = self.w3.eth.get_block(event['blockNumber'])
+
+        event_data = {
+            'type': 'TaskCreated',
+            'taskId': args['taskId'],
+            'creator': args['creator'],
+            'asset': args['asset'],
+            'reward': args['reward'],
+            'bond': args['bond'],
+            'claimDeadline': args['claimDeadline'],
+            'completionDeadline': args['completionDeadline'],
+            'metadataURI': args['metadataURI'],
+            'blockNumber': event['blockNumber'],
+            'timestamp': block['timestamp'],
+            'transactionHash': event['transactionHash'].hex()
+        }
+
+        self._store_event(f"task-{args['taskId']}", event_data)
+        self._trigger_workflow(event_data)
+
+    def _handle_task_completed(self, event):
+        """Handle TaskCompleted event."""
+        args = event['args']
+        block = self.w3.eth.get_block(event['blockNumber'])
+
+        event_data = {
+            'type': 'TaskCompleted',
+            'taskId': args['taskId'],
+            'agentId': args['agentId'],
+            'recipient': args['recipient'],
+            'reward': args['reward'],
+            'blockNumber': event['blockNumber'],
+            'timestamp': block['timestamp'],
+            'transactionHash': event['transactionHash'].hex()
+        }
+
+        self._store_event(f"task-{args['taskId']}", event_data)
+        self._trigger_workflow(event_data)
+
+    def _store_event(self, key: str, event: dict):
+        """Store event in memory."""
+        if key not in self.event_store:
+            self.event_store[key] = []
+        self.event_store[key].append(event)
+
+    def _trigger_workflow(self, event: dict):
+        """Trigger registered workflow handlers."""
+        event_type = event['type']
+        if event_type in self.workflow_handlers:
+            for handler in self.workflow_handlers[event_type]:
+                handler(event)
+
+    def register_workflow_handler(self, event_type: str, handler: Callable):
+        """Register a workflow handler for an event type."""
+        if event_type not in self.workflow_handlers:
+            self.workflow_handlers[event_type] = []
+        self.workflow_handlers[event_type].append(handler)
+
+    def get_events(self, key: str) -> List[dict]:
+        """Get stored events for a key."""
+        return self.event_store.get(key, [])
+
+# Usage
+indexer = EventIndexer(
+    "https://rpc.nexis.network",
+    AGENTS_ADDRESS,
+    TASKS_ADDRESS
+)
+
+indexer.start_indexing()
+```
+
+</CodeGroup>
+
+## LangGraph State Machines
+
+### Basic Workflow Structure
+
+<CodeGroup>
+
+```python Python - Simple Inference Workflow
+from typing import TypedDict, Annotated
+from langgraph.graph import StateGraph, END
+from nexis_sdk import NexisAgents, NexisTasks
+
+# Define state structure
+class InferenceState(TypedDict):
+    task_id: int
+    agent_id: int
+    input_data: dict
+    inference_id: str
+    verification_status: str
+    output: dict
+    error: str
+
+# Create state graph
+workflow = StateGraph(InferenceState)
+
+# Define nodes
+def claim_task_node(state: InferenceState) -> InferenceState:
+    """Claim the task."""
+    print(f"Claiming task {state['task_id']} with agent {state['agent_id']}")
+
+    tasks = NexisTasks(TASKS_ADDRESS, w3, account)
+    tx_hash = tasks.claim_task(state['task_id'], state['agent_id'])
+    w3.eth.wait_for_transaction_receipt(tx_hash)
+
+    print(f"Task claimed successfully")
+    return state
+
+def execute_inference_node(state: InferenceState) -> InferenceState:
+    """Execute the AI inference."""
+    print(f"Executing inference for task {state['task_id']}")
+
+    # Run your AI model
+    output = run_model(state['input_data'])
+    state['output'] = output
+
+    print(f"Inference completed")
+    return state
+
+def record_inference_node(state: InferenceState) -> InferenceState:
+    """Record inference on-chain."""
+    print(f"Recording inference for agent {state['agent_id']}")
+
+    agents = NexisAgents(AGENTS_ADDRESS, w3, account)
+
+    # Compute hashes
+    input_hash = compute_input_hash(state['input_data'])
+    output_hash = compute_output_hash(state['output'])
+    model_hash = compute_model_hash("my-model", "v1.0")
+
+    # Upload proof to IPFS
+    proof_uri = upload_to_ipfs({
+        'input': state['input_data'],
+        'output': state['output']
+    })
+
+    # Record on-chain
+    tx_hash = agents.record_inference(
+        state['agent_id'],
+        input_hash,
+        output_hash,
+        model_hash,
+        state['task_id'],
+        proof_uri
+    )
+
+    receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+    state['inference_id'] = extract_inference_id(receipt)
+
+    print(f"Inference recorded: {state['inference_id']}")
+    return state
+
+def wait_verification_node(state: InferenceState) -> InferenceState:
+    """Wait for verification."""
+    print(f"Waiting for verification of {state['inference_id']}")
+
+    # Poll for InferenceAttested event
+    agents = NexisAgents(AGENTS_ADDRESS, w3, account)
+    inference_id = bytes.fromhex(state['inference_id'][2:])
+
+    max_attempts = 60
+    for i in range(max_attempts):
+        try:
+            commitment, attestation = agents.get_inference(inference_id)
+            if attestation['verifier'] != '0x0000000000000000000000000000000000000000':
+                state['verification_status'] = 'verified' if attestation['success'] else 'failed'
+                print(f"Verification complete: {state['verification_status']}")
+                return state
+        except:
+            pass
+
+        time.sleep(5)  # Wait 5 seconds
+
+    state['verification_status'] = 'timeout'
+    state['error'] = 'Verification timeout'
+    return state
+
+def submit_work_node(state: InferenceState) -> InferenceState:
+    """Submit work to task contract."""
+    if state['verification_status'] != 'verified':
+        state['error'] = 'Cannot submit unverified work'
+        return state
+
+    print(f"Submitting work for task {state['task_id']}")
+
+    tasks = NexisTasks(TASKS_ADDRESS, w3, account)
+    inference_id = bytes.fromhex(state['inference_id'][2:])
+    tx_hash = tasks.submit_work(state['task_id'], inference_id)
+    w3.eth.wait_for_transaction_receipt(tx_hash)
+
+    print(f"Work submitted successfully")
+    return state
+
+def handle_error_node(state: InferenceState) -> InferenceState:
+    """Handle errors."""
+    print(f"Error occurred: {state.get('error', 'Unknown error')}")
+    # Implement error handling logic
+    return state
+
+# Add nodes to graph
+workflow.add_node("claim_task", claim_task_node)
+workflow.add_node("execute_inference", execute_inference_node)
+workflow.add_node("record_inference", record_inference_node)
+workflow.add_node("wait_verification", wait_verification_node)
+workflow.add_node("submit_work", submit_work_node)
+workflow.add_node("handle_error", handle_error_node)
+
+# Define edges
+workflow.add_edge("claim_task", "execute_inference")
+workflow.add_edge("execute_inference", "record_inference")
+workflow.add_edge("record_inference", "wait_verification")
+
+# Conditional edge based on verification
+def should_submit(state: InferenceState) -> str:
+    if state['verification_status'] == 'verified':
+        return "submit_work"
+    else:
+        return "handle_error"
+
+workflow.add_conditional_edges(
+    "wait_verification",
+    should_submit,
+    {
+        "submit_work": "submit_work",
+        "handle_error": "handle_error"
+    }
+)
+
+workflow.add_edge("submit_work", END)
+workflow.add_edge("handle_error", END)
+
+# Set entry point
+workflow.set_entry_point("claim_task")
+
+# Compile graph
+app = workflow.compile()
+
+# Run workflow
+result = app.invoke({
+    "task_id": 1,
+    "agent_id": 12345,
+    "input_data": {"prompt": "Generate an image of a sunset"},
+    "inference_id": "",
+    "verification_status": "",
+    "output": {},
+    "error": ""
+})
+
+print(f"\nWorkflow completed:")
+print(f"  Verification: {result['verification_status']}")
+print(f"  Inference ID: {result['inference_id']}")
+```
+
+```typescript TypeScript - Workflow Orchestration
+import { StateGraph } from "@langchain/langgraph";
+
+interface WorkflowState {
+  taskId: bigint;
+  agentId: bigint;
+  inputData: any;
+  inferenceId?: string;
+  verificationStatus?: "pending" | "verified" | "failed";
+  output?: any;
+  error?: string;
+}
+
+// Define workflow nodes
+async function claimTaskNode(state: WorkflowState): Promise<WorkflowState> {
+  console.log(`Claiming task ${state.taskId} with agent ${state.agentId}`);
+
+  const tx = await tasks.claimTask(state.taskId, state.agentId);
+  await tx.wait();
+
+  console.log("Task claimed successfully");
+  return state;
+}
+
+async function executeInferenceNode(state: WorkflowState): Promise<WorkflowState> {
+  console.log(`Executing inference for task ${state.taskId}`);
+
+  // Run your AI model
+  const output = await runModel(state.inputData);
+  state.output = output;
+
+  console.log("Inference completed");
+  return state;
+}
+
+async function recordInferenceNode(state: WorkflowState): Promise<WorkflowState> {
+  console.log(`Recording inference for agent ${state.agentId}`);
+
+  // Compute hashes
+  const inputHash = computeInputHash(state.inputData);
+  const outputHash = computeOutputHash(state.output);
+  const modelHash = computeModelHash({ name: "my-model", version: "v1.0" });
+
+  // Upload proof to IPFS
+  const proofURI = await uploadToIPFS({
+    input: state.inputData,
+    output: state.output
+  });
+
+  // Record on-chain
+  const tx = await agents.recordInference(
+    state.agentId,
+    inputHash,
+    outputHash,
+    modelHash,
+    state.taskId,
+    proofURI
+  );
+
+  const receipt = await tx.wait();
+  const event = receipt.events?.find(e => e.event === "InferenceRecorded");
+  state.inferenceId = event?.args?.inferenceId;
+
+  console.log(`Inference recorded: ${state.inferenceId}`);
+  return state;
+}
+
+async function waitVerificationNode(state: WorkflowState): Promise<WorkflowState> {
+  console.log(`Waiting for verification of ${state.inferenceId}`);
+
+  // Poll for verification
+  const maxAttempts = 60;
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const [commitment, attestation] = await agents.getInference(state.inferenceId!);
+
+      if (attestation.verifier !== ethers.constants.AddressZero) {
+        state.verificationStatus = attestation.success ? "verified" : "failed";
+        console.log(`Verification complete: ${state.verificationStatus}`);
+        return state;
+      }
+    } catch (err) {
+      // Not yet attested
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 5000));
+  }
+
+  state.verificationStatus = "failed";
+  state.error = "Verification timeout";
+  return state;
+}
+
+async function submitWorkNode(state: WorkflowState): Promise<WorkflowState> {
+  if (state.verificationStatus !== "verified") {
+    state.error = "Cannot submit unverified work";
+    return state;
+  }
+
+  console.log(`Submitting work for task ${state.taskId}`);
+
+  const tx = await tasks.submitWork(state.taskId, state.inferenceId!);
+  await tx.wait();
+
+  console.log("Work submitted successfully");
+  return state;
+}
+
+// Build workflow graph
+const workflow = new StateGraph<WorkflowState>({
+  channels: {
+    taskId: null,
+    agentId: null,
+    inputData: null,
+    inferenceId: null,
+    verificationStatus: null,
+    output: null,
+    error: null
+  }
+});
+
+// Add nodes
+workflow.addNode("claimTask", claimTaskNode);
+workflow.addNode("executeInference", executeInferenceNode);
+workflow.addNode("recordInference", recordInferenceNode);
+workflow.addNode("waitVerification", waitVerificationNode);
+workflow.addNode("submitWork", submitWorkNode);
+
+// Add edges
+workflow.addEdge("claimTask", "executeInference");
+workflow.addEdge("executeInference", "recordInference");
+workflow.addEdge("recordInference", "waitVerification");
+workflow.addConditionalEdges(
+  "waitVerification",
+  (state) => state.verificationStatus === "verified" ? "submitWork" : "END",
+  {
+    submitWork: "submitWork",
+    END: "END"
+  }
+);
+workflow.addEdge("submitWork", "END");
+
+// Set entry point
+workflow.setEntryPoint("claimTask");
+
+// Compile and run
+const app = workflow.compile();
+const result = await app.invoke({
+  taskId: 1n,
+  agentId: 12345n,
+  inputData: { prompt: "Generate an image of a sunset" }
+});
+
+console.log("\nWorkflow completed:");
+console.log(`  Verification: ${result.verificationStatus}`);
+console.log(`  Inference ID: ${result.inferenceId}`);
+```
+
+</CodeGroup>
+
+## Advanced Workflow Patterns
+
+### Multi-Agent Collaboration
+
+```python
+from typing import List
+
+class MultiAgentState(TypedDict):
+    task_id: int
+    agents: List[int]
+    subtasks: List[dict]
+    results: List[dict]
+    aggregated_result: dict
+
+def split_task_node(state: MultiAgentState) -> MultiAgentState:
+    """Split task into subtasks for multiple agents."""
+    print(f"Splitting task {state['task_id']} into {len(state['agents'])} subtasks")
+
+    # Logic to divide task
+    state['subtasks'] = divide_task(state['task_id'], len(state['agents']))
+
+    return state
+
+def distribute_subtasks_node(state: MultiAgentState) -> MultiAgentState:
+    """Distribute subtasks to agents."""
+    print("Distributing subtasks to agents")
+
+    results = []
+    for agent_id, subtask in zip(state['agents'], state['subtasks']):
+        # Execute subtask with agent
+        result = execute_subtask(agent_id, subtask)
+        results.append({
+            'agent_id': agent_id,
+            'subtask': subtask,
+            'result': result
+        })
+
+    state['results'] = results
+    return state
+
+def aggregate_results_node(state: MultiAgentState) -> MultiAgentState:
+    """Aggregate results from all agents."""
+    print("Aggregating results from all agents")
+
+    # Combine results
+    state['aggregated_result'] = combine_results(state['results'])
+
+    return state
+
+def verify_aggregate_node(state: MultiAgentState) -> MultiAgentState:
+    """Verify the aggregated result."""
+    print("Verifying aggregated result")
+
+    # Verification logic
+    is_valid = verify_combined_result(state['aggregated_result'])
+
+    if is_valid:
+        state['verification_status'] = 'verified'
+    else:
+        state['verification_status'] = 'failed'
+
+    return state
+
+# Build multi-agent workflow
+multi_agent_workflow = StateGraph(MultiAgentState)
+
+multi_agent_workflow.add_node("split_task", split_task_node)
+multi_agent_workflow.add_node("distribute_subtasks", distribute_subtasks_node)
+multi_agent_workflow.add_node("aggregate_results", aggregate_results_node)
+multi_agent_workflow.add_node("verify_aggregate", verify_aggregate_node)
+
+multi_agent_workflow.add_edge("split_task", "distribute_subtasks")
+multi_agent_workflow.add_edge("distribute_subtasks", "aggregate_results")
+multi_agent_workflow.add_edge("aggregate_results", "verify_aggregate")
+multi_agent_workflow.add_edge("verify_aggregate", END)
+
+multi_agent_workflow.set_entry_point("split_task")
+
+multi_agent_app = multi_agent_workflow.compile()
+
+# Run multi-agent workflow
+result = multi_agent_app.invoke({
+    "task_id": 1,
+    "agents": [12345, 12346, 12347],
+    "subtasks": [],
+    "results": [],
+    "aggregated_result": {}
+})
+```
+
+### Retry with Backoff
+
+```python
+class RetryState(TypedDict):
+    task_id: int
+    agent_id: int
+    input_data: dict
+    attempt: int
+    max_attempts: int
+    backoff_seconds: int
+    inference_id: str
+    verification_status: str
+    success: bool
+
+def execute_with_retry_node(state: RetryState) -> RetryState:
+    """Execute inference with retry logic."""
+    state['attempt'] += 1
+    print(f"Attempt {state['attempt']} of {state['max_attempts']}")
+
+    try:
+        # Execute inference
+        output = run_model(state['input_data'])
+
+        # Record inference
+        inference_id = record_inference_on_chain(
+            state['agent_id'],
+            state['input_data'],
+            output,
+            state['task_id']
+        )
+
+        state['inference_id'] = inference_id
+        state['success'] = True
+
+    except Exception as e:
+        print(f"Attempt failed: {str(e)}")
+        state['success'] = False
+
+    return state
+
+def check_retry_condition(state: RetryState) -> str:
+    """Determine if we should retry."""
+    if state['success']:
+        return "wait_verification"
+    elif state['attempt'] < state['max_attempts']:
+        return "backoff"
+    else:
+        return "max_attempts_reached"
+
+def backoff_node(state: RetryState) -> RetryState:
+    """Apply exponential backoff."""
+    wait_time = state['backoff_seconds'] * (2 ** (state['attempt'] - 1))
+    print(f"Backing off for {wait_time} seconds")
+    time.sleep(wait_time)
+    return state
+
+# Build retry workflow
+retry_workflow = StateGraph(RetryState)
+
+retry_workflow.add_node("execute_with_retry", execute_with_retry_node)
+retry_workflow.add_node("backoff", backoff_node)
+retry_workflow.add_node("wait_verification", wait_verification_node)
+retry_workflow.add_node("max_attempts_reached", lambda s: s)
+
+retry_workflow.add_conditional_edges(
+    "execute_with_retry",
+    check_retry_condition,
+    {
+        "wait_verification": "wait_verification",
+        "backoff": "backoff",
+        "max_attempts_reached": "max_attempts_reached"
+    }
+)
+
+retry_workflow.add_edge("backoff", "execute_with_retry")
+retry_workflow.add_edge("wait_verification", END)
+retry_workflow.add_edge("max_attempts_reached", END)
+
+retry_workflow.set_entry_point("execute_with_retry")
+
+retry_app = retry_workflow.compile()
+```
+
+### Event-Driven Workflow
+
+```python
+class EventDrivenState(TypedDict):
+    listening: bool
+    event_queue: List[dict]
+    processed_events: List[str]
+
+def listen_for_events_node(state: EventDrivenState) -> EventDrivenState:
+    """Listen for blockchain events."""
+    print("Listening for events...")
+
+    # Get new events from indexer
+    new_events = indexer.get_new_events()
+    state['event_queue'].extend(new_events)
+
+    print(f"Received {len(new_events)} new events")
+    return state
+
+def process_event_node(state: EventDrivenState) -> EventDrivenState:
+    """Process next event in queue."""
+    if not state['event_queue']:
+        return state
+
+    event = state['event_queue'].pop(0)
+    print(f"Processing event: {event['type']}")
+
+    # Route to appropriate handler
+    if event['type'] == 'TaskCreated':
+        handle_task_created(event)
+    elif event['type'] == 'InferenceRecorded':
+        handle_inference_recorded(event)
+    elif event['type'] == 'InferenceAttested':
+        handle_inference_attested(event)
+    elif event['type'] == 'TaskCompleted':
+        handle_task_completed(event)
+
+    state['processed_events'].append(event['transactionHash'])
+    return state
+
+def check_queue(state: EventDrivenState) -> str:
+    """Check if there are more events to process."""
+    if state['event_queue']:
+        return "process_event"
+    elif state['listening']:
+        return "listen_for_events"
+    else:
+        return END
+
+# Build event-driven workflow
+event_workflow = StateGraph(EventDrivenState)
+
+event_workflow.add_node("listen_for_events", listen_for_events_node)
+event_workflow.add_node("process_event", process_event_node)
+
+event_workflow.add_conditional_edges(
+    "listen_for_events",
+    check_queue,
+    {
+        "process_event": "process_event",
+        "listen_for_events": "listen_for_events",
+        END: END
+    }
+)
+
+event_workflow.add_conditional_edges(
+    "process_event",
+    check_queue,
+    {
+        "process_event": "process_event",
+        "listen_for_events": "listen_for_events",
+        END: END
+    }
+)
+
+event_workflow.set_entry_point("listen_for_events")
+
+event_app = event_workflow.compile()
+
+# Run event-driven workflow
+result = event_app.invoke({
+    "listening": True,
+    "event_queue": [],
+    "processed_events": []
+})
+```
+
+## Visualization
+
+LangGraph workflows can be visualized using Mermaid diagrams:
+
+```mermaid
+graph TD
+    START([Start]) --> A[Claim Task]
+    A --> B[Execute Inference]
+    B --> C[Record Inference]
+    C --> D[Wait Verification]
+    D --> E{Verified?}
+    E -->|Yes| F[Submit Work]
+    E -->|No| G[Handle Error]
+    F --> END([End])
+    G --> END
+
+    style START fill:#90EE90
+    style END fill:#FFB6C1
+    style E fill:#FFD700
+    style F fill:#87CEEB
+    style G fill:#FFA07A
+```
+
+## Best Practices
+
+### State Management
+
+<Tip>
+Keep state minimal and serializable. Store only essential data needed for workflow decisions.
+</Tip>
+
+```python
+# ✅ Good: Minimal state
+class MinimalState(TypedDict):
+    task_id: int
+    status: str
+    inference_id: str
+
+# ❌ Bad: Storing large objects
+class BadState(TypedDict):
+    task_id: int
+    full_model_weights: bytes  # Don't do this!
+    entire_blockchain_history: List[dict]  # Way too much!
+```
+
+### Error Handling
+
+<Warning>
+Always implement error handling nodes to gracefully handle failures.
+</Warning>
+
+```python
+def error_handler_node(state: WorkflowState) -> WorkflowState:
+    """Central error handling."""
+    error = state.get('error')
+
+    # Log error
+    logging.error(f"Workflow error: {error}")
+
+    # Notify monitoring system
+    send_alert(error)
+
+    # Attempt recovery or cleanup
+    if is_recoverable(error):
+        state['should_retry'] = True
+    else:
+        state['should_terminate'] = True
+
+    return state
+```
+
+### Performance Optimization
+
+1. **Batch Processing**: Group multiple events together
+2. **Async Operations**: Use async/await for I/O operations
+3. **Caching**: Cache frequently accessed blockchain data
+4. **Parallel Execution**: Run independent workflows concurrently
+
+## Real-World Examples
+
+### Automated Task Marketplace
+
+```python
+class MarketplaceState(TypedDict):
+    agent_id: int
+    available_tasks: List[int]
+    selected_task: int
+    claim_success: bool
+
+def scan_tasks_node(state: MarketplaceState) -> MarketplaceState:
+    """Scan for available tasks matching agent capabilities."""
+    print(f"Scanning tasks for agent {state['agent_id']}")
+
+    # Query tasks contract
+    open_tasks = get_open_tasks()
+
+    # Filter by agent capabilities
+    agent_capabilities = get_agent_capabilities(state['agent_id'])
+    matching_tasks = [
+        task for task in open_tasks
+        if task_matches_capabilities(task, agent_capabilities)
+    ]
+
+    # Sort by reward/effort ratio
+    sorted_tasks = sorted(
+        matching_tasks,
+        key=lambda t: t['reward'] / estimate_effort(t),
+        reverse=True
+    )
+
+    state['available_tasks'] = [t['taskId'] for t in sorted_tasks[:10]]
+    print(f"Found {len(state['available_tasks'])} matching tasks")
+
+    return state
+
+def select_best_task_node(state: MarketplaceState) -> MarketplaceState:
+    """Select the best task based on multiple factors."""
+    if not state['available_tasks']:
+        return state
+
+    # Select task with highest expected value
+    best_task = state['available_tasks'][0]
+    state['selected_task'] = best_task
+
+    print(f"Selected task {best_task}")
+    return state
+
+def attempt_claim_node(state: MarketplaceState) -> MarketplaceState:
+    """Attempt to claim the selected task."""
+    try:
+        tx_hash = tasks.claim_task(state['selected_task'], state['agent_id'])
+        w3.eth.wait_for_transaction_receipt(tx_hash)
+        state['claim_success'] = True
+        print(f"Successfully claimed task {state['selected_task']}")
+    except Exception as e:
+        state['claim_success'] = False
+        print(f"Failed to claim task: {str(e)}")
+
+    return state
+
+# Build marketplace workflow
+marketplace_workflow = StateGraph(MarketplaceState)
+
+marketplace_workflow.add_node("scan_tasks", scan_tasks_node)
+marketplace_workflow.add_node("select_best_task", select_best_task_node)
+marketplace_workflow.add_node("attempt_claim", attempt_claim_node)
+
+marketplace_workflow.add_edge("scan_tasks", "select_best_task")
+marketplace_workflow.add_edge("select_best_task", "attempt_claim")
+
+def check_claim_result(state: MarketplaceState) -> str:
+    if state['claim_success']:
+        return "execute_task"
+    elif state['available_tasks']:
+        return "select_best_task"  # Try next task
+    else:
+        return "scan_tasks"  # Scan for new tasks
+
+marketplace_workflow.add_conditional_edges(
+    "attempt_claim",
+    check_claim_result,
+    {
+        "execute_task": "execute_task",
+        "select_best_task": "select_best_task",
+        "scan_tasks": "scan_tasks"
+    }
+)
+
+marketplace_workflow.set_entry_point("scan_tasks")
+
+marketplace_app = marketplace_workflow.compile()
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Complete Examples" icon="code" href="/ai-ml/examples">
+    View full implementation examples with multiple patterns
+  </Card>
+  <Card title="Proof-of-Inference" icon="shield-check" href="/ai-ml/proof-of-inference">
+    Deep dive into cryptographic verification
+  </Card>
+  <Card title="AI Agents Guide" icon="robot" href="/ai-ml/ai-agents">
+    Learn about agent registration and management
+  </Card>
+  <Card title="API Reference" icon="book" href="/api-reference/agents-api">
+    Explore the complete API documentation
+  </Card>
+</CardGroup>

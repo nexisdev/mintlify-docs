@@ -1,0 +1,1454 @@
+---
+title: 'Code Examples'
+description: 'Complete working examples for AI agent lifecycle, task execution, and common patterns'
+icon: 'code'
+---
+
+## Overview
+
+This guide provides complete, production-ready code examples for implementing AI agents on Nexis Appchain. All examples include error handling, best practices, and can be adapted for your specific use case.
+
+<CardGroup cols={2}>
+  <Card title="Agent Lifecycle" icon="rotate">
+    Complete flow from registration to inference recording
+  </Card>
+  <Card title="Task Execution" icon="list-check">
+    End-to-end task claiming and completion
+  </Card>
+  <Card title="Multi-Language Support" icon="language">
+    Examples in TypeScript, Python, and JavaScript
+  </Card>
+  <Card title="Production Patterns" icon="shield">
+    Real-world patterns with error handling
+  </Card>
+</CardGroup>
+
+## Complete Agent Lifecycle
+
+### TypeScript Implementation
+
+<CodeGroup>
+
+```typescript Full Agent Setup
+import { ethers } from "ethers";
+import { create as createIPFSClient } from "ipfs-http-client";
+import fetch from "node-fetch";
+
+// Configuration
+const RPC_URL = "https://rpc.nexis.network";
+const AGENTS_ADDRESS = "0x..."; // Your deployed Agents contract
+const TASKS_ADDRESS = "0x...";   // Your deployed Tasks contract
+const PRIVATE_KEY = process.env.PRIVATE_KEY!;
+
+// Initialize providers and contracts
+const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+
+const AGENTS_ABI = [...]; // Import from artifacts
+const TASKS_ABI = [...];
+
+const agentsContract = new ethers.Contract(AGENTS_ADDRESS, AGENTS_ABI, wallet);
+const tasksContract = new ethers.Contract(TASKS_ADDRESS, TASKS_ABI, wallet);
+
+// IPFS client
+const ipfs = createIPFSClient({
+  host: "ipfs.infura.io",
+  port: 5001,
+  protocol: "https",
+  headers: {
+    authorization: `Basic ${Buffer.from(
+      `${process.env.INFURA_PROJECT_ID}:${process.env.INFURA_API_KEY}`
+    ).toString("base64")}`
+  }
+});
+
+// ============================================================================
+// Step 1: Register Agent
+// ============================================================================
+
+interface AgentMetadata {
+  name: string;
+  description: string;
+  capabilities: string[];
+  models: Array<{
+    name: string;
+    version: string;
+    type: string;
+  }>;
+  pricing: {
+    currency: string;
+    per_inference: string;
+  };
+  sla: {
+    uptime: string;
+    response_time_ms: number;
+  };
+}
+
+async function registerAgent(
+  agentId: bigint,
+  metadata: AgentMetadata,
+  serviceURI: string
+): Promise<string> {
+  console.log(`\n[1/5] Registering agent ${agentId}...`);
+
+  try {
+    // Upload metadata to IPFS
+    const metadataJSON = JSON.stringify(metadata, null, 2);
+    const { cid } = await ipfs.add(metadataJSON);
+    const metadataURI = `ipfs://${cid}`;
+    console.log(`  Metadata uploaded: ${metadataURI}`);
+
+    // Register on-chain
+    const tx = await agentsContract.register(agentId, metadataURI, serviceURI, {
+      gasLimit: 500000
+    });
+
+    console.log(`  Transaction sent: ${tx.hash}`);
+    const receipt = await tx.wait();
+    console.log(`  ✅ Agent registered (gas used: ${receipt.gasUsed})`);
+
+    return receipt.transactionHash;
+  } catch (error: any) {
+    if (error.message.includes("AgentAlreadyRegistered")) {
+      console.log(`  ℹ️  Agent ${agentId} already registered`);
+      return "already-registered";
+    }
+    throw error;
+  }
+}
+
+// ============================================================================
+// Step 2: Stake for Security
+// ============================================================================
+
+async function stakeForAgent(
+  agentId: bigint,
+  amountETH: string
+): Promise<string> {
+  console.log(`\n[2/5] Staking ${amountETH} ETH for agent ${agentId}...`);
+
+  const amountWei = ethers.utils.parseEther(amountETH);
+
+  const tx = await agentsContract.stakeETH(agentId, {
+    value: amountWei,
+    gasLimit: 200000
+  });
+
+  console.log(`  Transaction sent: ${tx.hash}`);
+  const receipt = await tx.wait();
+
+  // Get updated balance
+  const ETH_ADDRESS = ethers.constants.AddressZero;
+  const balance = await agentsContract.stakedBalance(agentId, ETH_ADDRESS);
+
+  console.log(`  ✅ Staked (total: ${ethers.utils.formatEther(balance)} ETH)`);
+  return receipt.transactionHash;
+}
+
+// ============================================================================
+// Step 3: Set Up Delegation (Optional)
+// ============================================================================
+
+async function setupDelegation(
+  agentId: bigint,
+  operatorAddress: string
+): Promise<void> {
+  console.log(`\n[3/5] Setting up delegation for agent ${agentId}...`);
+
+  const PERMISSION_INFERENCE = ethers.utils.id("PERMISSION_INFERENCE");
+  const PERMISSION_METADATA = ethers.utils.id("PERMISSION_METADATA");
+
+  // Grant inference permission to operator
+  const tx1 = await agentsContract.setDelegate(
+    agentId,
+    operatorAddress,
+    PERMISSION_INFERENCE,
+    true,
+    { gasLimit: 100000 }
+  );
+  await tx1.wait();
+  console.log(`  ✅ Granted inference permission to ${operatorAddress}`);
+
+  // Grant metadata permission
+  const tx2 = await agentsContract.setDelegate(
+    agentId,
+    operatorAddress,
+    PERMISSION_METADATA,
+    true,
+    { gasLimit: 100000 }
+  );
+  await tx2.wait();
+  console.log(`  ✅ Granted metadata permission to ${operatorAddress}`);
+}
+
+// ============================================================================
+// Step 4: Execute Inference
+// ============================================================================
+
+interface InferenceInput {
+  prompt: string;
+  parameters?: {
+    width?: number;
+    height?: number;
+    steps?: number;
+    guidance_scale?: number;
+  };
+}
+
+interface InferenceOutput {
+  image_url?: string;
+  text?: string;
+  metadata: {
+    model: string;
+    execution_time_ms: number;
+    timestamp: number;
+  };
+}
+
+async function executeInference(
+  input: InferenceInput
+): Promise<InferenceOutput> {
+  console.log(`\n[4/5] Executing inference...`);
+
+  // In production, this would call your actual AI model
+  // For this example, we'll simulate it
+  const startTime = Date.now();
+
+  // Simulate model execution
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  const output: InferenceOutput = {
+    text: `Generated response for: ${input.prompt}`,
+    metadata: {
+      model: "gpt-4",
+      execution_time_ms: Date.now() - startTime,
+      timestamp: Date.now()
+    }
+  };
+
+  console.log(`  ✅ Inference completed in ${output.metadata.execution_time_ms}ms`);
+  return output;
+}
+
+// ============================================================================
+// Step 5: Record Inference On-Chain
+// ============================================================================
+
+async function recordInference(
+  agentId: bigint,
+  input: InferenceInput,
+  output: InferenceOutput,
+  taskId: bigint = 0n
+): Promise<string> {
+  console.log(`\n[5/5] Recording inference on-chain...`);
+
+  // Compute hashes
+  const inputHash = ethers.utils.keccak256(
+    ethers.utils.toUtf8Bytes(JSON.stringify(input, Object.keys(input).sort()))
+  );
+
+  const outputHash = ethers.utils.keccak256(
+    ethers.utils.toUtf8Bytes(JSON.stringify(output, Object.keys(output).sort()))
+  );
+
+  const modelHash = ethers.utils.keccak256(
+    ethers.utils.toUtf8Bytes(`${output.metadata.model}:v1.0`)
+  );
+
+  console.log(`  Input hash: ${inputHash}`);
+  console.log(`  Output hash: ${outputHash}`);
+  console.log(`  Model hash: ${modelHash}`);
+
+  // Prepare proof artifact
+  const proofArtifact = {
+    version: "1.0",
+    inference: {
+      agentId: agentId.toString(),
+      timestamp: Date.now()
+    },
+    input,
+    output,
+    model: {
+      name: output.metadata.model,
+      version: "v1.0"
+    },
+    execution: {
+      duration_ms: output.metadata.execution_time_ms,
+      timestamp: output.metadata.timestamp
+    }
+  };
+
+  // Upload proof to IPFS
+  const { cid } = await ipfs.add(JSON.stringify(proofArtifact, null, 2));
+  const proofURI = `ipfs://${cid}`;
+  console.log(`  Proof uploaded: ${proofURI}`);
+
+  // Record on-chain
+  const tx = await agentsContract.recordInference(
+    agentId,
+    inputHash,
+    outputHash,
+    modelHash,
+    taskId,
+    proofURI,
+    { gasLimit: 300000 }
+  );
+
+  console.log(`  Transaction sent: ${tx.hash}`);
+  const receipt = await tx.wait();
+
+  // Extract inference ID from event
+  const event = receipt.events?.find(
+    (e: any) => e.event === "InferenceRecorded"
+  );
+  const inferenceId = event?.args?.inferenceId;
+
+  console.log(`  ✅ Inference recorded: ${inferenceId}`);
+  return inferenceId;
+}
+
+// ============================================================================
+// Complete Flow
+// ============================================================================
+
+async function completeAgentLifecycle() {
+  try {
+    const agentId = BigInt(Date.now()); // Use timestamp as unique ID
+
+    // Define agent metadata
+    const metadata: AgentMetadata = {
+      name: "GPT-4 Agent",
+      description: "Advanced language model for text generation",
+      capabilities: ["text-generation", "summarization", "translation"],
+      models: [
+        {
+          name: "gpt-4",
+          version: "v1.0",
+          type: "language-model"
+        }
+      ],
+      pricing: {
+        currency: "NEXIS",
+        per_inference: "0.01"
+      },
+      sla: {
+        uptime: "99.9%",
+        response_time_ms: 5000
+      }
+    };
+
+    // Step 1: Register agent
+    await registerAgent(
+      agentId,
+      metadata,
+      "https://my-agent-service.com/api"
+    );
+
+    // Step 2: Stake ETH
+    await stakeForAgent(agentId, "1.0");
+
+    // Step 3: Setup delegation (optional)
+    const operatorAddress = "0x..."; // Your operator address
+    await setupDelegation(agentId, operatorAddress);
+
+    // Step 4: Execute inference
+    const input: InferenceInput = {
+      prompt: "Explain quantum computing in simple terms",
+      parameters: {
+        steps: 50
+      }
+    };
+
+    const output = await executeInference(input);
+
+    // Step 5: Record inference
+    const inferenceId = await recordInference(agentId, input, output);
+
+    console.log(`\n✅ Complete agent lifecycle finished!`);
+    console.log(`   Agent ID: ${agentId}`);
+    console.log(`   Inference ID: ${inferenceId}`);
+
+    return { agentId, inferenceId };
+  } catch (error) {
+    console.error(`\n❌ Error in agent lifecycle:`, error);
+    throw error;
+  }
+}
+
+// Run the complete flow
+completeAgentLifecycle()
+  .then(() => process.exit(0))
+  .catch(error => {
+    console.error(error);
+    process.exit(1);
+  });
+```
+
+</CodeGroup>
+
+### Python Implementation
+
+```python Complete Agent Setup (Python)
+from web3 import Web3
+from eth_account import Account
+import ipfshttpclient
+import json
+import time
+from typing import Dict, Any
+
+# Configuration
+RPC_URL = "https://rpc.nexis.network"
+AGENTS_ADDRESS = "0x..."  # Your deployed Agents contract
+TASKS_ADDRESS = "0x..."   # Your deployed Tasks contract
+PRIVATE_KEY = os.environ["PRIVATE_KEY"]
+
+# Initialize Web3
+w3 = Web3(Web3.HTTPProvider(RPC_URL))
+account = Account.from_key(PRIVATE_KEY)
+w3.eth.default_account = account.address
+
+# Load contract ABIs
+with open("Agents.json") as f:
+    AGENTS_ABI = json.load(f)["abi"]
+
+with open("Tasks.json") as f:
+    TASKS_ABI = json.load(f)["abi"]
+
+# Initialize contracts
+agents_contract = w3.eth.contract(address=AGENTS_ADDRESS, abi=AGENTS_ABI)
+tasks_contract = w3.eth.contract(address=TASKS_ADDRESS, abi=TASKS_ABI)
+
+# Initialize IPFS
+ipfs_client = ipfshttpclient.connect("/ip4/127.0.0.1/tcp/5001")
+
+# ============================================================================
+# Step 1: Register Agent
+# ============================================================================
+
+def register_agent(
+    agent_id: int,
+    metadata: Dict[str, Any],
+    service_uri: str
+) -> str:
+    """Register an AI agent on-chain."""
+    print(f"\n[1/5] Registering agent {agent_id}...")
+
+    try:
+        # Upload metadata to IPFS
+        metadata_json = json.dumps(metadata, indent=2)
+        result = ipfs_client.add_str(metadata_json)
+        metadata_uri = f"ipfs://{result}"
+        print(f"  Metadata uploaded: {metadata_uri}")
+
+        # Build transaction
+        txn = agents_contract.functions.register(
+            agent_id,
+            metadata_uri,
+            service_uri
+        ).build_transaction({
+            'from': account.address,
+            'gas': 500000,
+            'gasPrice': w3.eth.gas_price,
+            'nonce': w3.eth.get_transaction_count(account.address)
+        })
+
+        # Sign and send
+        signed = account.sign_transaction(txn)
+        tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
+        print(f"  Transaction sent: {tx_hash.hex()}")
+
+        # Wait for confirmation
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+        print(f"  ✅ Agent registered (gas used: {receipt['gasUsed']})")
+
+        return tx_hash.hex()
+
+    except Exception as e:
+        if "AgentAlreadyRegistered" in str(e):
+            print(f"  ℹ️  Agent {agent_id} already registered")
+            return "already-registered"
+        raise
+
+# ============================================================================
+# Step 2: Stake for Security
+# ============================================================================
+
+def stake_for_agent(agent_id: int, amount_eth: float) -> str:
+    """Stake ETH for an agent."""
+    print(f"\n[2/5] Staking {amount_eth} ETH for agent {agent_id}...")
+
+    amount_wei = Web3.to_wei(amount_eth, 'ether')
+
+    # Build transaction
+    txn = agents_contract.functions.stakeETH(agent_id).build_transaction({
+        'from': account.address,
+        'value': amount_wei,
+        'gas': 200000,
+        'gasPrice': w3.eth.gas_price,
+        'nonce': w3.eth.get_transaction_count(account.address)
+    })
+
+    # Sign and send
+    signed = account.sign_transaction(txn)
+    tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
+    print(f"  Transaction sent: {tx_hash.hex()}")
+
+    # Wait for confirmation
+    receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+    # Get updated balance
+    eth_address = "0x0000000000000000000000000000000000000000"
+    balance = agents_contract.functions.stakedBalance(agent_id, eth_address).call()
+
+    print(f"  ✅ Staked (total: {Web3.from_wei(balance, 'ether')} ETH)")
+    return tx_hash.hex()
+
+# ============================================================================
+# Step 3: Set Up Delegation
+# ============================================================================
+
+def setup_delegation(agent_id: int, operator_address: str):
+    """Setup delegation permissions."""
+    print(f"\n[3/5] Setting up delegation for agent {agent_id}...")
+
+    PERMISSION_INFERENCE = Web3.keccak(text="PERMISSION_INFERENCE")
+    PERMISSION_METADATA = Web3.keccak(text="PERMISSION_METADATA")
+
+    # Grant inference permission
+    txn1 = agents_contract.functions.setDelegate(
+        agent_id,
+        operator_address,
+        PERMISSION_INFERENCE,
+        True
+    ).build_transaction({
+        'from': account.address,
+        'gas': 100000,
+        'gasPrice': w3.eth.gas_price,
+        'nonce': w3.eth.get_transaction_count(account.address)
+    })
+
+    signed1 = account.sign_transaction(txn1)
+    tx_hash1 = w3.eth.send_raw_transaction(signed1.rawTransaction)
+    w3.eth.wait_for_transaction_receipt(tx_hash1)
+    print(f"  ✅ Granted inference permission to {operator_address}")
+
+    # Grant metadata permission
+    txn2 = agents_contract.functions.setDelegate(
+        agent_id,
+        operator_address,
+        PERMISSION_METADATA,
+        True
+    ).build_transaction({
+        'from': account.address,
+        'gas': 100000,
+        'gasPrice': w3.eth.gas_price,
+        'nonce': w3.eth.get_transaction_count(account.address)
+    })
+
+    signed2 = account.sign_transaction(txn2)
+    tx_hash2 = w3.eth.send_raw_transaction(signed2.rawTransaction)
+    w3.eth.wait_for_transaction_receipt(tx_hash2)
+    print(f"  ✅ Granted metadata permission to {operator_address}")
+
+# ============================================================================
+# Step 4: Execute Inference
+# ============================================================================
+
+def execute_inference(input_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Execute AI inference."""
+    print(f"\n[4/5] Executing inference...")
+
+    start_time = time.time()
+
+    # In production, this would call your actual AI model
+    # For this example, we'll simulate it
+    time.sleep(2)
+
+    output = {
+        "text": f"Generated response for: {input_data['prompt']}",
+        "metadata": {
+            "model": "gpt-4",
+            "execution_time_ms": int((time.time() - start_time) * 1000),
+            "timestamp": int(time.time())
+        }
+    }
+
+    print(f"  ✅ Inference completed in {output['metadata']['execution_time_ms']}ms")
+    return output
+
+# ============================================================================
+# Step 5: Record Inference On-Chain
+# ============================================================================
+
+def record_inference(
+    agent_id: int,
+    input_data: Dict[str, Any],
+    output: Dict[str, Any],
+    task_id: int = 0
+) -> bytes:
+    """Record inference commitment on-chain."""
+    print(f"\n[5/5] Recording inference on-chain...")
+
+    # Compute hashes
+    input_json = json.dumps(input_data, sort_keys=True)
+    input_hash = Web3.keccak(text=input_json)
+
+    output_json = json.dumps(output, sort_keys=True)
+    output_hash = Web3.keccak(text=output_json)
+
+    model_identifier = f"{output['metadata']['model']}:v1.0"
+    model_hash = Web3.keccak(text=model_identifier)
+
+    print(f"  Input hash: {input_hash.hex()}")
+    print(f"  Output hash: {output_hash.hex()}")
+    print(f"  Model hash: {model_hash.hex()}")
+
+    # Prepare proof artifact
+    proof_artifact = {
+        "version": "1.0",
+        "inference": {
+            "agentId": agent_id,
+            "timestamp": int(time.time())
+        },
+        "input": input_data,
+        "output": output,
+        "model": {
+            "name": output["metadata"]["model"],
+            "version": "v1.0"
+        },
+        "execution": {
+            "duration_ms": output["metadata"]["execution_time_ms"],
+            "timestamp": output["metadata"]["timestamp"]
+        }
+    }
+
+    # Upload proof to IPFS
+    proof_json = json.dumps(proof_artifact, indent=2)
+    result = ipfs_client.add_str(proof_json)
+    proof_uri = f"ipfs://{result}"
+    print(f"  Proof uploaded: {proof_uri}")
+
+    # Build transaction
+    txn = agents_contract.functions.recordInference(
+        agent_id,
+        input_hash,
+        output_hash,
+        model_hash,
+        task_id,
+        proof_uri
+    ).build_transaction({
+        'from': account.address,
+        'gas': 300000,
+        'gasPrice': w3.eth.gas_price,
+        'nonce': w3.eth.get_transaction_count(account.address)
+    })
+
+    # Sign and send
+    signed = account.sign_transaction(txn)
+    tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
+    print(f"  Transaction sent: {tx_hash.hex()}")
+
+    # Wait for confirmation
+    receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+    # Extract inference ID from logs
+    inference_recorded_topic = Web3.keccak(text="InferenceRecorded(uint256,bytes32,bytes32,bytes32,bytes32,uint256,address,string)")
+
+    for log in receipt['logs']:
+        if log['topics'][0] == inference_recorded_topic:
+            inference_id = log['topics'][1]  # Second topic is inferenceId
+            print(f"  ✅ Inference recorded: {inference_id.hex()}")
+            return inference_id
+
+    raise ValueError("InferenceRecorded event not found in receipt")
+
+# ============================================================================
+# Complete Flow
+# ============================================================================
+
+def complete_agent_lifecycle():
+    """Run the complete agent lifecycle."""
+    try:
+        agent_id = int(time.time())  # Use timestamp as unique ID
+
+        # Define agent metadata
+        metadata = {
+            "name": "GPT-4 Agent",
+            "description": "Advanced language model for text generation",
+            "capabilities": ["text-generation", "summarization", "translation"],
+            "models": [
+                {
+                    "name": "gpt-4",
+                    "version": "v1.0",
+                    "type": "language-model"
+                }
+            ],
+            "pricing": {
+                "currency": "NEXIS",
+                "per_inference": "0.01"
+            },
+            "sla": {
+                "uptime": "99.9%",
+                "response_time_ms": 5000
+            }
+        }
+
+        # Step 1: Register agent
+        register_agent(
+            agent_id,
+            metadata,
+            "https://my-agent-service.com/api"
+        )
+
+        # Step 2: Stake ETH
+        stake_for_agent(agent_id, 1.0)
+
+        # Step 3: Setup delegation (optional)
+        operator_address = "0x..."  # Your operator address
+        setup_delegation(agent_id, operator_address)
+
+        # Step 4: Execute inference
+        input_data = {
+            "prompt": "Explain quantum computing in simple terms",
+            "parameters": {
+                "steps": 50
+            }
+        }
+
+        output = execute_inference(input_data)
+
+        # Step 5: Record inference
+        inference_id = record_inference(agent_id, input_data, output)
+
+        print(f"\n✅ Complete agent lifecycle finished!")
+        print(f"   Agent ID: {agent_id}")
+        print(f"   Inference ID: {inference_id.hex()}")
+
+        return agent_id, inference_id
+
+    except Exception as error:
+        print(f"\n❌ Error in agent lifecycle: {error}")
+        raise
+
+if __name__ == "__main__":
+    complete_agent_lifecycle()
+```
+
+## Task Execution Flow
+
+### Complete Task Lifecycle
+
+<CodeGroup>
+
+```typescript TypeScript - Task Flow
+import { ethers } from "ethers";
+
+// ============================================================================
+// Task Creator: Post a Task
+// ============================================================================
+
+async function postTask(
+  reward: string,
+  bond: string,
+  claimWindow: number,
+  completionWindow: number,
+  taskDescription: string
+): Promise<bigint> {
+  console.log(`\n[Creator] Posting task...`);
+
+  // Prepare task metadata
+  const metadata = {
+    title: "Image Generation Task",
+    description: taskDescription,
+    requirements: {
+      model: "stable-diffusion",
+      quality: "high",
+      format: "png"
+    },
+    deliverables: ["generated_image", "proof_of_work"]
+  };
+
+  // Upload to IPFS
+  const { cid: metadataCID } = await ipfs.add(JSON.stringify(metadata));
+  const metadataURI = `ipfs://${metadataCID}`;
+
+  // Upload input data
+  const inputData = {
+    prompt: "A serene mountain landscape at sunset",
+    parameters: {
+      width: 1024,
+      height: 768,
+      steps: 50
+    }
+  };
+
+  const { cid: inputCID } = await ipfs.add(JSON.stringify(inputData));
+  const inputURI = `ipfs://${inputCID}`;
+
+  // Post task
+  const rewardWei = ethers.utils.parseEther(reward);
+  const bondWei = ethers.utils.parseEther(bond);
+
+  const tx = await tasksContract.postTask(
+    ethers.constants.AddressZero, // ETH
+    rewardWei,
+    bondWei,
+    claimWindow,
+    completionWindow,
+    metadataURI,
+    inputURI,
+    { value: rewardWei, gasLimit: 400000 }
+  );
+
+  const receipt = await tx.wait();
+  const event = receipt.events?.find((e: any) => e.event === "TaskCreated");
+  const taskId = event?.args?.taskId;
+
+  console.log(`  ✅ Task posted: ${taskId}`);
+  console.log(`     Reward: ${reward} ETH`);
+  console.log(`     Bond: ${bond} ETH`);
+
+  return taskId;
+}
+
+// ============================================================================
+// Agent: Claim Task
+// ============================================================================
+
+async function claimTask(
+  taskId: bigint,
+  agentId: bigint
+): Promise<void> {
+  console.log(`\n[Agent] Claiming task ${taskId} with agent ${agentId}...`);
+
+  // Check agent has sufficient stake
+  const ETH_ADDRESS = ethers.constants.AddressZero;
+  const stakeView = await agentsContract.stakeBalances(agentId, ETH_ADDRESS);
+
+  console.log(`  Agent stake:`);
+  console.log(`    Total: ${ethers.utils.formatEther(stakeView.total)} ETH`);
+  console.log(`    Locked: ${ethers.utils.formatEther(stakeView.locked)} ETH`);
+  console.log(`    Available: ${ethers.utils.formatEther(stakeView.available)} ETH`);
+
+  // Claim task
+  const tx = await tasksContract.claimTask(taskId, agentId, {
+    gasLimit: 300000
+  });
+
+  await tx.wait();
+  console.log(`  ✅ Task claimed`);
+}
+
+// ============================================================================
+// Agent: Execute Task
+// ============================================================================
+
+async function executeTask(taskId: bigint): Promise<{
+  output: any;
+  inferenceId: string;
+}> {
+  console.log(`\n[Agent] Executing task ${taskId}...`);
+
+  // Get task details
+  const task = await tasksContract.getTask(taskId);
+
+  // Download input from IPFS
+  const inputCID = task.inputURI.replace("ipfs://", "");
+  const inputResponse = await fetch(`https://ipfs.io/ipfs/${inputCID}`);
+  const inputData = await inputResponse.json();
+
+  console.log(`  Task input: ${JSON.stringify(inputData, null, 2)}`);
+
+  // Execute AI inference
+  console.log(`  Running AI model...`);
+  const output = await executeInference(inputData);
+
+  console.log(`  ✅ Inference completed`);
+  return { output, inferenceId: "" };
+}
+
+// ============================================================================
+// Agent: Submit Work
+// ============================================================================
+
+async function submitWork(
+  taskId: bigint,
+  agentId: bigint,
+  output: any
+): Promise<string> {
+  console.log(`\n[Agent] Submitting work for task ${taskId}...`);
+
+  // Get task details
+  const task = await tasksContract.getTask(taskId);
+
+  // Download input
+  const inputResponse = await fetch(
+    `https://ipfs.io/ipfs/${task.inputURI.replace("ipfs://", "")}`
+  );
+  const inputData = await inputResponse.json();
+
+  // Record inference
+  const inputHash = ethers.utils.keccak256(
+    ethers.utils.toUtf8Bytes(JSON.stringify(inputData, Object.keys(inputData).sort()))
+  );
+
+  const outputHash = ethers.utils.keccak256(
+    ethers.utils.toUtf8Bytes(JSON.stringify(output, Object.keys(output).sort()))
+  );
+
+  const modelHash = ethers.utils.keccak256(
+    ethers.utils.toUtf8Bytes("stable-diffusion:v2.1")
+  );
+
+  // Upload proof
+  const proofArtifact = {
+    version: "1.0",
+    taskId: taskId.toString(),
+    agentId: agentId.toString(),
+    input: inputData,
+    output,
+    model: {
+      name: "stable-diffusion",
+      version: "v2.1"
+    }
+  };
+
+  const { cid: proofCID } = await ipfs.add(JSON.stringify(proofArtifact));
+  const proofURI = `ipfs://${proofCID}`;
+
+  // Record inference
+  console.log(`  Recording inference...`);
+  const recordTx = await agentsContract.recordInference(
+    agentId,
+    inputHash,
+    outputHash,
+    modelHash,
+    taskId,
+    proofURI,
+    { gasLimit: 300000 }
+  );
+
+  const recordReceipt = await recordTx.wait();
+  const inferenceEvent = recordReceipt.events?.find(
+    (e: any) => e.event === "InferenceRecorded"
+  );
+  const inferenceId = inferenceEvent?.args?.inferenceId;
+
+  console.log(`  Inference recorded: ${inferenceId}`);
+
+  // Submit work to task contract
+  console.log(`  Submitting to task contract...`);
+  const submitTx = await tasksContract.submitWork(taskId, inferenceId, {
+    gasLimit: 200000
+  });
+
+  await submitTx.wait();
+  console.log(`  ✅ Work submitted`);
+
+  return inferenceId;
+}
+
+// ============================================================================
+// Verifier: Attest Inference
+// ============================================================================
+
+async function attestInference(
+  inferenceId: string,
+  isValid: boolean
+): Promise<void> {
+  console.log(`\n[Verifier] Attesting inference ${inferenceId}...`);
+
+  // Get inference details
+  const [commitment, _] = await agentsContract.getInference(inferenceId);
+
+  // Download proof from IPFS
+  const proofCID = commitment.proofURI.replace("ipfs://", "");
+  const proofResponse = await fetch(`https://ipfs.io/ipfs/${proofCID}`);
+  const proofData = await proofResponse.json();
+
+  console.log(`  Proof data retrieved`);
+
+  // Perform verification (simplified)
+  console.log(`  Verifying proof...`);
+  const verified = isValid; // In production, implement actual verification
+
+  // Prepare reputation deltas
+  const REPUTATION_DIMENSIONS = {
+    ACCURACY: ethers.utils.id("accuracy"),
+    RELIABILITY: ethers.utils.id("reliability")
+  };
+
+  const deltas = verified
+    ? [
+        {
+          dimension: REPUTATION_DIMENSIONS.ACCURACY,
+          delta: 10,
+          reason: "Successful verification"
+        },
+        {
+          dimension: REPUTATION_DIMENSIONS.RELIABILITY,
+          delta: 5,
+          reason: "Timely submission"
+        }
+      ]
+    : [
+        {
+          dimension: REPUTATION_DIMENSIONS.ACCURACY,
+          delta: -20,
+          reason: "Failed verification"
+        }
+      ];
+
+  // Upload attestation to IPFS
+  const attestation = {
+    inferenceId,
+    verified,
+    timestamp: Date.now(),
+    verifier: await wallet.getAddress()
+  };
+
+  const { cid: attestationCID } = await ipfs.add(JSON.stringify(attestation));
+  const attestationURI = `ipfs://${attestationCID}`;
+
+  // Submit attestation
+  const tx = await agentsContract.attestInference(
+    inferenceId,
+    verified,
+    attestationURI,
+    deltas,
+    { gasLimit: 400000 }
+  );
+
+  await tx.wait();
+  console.log(`  ✅ Attestation submitted: ${verified ? "PASSED" : "FAILED"}`);
+}
+
+// ============================================================================
+// Complete Task Flow
+// ============================================================================
+
+async function completeTaskFlow() {
+  console.log(`\n${"=".repeat(80)}`);
+  console.log(`  COMPLETE TASK EXECUTION FLOW`);
+  console.log(`${"=".repeat(80)}`);
+
+  try {
+    const agentId = BigInt(Date.now());
+
+    // Setup: Register and stake agent
+    console.log(`\n[Setup] Preparing agent ${agentId}...`);
+    await registerAgent(
+      agentId,
+      {
+        name: "Image Generation Agent",
+        description: "Stable Diffusion image generation service",
+        capabilities: ["text-to-image"],
+        models: [{ name: "stable-diffusion", version: "v2.1", type: "text-to-image" }],
+        pricing: { currency: "NEXIS", per_inference: "0.05" },
+        sla: { uptime: "99.9%", response_time_ms: 10000 }
+      },
+      "https://my-agent.com/api"
+    );
+
+    await stakeForAgent(agentId, "2.0");
+
+    // Step 1: Creator posts task
+    const taskId = await postTask(
+      "0.1",  // 0.1 ETH reward
+      "0.5",  // 0.5 ETH bond required
+      3600,   // 1 hour claim window
+      7200,   // 2 hour completion window
+      "Generate a high-quality image of a mountain landscape"
+    );
+
+    // Step 2: Agent claims task
+    await claimTask(taskId, agentId);
+
+    // Step 3: Agent executes task
+    const { output } = await executeTask(taskId);
+
+    // Step 4: Agent submits work
+    const inferenceId = await submitWork(taskId, agentId, output);
+
+    // Step 5: Verifier attests
+    await attestInference(inferenceId, true);
+
+    console.log(`\n${"=".repeat(80)}`);
+    console.log(`  ✅ TASK FLOW COMPLETED SUCCESSFULLY`);
+    console.log(`${"=".repeat(80)}`);
+    console.log(`     Task ID: ${taskId}`);
+    console.log(`     Agent ID: ${agentId}`);
+    console.log(`     Inference ID: ${inferenceId}`);
+
+  } catch (error) {
+    console.error(`\n❌ Error in task flow:`, error);
+    throw error;
+  }
+}
+
+// Run complete flow
+completeTaskFlow()
+  .then(() => process.exit(0))
+  .catch(error => {
+    console.error(error);
+    process.exit(1);
+  });
+```
+
+</CodeGroup>
+
+## Common Patterns
+
+### Pattern 1: Retry with Exponential Backoff
+
+```typescript
+async function executeWithRetry<T>(
+  operation: () => Promise<T>,
+  maxAttempts: number = 3,
+  baseDelayMs: number = 1000
+): Promise<T> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      if (attempt === maxAttempts) {
+        throw new Error(`Failed after ${maxAttempts} attempts: ${error.message}`);
+      }
+
+      const delayMs = baseDelayMs * Math.pow(2, attempt - 1);
+      console.log(`  Attempt ${attempt} failed, retrying in ${delayMs}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+
+  throw new Error("Should never reach here");
+}
+
+// Usage
+const tx = await executeWithRetry(
+  () => agentsContract.recordInference(...),
+  3,
+  2000
+);
+```
+
+### Pattern 2: Event Polling
+
+```typescript
+async function waitForEvent(
+  contract: ethers.Contract,
+  eventName: string,
+  filter: any,
+  timeoutMs: number = 60000
+): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      contract.removeAllListeners(eventName);
+      reject(new Error(`Timeout waiting for ${eventName} event`));
+    }, timeoutMs);
+
+    contract.once(eventName, (...args) => {
+      clearTimeout(timeout);
+      const event = args[args.length - 1]; // Last argument is the event object
+      resolve(event);
+    });
+  });
+}
+
+// Usage: Wait for InferenceAttested event
+const event = await waitForEvent(
+  agentsContract,
+  "InferenceAttested",
+  { inferenceId },
+  120000 // 2 minute timeout
+);
+
+console.log(`Verification result: ${event.args.success}`);
+```
+
+### Pattern 3: Gas Estimation
+
+```typescript
+async function executeWithGasEstimation(
+  contract: ethers.Contract,
+  method: string,
+  args: any[],
+  overrides: any = {}
+) {
+  // Estimate gas
+  const estimatedGas = await contract.estimateGas[method](...args, overrides);
+
+  // Add 20% buffer
+  const gasLimit = estimatedGas.mul(120).div(100);
+
+  // Get current gas price
+  const gasPrice = await contract.provider.getGasPrice();
+
+  console.log(`  Estimated gas: ${estimatedGas}`);
+  console.log(`  Gas limit: ${gasLimit}`);
+  console.log(`  Gas price: ${ethers.utils.formatUnits(gasPrice, "gwei")} gwei`);
+
+  // Execute with calculated gas parameters
+  const tx = await contract[method](...args, {
+    ...overrides,
+    gasLimit,
+    gasPrice
+  });
+
+  return tx;
+}
+
+// Usage
+const tx = await executeWithGasEstimation(
+  agentsContract,
+  "recordInference",
+  [agentId, inputHash, outputHash, modelHash, taskId, proofURI]
+);
+```
+
+### Pattern 4: Batch Operations
+
+```typescript
+async function batchRecordInferences(
+  agentId: bigint,
+  inferences: Array<{
+    input: any;
+    output: any;
+    taskId: bigint;
+  }>
+): Promise<string[]> {
+  console.log(`\nRecording ${inferences.length} inferences in batch...`);
+
+  const inferenceIds: string[] = [];
+
+  // Process in parallel with rate limiting
+  const BATCH_SIZE = 5;
+
+  for (let i = 0; i < inferences.length; i += BATCH_SIZE) {
+    const batch = inferences.slice(i, i + BATCH_SIZE);
+
+    const promises = batch.map(async ({ input, output, taskId }) => {
+      return await recordInference(agentId, input, output, taskId);
+    });
+
+    const batchResults = await Promise.all(promises);
+    inferenceIds.push(...batchResults);
+
+    console.log(`  Processed ${Math.min(i + BATCH_SIZE, inferences.length)}/${inferences.length}`);
+
+    // Rate limit: wait 1 second between batches
+    if (i + BATCH_SIZE < inferences.length) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+
+  console.log(`✅ All ${inferences.length} inferences recorded`);
+  return inferenceIds;
+}
+```
+
+## Troubleshooting Guide
+
+### Common Issues and Solutions
+
+<AccordionGroup>
+  <Accordion title="Transaction Reverts with 'insufficient funds'">
+    **Problem**: Not enough ETH for gas or task payment
+
+    **Solution**:
+    ```typescript
+    // Check balance before transaction
+    const balance = await wallet.getBalance();
+    const requiredAmount = ethers.utils.parseEther("0.1").add(
+      ethers.utils.parseEther("0.01") // Gas estimate
+    );
+
+    if (balance.lt(requiredAmount)) {
+      throw new Error(`Insufficient balance. Need ${ethers.utils.formatEther(requiredAmount)} ETH`);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="AgentAlreadyRegistered Error">
+    **Problem**: Trying to register an agent ID that already exists
+
+    **Solution**:
+    ```typescript
+    // Check if agent exists first
+    const isRegistered = await agentsContract.isAgentRegistered(agentId);
+
+    if (isRegistered) {
+      console.log("Agent already registered, skipping...");
+      return;
+    }
+
+    await agentsContract.register(agentId, metadataURI, serviceURI);
+    ```
+  </Accordion>
+
+  <Accordion title="UnauthorizedDelegate Error">
+    **Problem**: Caller doesn't have required permission
+
+    **Solution**:
+    ```typescript
+    // Check permission before calling
+    const PERMISSION_INFERENCE = ethers.utils.id("PERMISSION_INFERENCE");
+    const hasPermission = await agentsContract.hasDelegatedPermission(
+      agentId,
+      wallet.address,
+      PERMISSION_INFERENCE
+    );
+
+    if (!hasPermission) {
+      // Request permission from owner or use owner account
+      throw new Error("No inference permission for this agent");
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="IPFS Upload Failures">
+    **Problem**: Cannot upload to IPFS
+
+    **Solution**:
+    ```typescript
+    // Implement retry logic for IPFS
+    async function uploadToIPFSWithRetry(data: any, maxAttempts = 3) {
+      for (let i = 0; i < maxAttempts; i++) {
+        try {
+          const { cid } = await ipfs.add(JSON.stringify(data));
+          return `ipfs://${cid}`;
+        } catch (error) {
+          if (i === maxAttempts - 1) throw error;
+          console.log(`IPFS upload failed, retrying... (${i + 1}/${maxAttempts})`);
+          await new Promise(r => setTimeout(r, 2000));
+        }
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="Task Deadline Expired">
+    **Problem**: Attempting to claim/submit after deadline
+
+    **Solution**:
+    ```typescript
+    // Check deadlines before attempting
+    const task = await tasksContract.getTask(taskId);
+    const now = Math.floor(Date.now() / 1000);
+
+    if (task.claimDeadline > 0 && now > task.claimDeadline) {
+      throw new Error("Claim deadline has passed");
+    }
+
+    if (task.completionDeadline > 0 && now > task.completionDeadline) {
+      throw new Error("Completion deadline has passed");
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Testing
+
+### Unit Test Example
+
+```typescript
+import { expect } from "chai";
+import { ethers } from "hardhat";
+
+describe("Agent Lifecycle", function () {
+  let agents: any;
+  let tasks: any;
+  let owner: any;
+  let agent: any;
+  let verifier: any;
+
+  beforeEach(async function () {
+    [owner, agent, verifier] = await ethers.getSigners();
+
+    // Deploy contracts
+    const Treasury = await ethers.getContractFactory("Treasury");
+    const treasury = await Treasury.deploy();
+
+    const Agents = await ethers.getContractFactory("Agents");
+    agents = await Agents.deploy();
+    await agents.initialize(owner.address, treasury.address);
+
+    const Tasks = await ethers.getContractFactory("Tasks");
+    tasks = await Tasks.deploy();
+    await tasks.initialize(owner.address, agents.address, treasury.address);
+
+    // Setup roles
+    await agents.grantRole(await agents.VERIFIER_ROLE(), verifier.address);
+    await agents.grantRole(await agents.TASK_MODULE_ROLE(), tasks.address);
+  });
+
+  it("should complete full agent lifecycle", async function () {
+    const agentId = 1;
+
+    // Register agent
+    await agents.connect(agent).register(
+      agentId,
+      "ipfs://metadata",
+      "https://service.com"
+    );
+
+    expect(await agents.isAgentRegistered(agentId)).to.be.true;
+
+    // Stake
+    await agents.connect(agent).stakeETH(agentId, {
+      value: ethers.utils.parseEther("1.0")
+    });
+
+    const stake = await agents.stakedBalance(
+      agentId,
+      ethers.constants.AddressZero
+    );
+    expect(stake).to.equal(ethers.utils.parseEther("1.0"));
+
+    // Record inference
+    const tx = await agents.connect(agent).recordInference(
+      agentId,
+      ethers.utils.id("input"),
+      ethers.utils.id("output"),
+      ethers.utils.id("model"),
+      0,
+      "ipfs://proof"
+    );
+
+    const receipt = await tx.wait();
+    const event = receipt.events?.find((e: any) => e.event === "InferenceRecorded");
+    const inferenceId = event?.args?.inferenceId;
+
+    expect(inferenceId).to.not.be.undefined;
+
+    // Attest inference
+    await agents.connect(verifier).attestInference(
+      inferenceId,
+      true,
+      "ipfs://attestation",
+      []
+    );
+
+    const [commitment, attestation] = await agents.getInference(inferenceId);
+    expect(attestation.success).to.be.true;
+  });
+});
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Proof-of-Inference" icon="shield-check" href="/ai-ml/proof-of-inference">
+    Learn about cryptographic verification
+  </Card>
+  <Card title="AI Agents Guide" icon="robot" href="/ai-ml/ai-agents">
+    Deep dive into agent management
+  </Card>
+  <Card title="LangGraph Integration" icon="diagram-project" href="/ai-ml/langgraph">
+    Build complex workflows
+  </Card>
+  <Card title="API Reference" icon="book" href="/api-reference/agents-api">
+    Complete API documentation
+  </Card>
+</CardGroup>

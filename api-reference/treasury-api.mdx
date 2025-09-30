@@ -1,0 +1,1000 @@
+---
+title: 'Treasury Contract API'
+description: 'Complete API reference for the Nexis Treasury contract'
+icon: 'vault'
+---
+
+## Overview
+
+The **Treasury** contract manages the economic pools of the Nexis Network. It receives inflows from agent slashing and early withdrawal penalties, distributes them across three pools (treasury, insurance, rewards), and enables authorized distribution of rewards to agents.
+
+**Contract Address (Testnet):** `0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0`
+
+**Key Features:**
+- Three-pool system: Treasury, Insurance, Rewards
+- Configurable distribution ratios
+- Handles slashed stakes and early exit penalties
+- Reward distribution to agents with REWARDS_ROLE authorization
+- Pool withdrawal with WITHDRAW_ROLE authorization
+- Multi-asset support (ETH and ERC20 tokens)
+- Upgradeable UUPS proxy pattern
+
+## Contract Constants
+
+```solidity
+// Roles
+bytes32 public constant REWARDS_ROLE = keccak256("REWARDS_ROLE");
+bytes32 public constant WITHDRAW_ROLE = keccak256("WITHDRAW_ROLE");
+bytes32 public constant INFLOW_ROLE = keccak256("INFLOW_ROLE");
+
+// Constants
+uint16 internal constant BPS_DENOMINATOR = 10_000; // 100% = 10,000 basis points
+address internal constant ETH_ASSET = address(0);
+```
+
+## Data Structures
+
+### DistributionConfig
+
+```solidity
+struct DistributionConfig {
+    uint16 treasuryBps;   // Treasury share in basis points (0-10000)
+    uint16 insuranceBps;  // Insurance share in basis points
+    uint16 rewardsBps;    // Rewards share in basis points
+}
+// Note: treasuryBps + insuranceBps + rewardsBps must equal 10,000
+```
+
+**Default Distribution:**
+- Treasury: 40% (4,000 bps)
+- Insurance: 30% (3,000 bps)
+- Rewards: 30% (3,000 bps)
+
+### PoolBalances
+
+```solidity
+struct PoolBalances {
+    uint256 treasury;   // Treasury pool balance
+    uint256 insurance;  // Insurance pool balance
+    uint256 rewards;    // Rewards pool balance
+}
+```
+
+---
+
+## Pool Management
+
+### poolBalances
+
+Query pool balances for a specific asset.
+
+<ParamField path="asset" type="address" required>
+  Asset address (address(0) for ETH, token address for ERC20)
+</ParamField>
+
+**Returns:**
+- `PoolBalances` - Struct containing balances for all three pools
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+import { ethers } from 'ethers';
+
+// Query ETH pool balances
+const ethBalances = await treasury.poolBalances(ethers.ZeroAddress);
+
+console.log("ETH Pool Balances:");
+console.log("  Treasury:", ethers.formatEther(ethBalances.treasury), "ETH");
+console.log("  Insurance:", ethers.formatEther(ethBalances.insurance), "ETH");
+console.log("  Rewards:", ethers.formatEther(ethBalances.rewards), "ETH");
+
+// Query ERC20 token pool balances
+const usdcAddress = "0x...";
+const usdcBalances = await treasury.poolBalances(usdcAddress);
+
+console.log("\nUSDC Pool Balances:");
+console.log("  Treasury:", ethers.formatUnits(usdcBalances.treasury, 6), "USDC");
+console.log("  Insurance:", ethers.formatUnits(usdcBalances.insurance, 6), "USDC");
+console.log("  Rewards:", ethers.formatUnits(usdcBalances.rewards, 6), "USDC");
+```
+
+```python Python
+from web3 import Web3
+
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nexis.network'))
+treasury = w3.eth.contract(address=treasury_address, abi=treasury_abi)
+
+# Query ETH pool balances
+eth_balances = treasury.functions.poolBalances(
+    '0x0000000000000000000000000000000000000000'
+).call()
+
+print("ETH Pool Balances:")
+print(f"  Treasury: {w3.from_wei(eth_balances[0], 'ether')} ETH")
+print(f"  Insurance: {w3.from_wei(eth_balances[1], 'ether')} ETH")
+print(f"  Rewards: {w3.from_wei(eth_balances[2], 'ether')} ETH")
+
+# Query USDC pool balances
+usdc_address = "0x..."
+usdc_balances = treasury.functions.poolBalances(usdc_address).call()
+
+print("\nUSDC Pool Balances:")
+print(f"  Treasury: {usdc_balances[0] / 10**6} USDC")
+print(f"  Insurance: {usdc_balances[1] / 10**6} USDC")
+print(f"  Rewards: {usdc_balances[2] / 10**6} USDC")
+```
+
+```solidity Solidity
+function poolBalances(address asset)
+    external
+    view
+    returns (PoolBalances memory);
+```
+
+</CodeGroup>
+
+---
+
+### rewardsBalance
+
+Query available rewards balance for a specific asset.
+
+<ParamField path="asset" type="address" required>
+  Asset address
+</ParamField>
+
+**Returns:**
+- `uint256` - Available rewards balance
+
+**Example:**
+
+```javascript JavaScript
+const rewardsETH = await treasury.rewardsBalance(ethers.ZeroAddress);
+console.log("Available rewards:", ethers.formatEther(rewardsETH), "ETH");
+```
+
+```solidity Solidity
+function rewardsBalance(address asset) external view returns (uint256);
+```
+
+---
+
+## Inflow Handling
+
+These methods are called automatically by the Agents contract when stakes are slashed or early exit penalties are collected.
+
+### handleSlash
+
+Process slashed stake from an agent. Only callable by addresses with INFLOW_ROLE (typically the Agents contract).
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID that was slashed
+</ParamField>
+
+<ParamField path="asset" type="address" required>
+  Asset address
+</ParamField>
+
+<ParamField path="amount" type="uint256" required>
+  Amount slashed
+</ParamField>
+
+<ParamField path="msg.value" type="uint256">
+  For ETH, must equal amount; for ERC20, must be 0
+</ParamField>
+
+**Distribution:**
+Splits amount according to configured distribution ratios across three pools.
+
+**Events Emitted:**
+```solidity
+event SlashHandled(
+    uint256 indexed agentId,
+    address indexed asset,
+    uint256 amount,
+    uint256 treasuryShare,
+    uint256 insuranceShare,
+    uint256 rewardsShare
+);
+```
+
+**Example:**
+
+```javascript JavaScript
+// This is typically called by Agents contract, not directly
+// But can be called by any address with INFLOW_ROLE
+
+// For ETH
+await treasury.handleSlash(
+  agentId,
+  ethers.ZeroAddress,
+  ethers.parseEther("1.0"),
+  { value: ethers.parseEther("1.0") }
+);
+
+// For ERC20 (token must be transferred first)
+const token = new ethers.Contract(tokenAddress, erc20ABI, signer);
+await token.transfer(treasuryAddress, amount);
+await treasury.handleSlash(agentId, tokenAddress, amount);
+```
+
+```solidity Solidity
+function handleSlash(
+    uint256 agentId,
+    address asset,
+    uint256 amount
+) external payable onlyRole(INFLOW_ROLE);
+```
+
+---
+
+### handleEarlyExitPenalty
+
+Process early withdrawal penalty from an agent. Only callable by INFLOW_ROLE.
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID that paid penalty
+</ParamField>
+
+<ParamField path="asset" type="address" required>
+  Asset address
+</ParamField>
+
+<ParamField path="amount" type="uint256" required>
+  Penalty amount
+</ParamField>
+
+**Events Emitted:**
+```solidity
+event EarlyExitHandled(
+    uint256 indexed agentId,
+    address indexed asset,
+    uint256 amount,
+    uint256 treasuryShare,
+    uint256 insuranceShare,
+    uint256 rewardsShare
+);
+```
+
+**Example:**
+
+```javascript JavaScript
+// Called by Agents contract when agent forces early withdrawal
+await treasury.handleEarlyExitPenalty(
+  agentId,
+  ethers.ZeroAddress,
+  penaltyAmount,
+  { value: penaltyAmount }
+);
+```
+
+```solidity Solidity
+function handleEarlyExitPenalty(
+    uint256 agentId,
+    address asset,
+    uint256 amount
+) external payable onlyRole(INFLOW_ROLE);
+```
+
+---
+
+### recordRewardDeposit
+
+Record a direct deposit to the rewards pool (e.g., from Tasks contract or external contributions).
+
+<ParamField path="asset" type="address" required>
+  Asset address
+</ParamField>
+
+<ParamField path="amount" type="uint256" required>
+  Amount deposited
+</ParamField>
+
+<ParamField path="msg.value" type="uint256">
+  For ETH, must equal amount; for ERC20, tokens must be transferred before calling
+</ParamField>
+
+**Events Emitted:**
+```solidity
+event RewardsDeposited(
+    address indexed source,
+    address indexed asset,
+    uint256 amount
+);
+```
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript (ETH)
+// Anyone can deposit rewards
+const depositAmount = ethers.parseEther("10.0");
+
+const tx = await treasury.recordRewardDeposit(
+  ethers.ZeroAddress,
+  depositAmount,
+  { value: depositAmount }
+);
+
+await tx.wait();
+console.log("Deposited 10 ETH to rewards pool");
+```
+
+```javascript JavaScript (ERC20)
+// For ERC20, transfer tokens first
+const token = new ethers.Contract(tokenAddress, erc20ABI, signer);
+const amount = ethers.parseUnits("1000", 6); // 1000 USDC
+
+// Transfer to treasury
+await token.transfer(treasuryAddress, amount);
+
+// Record deposit
+await treasury.recordRewardDeposit(tokenAddress, amount);
+
+console.log("Deposited 1000 USDC to rewards pool");
+```
+
+```python Python (ETH)
+# Deposit ETH to rewards pool
+deposit_amount = w3.to_wei(10, 'ether')
+
+tx = treasury.functions.recordRewardDeposit(
+    '0x0000000000000000000000000000000000000000',
+    deposit_amount
+).build_transaction({
+    'from': depositor_account.address,
+    'value': deposit_amount,
+    'gas': 200000,
+    'gasPrice': w3.eth.gas_price,
+    'nonce': w3.eth.get_transaction_count(depositor_account.address)
+})
+
+signed_tx = depositor_account.sign_transaction(tx)
+tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+w3.eth.wait_for_transaction_receipt(tx_hash)
+
+print("Deposited 10 ETH to rewards pool")
+```
+
+```solidity Solidity
+function recordRewardDeposit(address asset, uint256 amount)
+    external
+    payable;
+```
+
+</CodeGroup>
+
+---
+
+## Reward Distribution
+
+### distributeReward
+
+Distribute rewards from rewards pool to an agent. Only callable by REWARDS_ROLE.
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID to reward
+</ParamField>
+
+<ParamField path="asset" type="address" required>
+  Asset to distribute
+</ParamField>
+
+<ParamField path="amount" type="uint256" required>
+  Amount to distribute (must be ≤ rewards balance)
+</ParamField>
+
+<ParamField path="recipient" type="address" required>
+  Address to send rewards (address(0) = agent owner)
+</ParamField>
+
+<ParamField path="reason" type="string" required>
+  Human-readable reason for distribution
+</ParamField>
+
+**Requirements:**
+- Agent must be registered
+- Sufficient balance in rewards pool
+- Caller must have REWARDS_ROLE
+
+**Events Emitted:**
+```solidity
+event RewardPaid(
+    uint256 indexed agentId,
+    address indexed asset,
+    address indexed recipient,
+    uint256 amount,
+    string reason
+);
+```
+
+**Errors:**
+- `AgentNotKnown(uint256)` - Agent not registered
+- `InsufficientRewards(address asset, uint256 requested, uint256 available)` - Not enough rewards
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+// Distribute rewards to agent owner
+await treasury.distributeReward(
+  agentId,
+  ethers.ZeroAddress, // ETH
+  ethers.parseEther("0.5"),
+  ethers.ZeroAddress, // Send to agent owner
+  "Monthly performance bonus for high-quality inferences"
+);
+
+// Distribute to specific address
+await treasury.distributeReward(
+  agentId,
+  tokenAddress,
+  ethers.parseUnits("100", 6), // 100 USDC
+  "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+  "Reward for completing 1000 verified tasks"
+);
+```
+
+```python Python
+# Distribute ETH rewards
+agent_id = 12345
+amount = w3.to_wei(0.5, 'ether')
+
+tx = treasury.functions.distributeReward(
+    agent_id,
+    '0x0000000000000000000000000000000000000000',  # ETH
+    amount,
+    '0x0000000000000000000000000000000000000000',  # Send to owner
+    "Monthly performance bonus"
+).transact({'from': rewards_manager_account.address})
+
+receipt = w3.eth.wait_for_transaction_receipt(tx)
+print(f"Distributed {w3.from_wei(amount, 'ether')} ETH to agent {agent_id}")
+```
+
+```solidity Solidity
+function distributeReward(
+    uint256 agentId,
+    address asset,
+    uint256 amount,
+    address recipient,
+    string calldata reason
+) external nonReentrant onlyRole(REWARDS_ROLE);
+```
+
+</CodeGroup>
+
+---
+
+## Pool Withdrawals
+
+### withdrawTreasury
+
+Withdraw from treasury pool. Only callable by WITHDRAW_ROLE.
+
+<ParamField path="asset" type="address" required>
+  Asset to withdraw
+</ParamField>
+
+<ParamField path="amount" type="uint256" required>
+  Amount to withdraw (must be ≤ treasury balance)
+</ParamField>
+
+<ParamField path="to" type="address" required>
+  Recipient address (cannot be zero address)
+</ParamField>
+
+**Events Emitted:**
+```solidity
+event PoolWithdrawn(
+    bytes32 indexed pool,
+    address indexed asset,
+    address indexed to,
+    uint256 amount
+);
+```
+
+**Example:**
+
+```javascript JavaScript
+// Withdraw ETH from treasury pool
+await treasury.withdrawTreasury(
+  ethers.ZeroAddress,
+  ethers.parseEther("100.0"),
+  treasuryMultisigAddress
+);
+
+// Withdraw USDC from treasury pool
+await treasury.withdrawTreasury(
+  usdcAddress,
+  ethers.parseUnits("50000", 6),
+  treasuryMultisigAddress
+);
+```
+
+```solidity Solidity
+function withdrawTreasury(
+    address asset,
+    uint256 amount,
+    address to
+) external nonReentrant onlyRole(WITHDRAW_ROLE);
+```
+
+---
+
+### withdrawInsurance
+
+Withdraw from insurance pool. Only callable by WITHDRAW_ROLE.
+
+<ParamField path="asset" type="address" required>
+  Asset to withdraw
+</ParamField>
+
+<ParamField path="amount" type="uint256" required>
+  Amount to withdraw (must be ≤ insurance balance)
+</ParamField>
+
+<ParamField path="to" type="address" required>
+  Recipient address
+</ParamField>
+
+**Events Emitted:**
+```solidity
+event PoolWithdrawn(
+    bytes32 indexed pool,
+    address indexed asset,
+    address indexed to,
+    uint256 amount
+);
+```
+
+**Example:**
+
+```javascript JavaScript
+// Withdraw from insurance pool for coverage payout
+await treasury.withdrawInsurance(
+  ethers.ZeroAddress,
+  ethers.parseEther("10.0"),
+  insuranceClaimantAddress
+);
+```
+
+```solidity Solidity
+function withdrawInsurance(
+    address asset,
+    uint256 amount,
+    address to
+) external nonReentrant onlyRole(WITHDRAW_ROLE);
+```
+
+---
+
+## Configuration
+
+### setDistribution
+
+Update pool distribution ratios. Only callable by DEFAULT_ADMIN_ROLE.
+
+<ParamField path="treasuryBps" type="uint16" required>
+  Treasury share in basis points (0-10000)
+</ParamField>
+
+<ParamField path="insuranceBps" type="uint16" required>
+  Insurance share in basis points (0-10000)
+</ParamField>
+
+<ParamField path="rewardsBps" type="uint16" required>
+  Rewards share in basis points (0-10000)
+</ParamField>
+
+**Requirements:**
+- Sum must equal 10,000 (100%)
+
+**Events Emitted:**
+```solidity
+event DistributionUpdated(
+    uint16 treasuryBps,
+    uint16 insuranceBps,
+    uint16 rewardsBps
+);
+```
+
+**Errors:**
+- `InvalidBps()` - Sum does not equal 10,000
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+// Update distribution to:
+// - Treasury: 50%
+// - Insurance: 25%
+// - Rewards: 25%
+
+await treasury.setDistribution(
+  5000,  // 50%
+  2500,  // 25%
+  2500   // 25%
+);
+
+console.log("Distribution updated");
+```
+
+```python Python
+# Update distribution
+tx = treasury.functions.setDistribution(
+    5000,  # Treasury: 50%
+    2500,  # Insurance: 25%
+    2500   # Rewards: 25%
+).transact({'from': admin_account.address})
+
+w3.eth.wait_for_transaction_receipt(tx)
+print("Distribution updated")
+```
+
+```solidity Solidity
+function setDistribution(
+    uint16 treasuryBps,
+    uint16 insuranceBps,
+    uint16 rewardsBps
+) external onlyRole(DEFAULT_ADMIN_ROLE);
+```
+
+</CodeGroup>
+
+---
+
+### setAgents
+
+Update Agents contract address. Only callable by DEFAULT_ADMIN_ROLE.
+
+<ParamField path="newAgents" type="address" required>
+  New Agents contract address (cannot be zero)
+</ParamField>
+
+**Example:**
+
+```javascript JavaScript
+await treasury.setAgents(newAgentsAddress);
+```
+
+```solidity Solidity
+function setAgents(address newAgents)
+    external
+    onlyRole(DEFAULT_ADMIN_ROLE);
+```
+
+---
+
+## Query Methods
+
+### distribution
+
+```solidity
+DistributionConfig public distribution;
+```
+
+Get current distribution configuration.
+
+**Example:**
+
+```javascript JavaScript
+const dist = await treasury.distribution();
+console.log("Distribution:");
+console.log("  Treasury:", dist.treasuryBps / 100, "%");
+console.log("  Insurance:", dist.insuranceBps / 100, "%");
+console.log("  Rewards:", dist.rewardsBps / 100, "%");
+```
+
+### agents
+
+```solidity
+IAgentsRegistry public agents;
+```
+
+Get Agents contract address.
+
+---
+
+## Complete Example: Reward Distribution Campaign
+
+Here's a complete example of distributing rewards to top-performing agents:
+
+<CodeGroup>
+
+```javascript JavaScript
+import { ethers } from 'ethers';
+
+// Setup
+const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nexis.network');
+const rewardsManager = new ethers.Wallet(privateKey, provider);
+
+const treasuryAddress = '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0';
+const agentsAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+
+const treasury = new ethers.Contract(treasuryAddress, treasuryABI, rewardsManager);
+const agents = new ethers.Contract(agentsAddress, agentsABI, rewardsManager);
+
+// ========================================
+// Step 1: Check available rewards
+// ========================================
+console.log("Step 1: Checking available rewards...");
+
+const availableRewards = await treasury.rewardsBalance(ethers.ZeroAddress);
+console.log("Available ETH rewards:", ethers.formatEther(availableRewards));
+
+if (availableRewards < ethers.parseEther("10.0")) {
+  console.log("Insufficient rewards, depositing more...");
+  await treasury.recordRewardDeposit(
+    ethers.ZeroAddress,
+    ethers.parseEther("50.0"),
+    { value: ethers.parseEther("50.0") }
+  );
+}
+
+// ========================================
+// Step 2: Get top agents by reputation
+// ========================================
+console.log("\nStep 2: Identifying top agents...");
+
+const agentCount = 100;
+const agentList = await agents.listAgents(0, agentCount);
+
+// Sort by reputation
+const topAgents = agentList
+  .sort((a, b) => Number(b.weightedReputation) - Number(a.weightedReputation))
+  .slice(0, 10);
+
+console.log("Top 10 agents by reputation:");
+topAgents.forEach((agent, i) => {
+  console.log(`  ${i + 1}. Agent ${agent.agentId} - Reputation: ${agent.weightedReputation}`);
+});
+
+// ========================================
+// Step 3: Calculate reward distribution
+// ========================================
+console.log("\nStep 3: Calculating rewards...");
+
+const totalRewardPool = ethers.parseEther("10.0"); // 10 ETH total
+const reputationSum = topAgents.reduce((sum, agent) =>
+  sum + Number(agent.weightedReputation), 0
+);
+
+const distributions = topAgents.map(agent => ({
+  agentId: agent.agentId,
+  owner: agent.owner,
+  reputation: agent.weightedReputation,
+  reward: (totalRewardPool * BigInt(agent.weightedReputation)) / BigInt(reputationSum)
+}));
+
+// ========================================
+// Step 4: Distribute rewards
+// ========================================
+console.log("\nStep 4: Distributing rewards...");
+
+for (const dist of distributions) {
+  console.log(`\nDistributing to agent ${dist.agentId}...`);
+  console.log(`  Owner: ${dist.owner}`);
+  console.log(`  Reputation: ${dist.reputation}`);
+  console.log(`  Reward: ${ethers.formatEther(dist.reward)} ETH`);
+
+  const tx = await treasury.distributeReward(
+    dist.agentId,
+    ethers.ZeroAddress,
+    dist.reward,
+    ethers.ZeroAddress, // Send to agent owner
+    `Q1 2024 Performance Reward - Top 10 by reputation`
+  );
+
+  await tx.wait();
+  console.log(`  ✓ Distributed!`);
+}
+
+// ========================================
+// Step 5: Verify final balances
+// ========================================
+console.log("\n\nStep 5: Verifying final state...");
+
+const finalRewards = await treasury.rewardsBalance(ethers.ZeroAddress);
+console.log("Remaining rewards:", ethers.formatEther(finalRewards), "ETH");
+
+const pools = await treasury.poolBalances(ethers.ZeroAddress);
+console.log("\nPool balances:");
+console.log("  Treasury:", ethers.formatEther(pools.treasury), "ETH");
+console.log("  Insurance:", ethers.formatEther(pools.insurance), "ETH");
+console.log("  Rewards:", ethers.formatEther(pools.rewards), "ETH");
+
+console.log("\n✅ Reward distribution complete!");
+```
+
+```python Python
+from web3 import Web3
+import json
+
+# Setup
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nexis.network'))
+treasury = w3.eth.contract(address=treasury_address, abi=treasury_abi)
+agents = w3.eth.contract(address=agents_address, abi=agents_abi)
+
+# Step 1: Check rewards
+print("Step 1: Checking rewards...")
+available = treasury.functions.rewardsBalance(
+    '0x0000000000000000000000000000000000000000'
+).call()
+print(f"Available: {w3.from_wei(available, 'ether')} ETH")
+
+# Step 2: Get top agents
+print("\nStep 2: Getting top agents...")
+agent_list = agents.functions.listAgents(0, 100).call()
+
+# Sort by reputation
+top_agents = sorted(
+    agent_list,
+    key=lambda a: a[6],  # weightedReputation field
+    reverse=True
+)[:10]
+
+# Step 3: Calculate rewards
+print("\nStep 3: Calculating rewards...")
+total_reward = w3.to_wei(10, 'ether')
+reputation_sum = sum(agent[6] for agent in top_agents)
+
+# Step 4: Distribute
+print("\nStep 4: Distributing...")
+for agent in top_agents:
+    agent_id = agent[0]
+    reputation = agent[6]
+    reward = (total_reward * reputation) // reputation_sum
+
+    print(f"\nAgent {agent_id}: {w3.from_wei(reward, 'ether')} ETH")
+
+    tx = treasury.functions.distributeReward(
+        agent_id,
+        '0x0000000000000000000000000000000000000000',
+        reward,
+        '0x0000000000000000000000000000000000000000',
+        "Q1 2024 Performance Reward"
+    ).transact({'from': rewards_manager.address})
+
+    w3.eth.wait_for_transaction_receipt(tx)
+    print("  ✓ Distributed")
+
+print("\n✅ Complete!")
+```
+
+</CodeGroup>
+
+---
+
+## Events Reference
+
+```solidity
+event DistributionUpdated(
+    uint16 treasuryBps,
+    uint16 insuranceBps,
+    uint16 rewardsBps
+);
+
+event SlashHandled(
+    uint256 indexed agentId,
+    address indexed asset,
+    uint256 amount,
+    uint256 treasuryShare,
+    uint256 insuranceShare,
+    uint256 rewardsShare
+);
+
+event EarlyExitHandled(
+    uint256 indexed agentId,
+    address indexed asset,
+    uint256 amount,
+    uint256 treasuryShare,
+    uint256 insuranceShare,
+    uint256 rewardsShare
+);
+
+event RewardsDeposited(
+    address indexed source,
+    address indexed asset,
+    uint256 amount
+);
+
+event RewardPaid(
+    uint256 indexed agentId,
+    address indexed asset,
+    address indexed recipient,
+    uint256 amount,
+    string reason
+);
+
+event PoolWithdrawn(
+    bytes32 indexed pool,
+    address indexed asset,
+    address indexed to,
+    uint256 amount
+);
+```
+
+---
+
+## Error Reference
+
+```solidity
+error InvalidBps();
+error InvalidAddress();
+error InsufficientRewards(address asset, uint256 requested, uint256 available);
+error AgentNotKnown(uint256 agentId);
+```
+
+---
+
+## Treasury Economics
+
+### Pool Purpose
+
+<CardGroup cols={3}>
+  <Card title="Treasury Pool" icon="building-columns">
+    Protocol development, operations, grants, and strategic initiatives
+  </Card>
+  <Card title="Insurance Pool" icon="shield">
+    Coverage for black swan events, protocol bugs, or agent failures
+  </Card>
+  <Card title="Rewards Pool" icon="gift">
+    Performance incentives, bounties, and community rewards
+  </Card>
+</CardGroup>
+
+### Inflow Sources
+
+| Source | Default Distribution | Notes |
+|--------|---------------------|-------|
+| Slashed Stakes | 40% / 30% / 30% | From agent misbehavior |
+| Early Exit Penalties | 40% / 30% / 30% | From early withdrawals |
+| Direct Deposits | 0% / 0% / 100% | Goes entirely to rewards |
+| Task Refunds | 0% / 0% / 100% | Disputed tasks |
+
+### Best Practices
+
+<AccordionGroup>
+  <Accordion title="Distribution Ratios">
+    - Adjust based on protocol needs and growth stage
+    - Early stage: Higher rewards % for agent adoption
+    - Mature stage: Higher treasury % for sustainability
+    - Always maintain adequate insurance reserves
+  </Accordion>
+
+  <Accordion title="Reward Distribution">
+    - Document clear criteria for rewards
+    - Use transparent, objective metrics (reputation, tasks completed)
+    - Consider time-based campaigns (monthly, quarterly)
+    - Batch distributions to save gas costs
+  </Accordion>
+
+  <Accordion title="Pool Management">
+    - Monitor pool balances regularly
+    - Set thresholds for pool withdrawals
+    - Use multi-sig for WITHDRAW_ROLE
+    - Document all withdrawal purposes
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Integration with Other Contracts
+
+The Treasury contract is called by:
+
+1. **Agents Contract**:
+   - `handleSlash()` - When stakes are slashed
+   - `handleEarlyExitPenalty()` - When early withdrawals occur
+
+2. **Tasks Contract**:
+   - `recordRewardDeposit()` - When disputed tasks are resolved without refund
+
+3. **External Contributors**:
+   - `recordRewardDeposit()` - For direct reward contributions

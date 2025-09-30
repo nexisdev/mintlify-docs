@@ -1,0 +1,767 @@
+---
+title: 'Token Details'
+description: 'Technical specifications, contract addresses, and acquisition methods for Nexis Token (NZT)'
+---
+
+# Token Details
+
+This document provides comprehensive technical specifications, contract information, and acquisition methods for the Nexis Token (NZT).
+
+## Token Specifications
+
+### Basic Information
+
+| Parameter | Value |
+|-----------|-------|
+| **Token Name** | Nexis |
+| **Symbol** | NZT |
+| **Decimals** | 18 |
+| **Standard** | ERC-20 |
+| **Max Supply** | 1,000,000,000 NZT |
+| **Initial Circulating** | 100,000,000 NZT (10%) |
+| **Contract Type** | UUPS Upgradeable Proxy |
+
+### Network Information
+
+| Parameter | Value | Network |
+|-----------|-------|---------|
+| **Chain ID** | 84532 | Base Sepolia (Testnet) |
+| **Chain Name** | Nexis Appchain | Layer 3 |
+| **RPC URL** | https://rpc.nexis.network | Primary RPC |
+| **Explorer** | https://explorer.nexis.network | Block Explorer |
+| **Symbol** | NZT | Native gas token |
+
+### Contract Addresses
+
+<Warning>
+**Testnet Addresses**: These are testnet contracts on Base Sepolia. Mainnet addresses will be announced before production launch.
+</Warning>
+
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| **NZT Token** | `0x1234...5678` | Main ERC-20 token contract |
+| **Governance** | `0xabcd...ef01` | On-chain governance and voting |
+| **MintManager** | `0x2468...1357` | Emission control and minting |
+| **Staking** | `0x9876...5432` | Staking and rewards distribution |
+| **Treasury** | `0x1357...2468` | Treasury and fund management |
+| **Vesting** | `0xfedc...ba98` | Team and investor vesting |
+
+### RPC Configuration
+
+Add Nexis Appchain to your wallet:
+
+<CodeGroup>
+
+```javascript MetaMask
+await window.ethereum.request({
+  method: 'wallet_addEthereumChain',
+  params: [{
+    chainId: '0x14A54', // 84532 in hex
+    chainName: 'Nexis Appchain',
+    nativeCurrency: {
+      name: 'Nexis',
+      symbol: 'NZT',
+      decimals: 18
+    },
+    rpcUrls: ['https://rpc.nexis.network'],
+    blockExplorerUrls: ['https://explorer.nexis.network']
+  }]
+});
+```
+
+```typescript ethers.js
+import { ethers } from 'ethers';
+
+const provider = new ethers.JsonRpcProvider('https://rpc.nexis.network');
+const chainId = await provider.getNetwork().then(n => n.chainId);
+console.log(`Connected to chain ${chainId}`); // 84532
+
+// NZT token contract
+const nztAddress = '0x1234...5678';
+const nztAbi = [
+  'function balanceOf(address) view returns (uint256)',
+  'function transfer(address, uint256) returns (bool)',
+  'function approve(address, uint256) returns (bool)'
+];
+
+const nztToken = new ethers.Contract(nztAddress, nztAbi, provider);
+```
+
+```python Web3.py
+from web3 import Web3
+
+# Connect to Nexis RPC
+w3 = Web3(Web3.HTTPProvider('https://rpc.nexis.network'))
+assert w3.is_connected(), "Failed to connect"
+
+# NZT token contract
+nzt_address = '0x1234...5678'
+nzt_abi = [...]  # Full ABI from contract
+
+nzt_contract = w3.eth.contract(address=nzt_address, abi=nzt_abi)
+
+# Check balance
+balance = nzt_contract.functions.balanceOf(user_address).call()
+print(f"NZT Balance: {w3.from_wei(balance, 'ether')} NZT")
+```
+
+```bash cURL
+# Get NZT balance
+curl -X POST https://rpc.nexis.network \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_call",
+    "params": [{
+      "to": "0x1234...5678",
+      "data": "0x70a08231000000000000000000000000YOUR_ADDRESS_HERE"
+    }, "latest"],
+    "id": 1
+  }'
+```
+
+</CodeGroup>
+
+## Token Contract Interface
+
+### Standard ERC-20 Functions
+
+```solidity NZT Token Contract
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
+contract NexisToken is ERC20Upgradeable, AccessControlUpgradeable, UUPSUpgradeable {
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
+
+    uint256 public constant MAX_SUPPLY = 1_000_000_000 * 1e18; // 1 billion
+
+    /// @notice Initialize the token contract
+    function initialize() public initializer {
+        __ERC20_init("Nexis", "NZT");
+        __AccessControl_init();
+        __UUPSUpgradeable_init();
+
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, msg.sender);
+    }
+
+    /// @notice Mint new tokens (only MintManager)
+    /// @param to Recipient address
+    /// @param amount Amount to mint
+    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
+        require(totalSupply() + amount <= MAX_SUPPLY, "Exceeds max supply");
+        _mint(to, amount);
+    }
+
+    /// @notice Burn tokens from sender
+    /// @param amount Amount to burn
+    function burn(uint256 amount) external {
+        _burn(msg.sender, amount);
+    }
+
+    /// @notice Burn tokens from specific address (requires approval)
+    /// @param from Address to burn from
+    /// @param amount Amount to burn
+    function burnFrom(address from, uint256 amount) external {
+        _spendAllowance(from, msg.sender, amount);
+        _burn(from, amount);
+    }
+
+    /// @notice Get circulating supply (excluding treasury and vesting)
+    function circulatingSupply() external view returns (uint256) {
+        uint256 total = totalSupply();
+        uint256 treasuryBalance = balanceOf(address(treasury));
+        uint256 vestingBalance = balanceOf(address(vesting));
+        return total - treasuryBalance - vestingBalance;
+    }
+
+    /// @notice Authorize contract upgrades (governance only)
+    function _authorizeUpgrade(address newImplementation)
+        internal
+        override
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {}
+}
+```
+
+### Read Functions
+
+```javascript Query Token Information
+const nztContract = new ethers.Contract(nztAddress, nztAbi, provider);
+
+// Get token details
+const name = await nztContract.name(); // "Nexis"
+const symbol = await nztContract.symbol(); // "NZT"
+const decimals = await nztContract.decimals(); // 18
+const totalSupply = await nztContract.totalSupply();
+const maxSupply = await nztContract.MAX_SUPPLY();
+
+// Get balance
+const balance = await nztContract.balanceOf(userAddress);
+console.log(`Balance: ${ethers.formatEther(balance)} NZT`);
+
+// Get allowance
+const allowance = await nztContract.allowance(ownerAddress, spenderAddress);
+console.log(`Allowance: ${ethers.formatEther(allowance)} NZT`);
+
+// Get circulating supply
+const circulating = await nztContract.circulatingSupply();
+console.log(`Circulating: ${ethers.formatEther(circulating)} NZT`);
+```
+
+### Write Functions
+
+```javascript Token Operations
+const nztContract = new ethers.Contract(nztAddress, nztAbi, signer);
+
+// Transfer tokens
+const transferTx = await nztContract.transfer(
+  recipientAddress,
+  ethers.parseEther("100") // 100 NZT
+);
+await transferTx.wait();
+
+// Approve spending
+const approveTx = await nztContract.approve(
+  spenderAddress,
+  ethers.parseEther("1000") // 1000 NZT
+);
+await approveTx.wait();
+
+// Transfer from (requires approval)
+const transferFromTx = await nztContract.transferFrom(
+  fromAddress,
+  toAddress,
+  ethers.parseEther("50")
+);
+await transferFromTx.wait();
+
+// Burn tokens
+const burnTx = await nztContract.burn(ethers.parseEther("10"));
+await burnTx.wait();
+```
+
+## Governance Token Contract
+
+### Voting Power
+
+```solidity Governance Contract
+contract NexisGovernance {
+    INexisToken public nztToken;
+
+    struct Proposal {
+        uint256 id;
+        address proposer;
+        string description;
+        uint256 forVotes;
+        uint256 againstVotes;
+        uint256 startBlock;
+        uint256 endBlock;
+        bool executed;
+        mapping(address => bool) hasVoted;
+    }
+
+    uint256 public constant PROPOSAL_THRESHOLD = 100_000 * 1e18; // 100k NZT
+    uint256 public constant QUORUM = 5; // 5% of circulating supply
+    uint256 public constant VOTING_PERIOD = 50_400; // ~7 days (2s blocks)
+
+    /// @notice Create a new proposal
+    function propose(
+        string memory description,
+        address[] memory targets,
+        bytes[] memory calldatas
+    ) external returns (uint256) {
+        require(
+            nztToken.balanceOf(msg.sender) >= PROPOSAL_THRESHOLD,
+            "Insufficient NZT to propose"
+        );
+
+        uint256 proposalId = proposalCount++;
+        Proposal storage p = proposals[proposalId];
+        p.id = proposalId;
+        p.proposer = msg.sender;
+        p.description = description;
+        p.startBlock = block.number;
+        p.endBlock = block.number + VOTING_PERIOD;
+
+        emit ProposalCreated(proposalId, msg.sender, description);
+        return proposalId;
+    }
+
+    /// @notice Cast a vote on a proposal
+    function castVote(uint256 proposalId, bool support) external {
+        Proposal storage p = proposals[proposalId];
+        require(block.number >= p.startBlock, "Voting not started");
+        require(block.number <= p.endBlock, "Voting ended");
+        require(!p.hasVoted[msg.sender], "Already voted");
+
+        uint256 votes = nztToken.balanceOf(msg.sender);
+        require(votes > 0, "No voting power");
+
+        if (support) {
+            p.forVotes += votes;
+        } else {
+            p.againstVotes += votes;
+        }
+
+        p.hasVoted[msg.sender] = true;
+        emit VoteCast(msg.sender, proposalId, support, votes);
+    }
+
+    /// @notice Execute a passed proposal
+    function execute(uint256 proposalId) external {
+        Proposal storage p = proposals[proposalId];
+        require(block.number > p.endBlock, "Voting ongoing");
+        require(!p.executed, "Already executed");
+
+        uint256 totalVotes = p.forVotes + p.againstVotes;
+        uint256 quorumVotes = (nztToken.circulatingSupply() * QUORUM) / 100;
+
+        require(totalVotes >= quorumVotes, "Quorum not reached");
+        require(p.forVotes > p.againstVotes, "Proposal failed");
+
+        p.executed = true;
+        // Execute proposal actions...
+
+        emit ProposalExecuted(proposalId);
+    }
+}
+```
+
+### Governance Examples
+
+<CodeGroup>
+
+```javascript Create Proposal
+const governanceContract = new ethers.Contract(
+  governanceAddress,
+  governanceAbi,
+  signer
+);
+
+// Propose parameter change
+const description = "Increase staking APY from 10% to 12%";
+const targets = [stakingContractAddress];
+const calldatas = [
+  stakingContract.interface.encodeFunctionData("setAPY", [1200]) // 12% in basis points
+];
+
+const proposeTx = await governanceContract.propose(
+  description,
+  targets,
+  calldatas
+);
+const receipt = await proposeTx.wait();
+
+const proposalId = receipt.events[0].args.proposalId;
+console.log(`Proposal created: ${proposalId}`);
+```
+
+```javascript Vote on Proposal
+// Cast vote (true = for, false = against)
+const voteTx = await governanceContract.castVote(proposalId, true);
+await voteTx.wait();
+
+console.log("Vote cast successfully");
+
+// Check proposal status
+const proposal = await governanceContract.proposals(proposalId);
+console.log(`For: ${ethers.formatEther(proposal.forVotes)} NZT`);
+console.log(`Against: ${ethers.formatEther(proposal.againstVotes)} NZT`);
+```
+
+```javascript Execute Proposal
+// After voting period ends and proposal passes
+const executeTx = await governanceContract.execute(proposalId);
+await executeTx.wait();
+
+console.log("Proposal executed");
+```
+
+</CodeGroup>
+
+## Acquiring NZT
+
+### Testnet Faucet
+
+Get free testnet NZT for development and testing:
+
+<Steps>
+  <Step title="Visit Faucet">
+    Navigate to [https://faucet.nexis.network](https://faucet.nexis.network)
+  </Step>
+  <Step title="Connect Wallet">
+    Connect your wallet (MetaMask, Coinbase Wallet, WalletConnect)
+  </Step>
+  <Step title="Request Tokens">
+    Click "Request NZT" to receive 1,000 testnet NZT (once per 24 hours)
+  </Step>
+  <Step title="Verify Balance">
+    Check your balance in wallet or on explorer
+  </Step>
+</Steps>
+
+```bash CLI Faucet (Alternative)
+# Install Nexis CLI
+npm install -g @nexis/cli
+
+# Request testnet NZT
+nexis faucet request --address YOUR_ADDRESS
+
+# Output: Sent 1000 NZT to YOUR_ADDRESS
+# Transaction: 0xabc123...
+```
+
+### Decentralized Exchanges (Mainnet)
+
+<Warning>
+**Mainnet Not Yet Launched**: These instructions are for future mainnet launch. Testnet NZT has no monetary value.
+</Warning>
+
+Trade NZT on decentralized exchanges after mainnet launch:
+
+| DEX | Chain | Liquidity | Fees |
+|-----|-------|----------|------|
+| **Uniswap V3** | Base | $4M TVL | 0.3% |
+| **Aerodrome** | Base | $3M TVL | 0.05% |
+| **Velodrome** | Optimism | $2M TVL | 0.2% |
+
+<CodeGroup>
+
+```javascript Uniswap V3 Swap
+import { SwapRouter } from '@uniswap/v3-sdk';
+import { ethers } from 'ethers';
+
+const UNISWAP_ROUTER = '0xE592427A0AEce92De3Edee1F18E0157C05861564';
+const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'; // Base
+const NZT_ADDRESS = '0x1234...5678';
+
+// Swap 100 USDC for NZT
+const swapParams = {
+  tokenIn: USDC_ADDRESS,
+  tokenOut: NZT_ADDRESS,
+  fee: 3000, // 0.3%
+  recipient: userAddress,
+  deadline: Math.floor(Date.now() / 1000) + 60 * 20, // 20 minutes
+  amountIn: ethers.parseUnits('100', 6), // 100 USDC
+  amountOutMinimum: 0, // Use slippage calculation in production
+  sqrtPriceLimitX96: 0
+};
+
+const routerContract = new ethers.Contract(UNISWAP_ROUTER, routerAbi, signer);
+
+// Approve USDC spending
+const usdcContract = new ethers.Contract(USDC_ADDRESS, erc20Abi, signer);
+await usdcContract.approve(UNISWAP_ROUTER, swapParams.amountIn);
+
+// Execute swap
+const swapTx = await routerContract.exactInputSingle(swapParams);
+await swapTx.wait();
+```
+
+```python Web3.py Swap
+from web3 import Web3
+from eth_account import Account
+
+w3 = Web3(Web3.HTTPProvider('https://mainnet.base.org'))
+
+UNISWAP_ROUTER = '0xE592427A0AEce92De3Edee1F18E0157C05861564'
+USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+NZT_ADDRESS = '0x1234...5678'
+
+# Prepare swap
+router_contract = w3.eth.contract(address=UNISWAP_ROUTER, abi=router_abi)
+usdc_contract = w3.eth.contract(address=USDC_ADDRESS, abi=erc20_abi)
+
+# Approve USDC
+approve_tx = usdc_contract.functions.approve(
+    UNISWAP_ROUTER,
+    100_000000  # 100 USDC
+).build_transaction({
+    'from': user_address,
+    'nonce': w3.eth.get_transaction_count(user_address)
+})
+
+signed_approve = account.sign_transaction(approve_tx)
+w3.eth.send_raw_transaction(signed_approve.rawTransaction)
+
+# Execute swap
+swap_params = {
+    'tokenIn': USDC_ADDRESS,
+    'tokenOut': NZT_ADDRESS,
+    'fee': 3000,
+    'recipient': user_address,
+    'deadline': int(time.time()) + 1200,
+    'amountIn': 100_000000,
+    'amountOutMinimum': 0,
+    'sqrtPriceLimitX96': 0
+}
+
+swap_tx = router_contract.functions.exactInputSingle(swap_params).build_transaction({
+    'from': user_address,
+    'nonce': w3.eth.get_transaction_count(user_address)
+})
+
+signed_swap = account.sign_transaction(swap_tx)
+tx_hash = w3.eth.send_raw_transaction(signed_swap.rawTransaction)
+print(f"Swap transaction: {tx_hash.hex()}")
+```
+
+</CodeGroup>
+
+### Earning NZT
+
+Participate in the ecosystem to earn NZT:
+
+<CardGroup cols={2}>
+  <Card title="Staking Rewards" icon="lock">
+    Stake NZT or delegate to agents to earn 5-15% APY from network fees
+  </Card>
+  <Card title="Agent Operations" icon="robot">
+    Run AI agents and complete tasks to earn NZT rewards
+  </Card>
+  <Card title="Validator Rewards" icon="server">
+    Operate validator nodes to earn block rewards and fees
+  </Card>
+  <Card title="Ecosystem Grants" icon="hand-holding-dollar">
+    Build on Nexis and apply for grants from the 200M NZT ecosystem fund
+  </Card>
+</CardGroup>
+
+#### Staking APY Calculator
+
+```javascript
+function calculateExpectedRewards(
+  stakeAmount,      // NZT to stake
+  stakingPeriod,    // Days
+  networkAPY        // Current APY (%)
+) {
+  const dailyRate = networkAPY / 365 / 100;
+  const rewards = stakeAmount * dailyRate * stakingPeriod;
+  return rewards;
+}
+
+// Example: Stake 10,000 NZT for 90 days at 10% APY
+const stake = 10_000;
+const days = 90;
+const apy = 10;
+
+const expectedRewards = calculateExpectedRewards(stake, days, apy);
+console.log(`Expected rewards: ${expectedRewards.toFixed(2)} NZT`);
+// Output: Expected rewards: 246.58 NZT
+```
+
+### Bridging (Future)
+
+After mainnet launch, bridge NZT between chains:
+
+| Source Chain | Destination | Bridge | Time | Fees |
+|-------------|-------------|--------|------|------|
+| **Base L2** | Nexis L3 | Native Bridge | 10 min | 0.1% |
+| **Nexis L3** | Base L2 | Native Bridge | 7 days | 0.1% |
+| **Ethereum L1** | Base L2 | Base Bridge | 15 min | 0.05% |
+| **Optimism** | Base | Hop Protocol | 30 min | 0.2% |
+
+```javascript Native Bridge Example
+const nexisBridge = new ethers.Contract(bridgeAddress, bridgeAbi, signer);
+
+// Deposit NZT from Base L2 to Nexis L3
+const depositTx = await nexisBridge.depositERC20(
+  NZT_L2_ADDRESS,
+  NZT_L3_ADDRESS,
+  ethers.parseEther("100"),
+  200_000, // L3 gas limit
+  "0x" // Extra data
+);
+await depositTx.wait();
+
+// Withdrawal from L3 to L2 (7-day delay)
+const withdrawTx = await nexisBridge.withdrawERC20(
+  NZT_L3_ADDRESS,
+  ethers.parseEther("50"),
+  0, // Min gas limit
+  "0x"
+);
+await withdrawTx.wait();
+
+// After 7-day challenge period, finalize on L2
+const finalizeTx = await nexisBridge.finalizeWithdrawal(withdrawalHash);
+await finalizeTx.wait();
+```
+
+## Token Economics
+
+### Supply Metrics
+
+Monitor real-time supply metrics:
+
+```javascript Live Supply Data
+// Total minted supply
+const totalSupply = await nztContract.totalSupply();
+
+// Circulating supply (excludes treasury, vesting, burned)
+const circulatingSupply = await nztContract.circulatingSupply();
+
+// Burned supply
+const burnedSupply = await nztContract.balanceOf(
+  '0x000000000000000000000000000000000000dEaD'
+);
+
+// Treasury balance
+const treasurySupply = await nztContract.balanceOf(treasuryAddress);
+
+// Staked supply
+const stakedSupply = await stakingContract.totalStaked();
+
+// Calculate percentages
+const totalMinted = parseFloat(ethers.formatEther(totalSupply));
+const circulating = parseFloat(ethers.formatEther(circulatingSupply));
+const burned = parseFloat(ethers.formatEther(burnedSupply));
+const staked = parseFloat(ethers.formatEther(stakedSupply));
+
+console.log(`Total Supply: ${totalMinted.toLocaleString()} NZT`);
+console.log(`Circulating: ${circulating.toLocaleString()} NZT (${(circulating/totalMinted*100).toFixed(2)}%)`);
+console.log(`Burned: ${burned.toLocaleString()} NZT (${(burned/totalMinted*100).toFixed(2)}%)`);
+console.log(`Staked: ${staked.toLocaleString()} NZT (${(staked/circulating*100).toFixed(2)}% of circulating)`);
+```
+
+### Price Information
+
+<Warning>
+**No Price Guarantees**: Token price is determined by open market forces. The team does not provide price targets or guarantees.
+</Warning>
+
+Query price from DEX pools:
+
+```javascript Uniswap V3 Price Oracle
+import { Pool } from '@uniswap/v3-sdk';
+import { Token } from '@uniswap/sdk-core';
+
+const NZT = new Token(8453, NZT_ADDRESS, 18, 'NZT', 'Nexis');
+const USDC = new Token(8453, USDC_ADDRESS, 6, 'USDC', 'USD Coin');
+
+// Get pool data
+const poolContract = new ethers.Contract(poolAddress, poolAbi, provider);
+const slot0 = await poolContract.slot0();
+const liquidity = await poolContract.liquidity();
+
+// Calculate price from sqrtPriceX96
+const sqrtPriceX96 = slot0.sqrtPriceX96;
+const price = (sqrtPriceX96 / (2**96)) ** 2;
+
+// Adjust for decimals
+const nztPrice = price * (10 ** (USDC.decimals - NZT.decimals));
+console.log(`NZT Price: $${nztPrice.toFixed(4)} USDC`);
+```
+
+## Developer Resources
+
+### Contract ABIs
+
+Download full contract ABIs:
+
+- **NZT Token**: [nzt-token-abi.json](https://raw.githubusercontent.com/nexis-network/contracts/main/abi/NexisToken.json)
+- **Governance**: [governance-abi.json](https://raw.githubusercontent.com/nexis-network/contracts/main/abi/NexisGovernance.json)
+- **Staking**: [staking-abi.json](https://raw.githubusercontent.com/nexis-network/contracts/main/abi/NexisStaking.json)
+
+### SDK Integration
+
+```bash
+npm install @nexis/sdk
+```
+
+```typescript TypeScript SDK
+import { NexisSDK } from '@nexis/sdk';
+
+const sdk = new NexisSDK({
+  network: 'testnet', // or 'mainnet'
+  privateKey: process.env.PRIVATE_KEY
+});
+
+// Get NZT balance
+const balance = await sdk.token.getBalance(address);
+console.log(`Balance: ${balance} NZT`);
+
+// Transfer NZT
+const tx = await sdk.token.transfer(recipientAddress, amount);
+console.log(`Tx hash: ${tx.hash}`);
+
+// Stake NZT
+const stakeTx = await sdk.staking.stake(amount);
+console.log(`Staked ${amount} NZT`);
+
+// Vote on proposal
+const voteTx = await sdk.governance.vote(proposalId, true);
+console.log(`Voted on proposal ${proposalId}`);
+```
+
+## Security Considerations
+
+### Smart Contract Audits
+
+NZT contracts have been audited by:
+
+- **CertiK**: [View Report](https://certik.com/projects/nexis)
+- **OpenZeppelin**: [View Report](https://openzeppelin.com/audits/nexis)
+- **Trail of Bits**: [View Report](https://trailofbits.com/reports/nexis)
+
+### Bug Bounty Program
+
+Report vulnerabilities for rewards up to $500,000:
+
+| Severity | Reward | Examples |
+|----------|--------|----------|
+| **Critical** | $100k - $500k | Steal all funds, mint unlimited tokens |
+| **High** | $50k - $100k | Steal user funds, bypass access controls |
+| **Medium** | $10k - $50k | Temporarily lock funds, griefing attacks |
+| **Low** | $1k - $10k | Information disclosure, minor issues |
+
+Submit bugs to: [security@nexis.network](mailto:security@nexis.network)
+
+### Best Practices
+
+<AccordionGroup>
+  <Accordion title="Secure Your Private Keys">
+    Never share private keys. Use hardware wallets for large amounts. Enable 2FA on all accounts.
+  </Accordion>
+  <Accordion title="Verify Contract Addresses">
+    Always verify contract addresses from official sources. Bookmark the official explorer and documentation.
+  </Accordion>
+  <Accordion title="Check Allowances">
+    Regularly review and revoke unnecessary token allowances using tools like Revoke.cash.
+  </Accordion>
+  <Accordion title="Use Slippage Protection">
+    Set appropriate slippage tolerance when swapping on DEXs (typically 0.5-2%).
+  </Accordion>
+  <Accordion title="Test Transactions">
+    Test with small amounts first before large transfers or swaps.
+  </Accordion>
+</AccordionGroup>
+
+## Additional Resources
+
+<CardGroup cols={2}>
+  <Card title="Token Analytics" icon="chart-line" href="https://analytics.nexis.network">
+    Real-time token metrics and supply data
+  </Card>
+  <Card title="Staking Dashboard" icon="lock" href="/tokenomics/staking">
+    Stake NZT and track rewards
+  </Card>
+  <Card title="Governance Portal" icon="landmark" href="https://gov.nexis.network">
+    Create and vote on proposals
+  </Card>
+  <Card title="Block Explorer" icon="magnifying-glass" href="https://explorer.nexis.network">
+    View transactions and contract interactions
+  </Card>
+</CardGroup>
+
+---
+
+<Note>
+**Need Help?** Join our [Discord community](https://discord.gg/nexis) for technical support and developer discussions.
+</Note>

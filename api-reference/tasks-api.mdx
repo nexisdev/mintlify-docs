@@ -1,0 +1,1050 @@
+---
+title: 'Tasks Contract API'
+description: 'Complete API reference for the Nexis Tasks contract'
+icon: 'list-check'
+---
+
+## Overview
+
+The **Tasks** contract manages the lifecycle of AI tasks on Nexis Network. It handles task posting, claiming, work submission, verification, completion, and dispute resolution. Tasks create an economic coordination layer between task creators and AI agents.
+
+**Contract Address (Testnet):** `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512`
+
+**Key Features:**
+- Post tasks with configurable rewards and bonds
+- Claim tasks with agent stake as collateral
+- Submit work with inference proof commitments
+- Automatic verification through Agents contract integration
+- Dispute resolution with slashing or refund options
+- Support for ETH and ERC20 token rewards
+- Deadline management for claiming and completion
+- Upgradeable UUPS proxy pattern
+
+## Contract Constants
+
+```solidity
+// Roles
+bytes32 public constant DISPUTE_ROLE = keccak256("DISPUTE_ROLE");
+bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
+// Assets
+address internal constant ETH_ASSET = address(0);
+```
+
+## Data Structures
+
+### TaskStatus
+
+```solidity
+enum TaskStatus {
+    Open,       // Task posted, awaiting claim
+    Claimed,    // Agent has claimed the task
+    Submitted,  // Agent has submitted work
+    Completed,  // Task verified and completed
+    Disputed,   // Verification failed, in dispute
+    Cancelled   // Task cancelled by creator
+}
+```
+
+### Task
+
+```solidity
+struct Task {
+    address creator;              // Task creator address
+    address asset;                // Reward asset (address(0) = ETH)
+    uint256 reward;               // Reward amount
+    uint256 bond;                 // Required stake bond amount
+    uint256 agentId;              // Agent that claimed task
+    address claimant;             // Address that claimed task
+    uint64 createdAt;             // Creation timestamp
+    uint64 claimDeadline;         // Deadline to claim task
+    uint64 completionDeadline;    // Deadline to complete task
+    TaskStatus status;            // Current status
+    string metadataURI;           // Task description/requirements
+    string inputURI;              // Input data URI
+    bytes32 inferenceId;          // Submitted inference ID
+    bool paidOut;                 // Whether reward was paid
+}
+```
+
+---
+
+## Task Lifecycle
+
+### postTask
+
+Create a new task with reward and optional bond requirement.
+
+<ParamField path="asset" type="address" required>
+  Reward asset address (address(0) for ETH, token address for ERC20)
+</ParamField>
+
+<ParamField path="reward" type="uint256" required>
+  Reward amount (in wei or token smallest unit)
+</ParamField>
+
+<ParamField path="bond" type="uint256" required>
+  Required stake bond from agent (must have sufficient available stake)
+</ParamField>
+
+<ParamField path="claimWindow" type="uint64" required>
+  Time window to claim task (in seconds, 0 = no deadline)
+</ParamField>
+
+<ParamField path="completionWindow" type="uint64" required>
+  Time window to complete after claiming (in seconds, 0 = no deadline)
+</ParamField>
+
+<ParamField path="metadataURI" type="string" required>
+  URI to task metadata/description (IPFS, Arweave, etc.)
+</ParamField>
+
+<ParamField path="inputURI" type="string" required>
+  URI to input data for the task
+</ParamField>
+
+**Transaction Value:**
+- For ETH rewards: `msg.value` must equal `reward`
+- For ERC20 rewards: Must approve contract first, `msg.value` must be 0
+
+**Returns:**
+- `taskId` (uint256) - Unique identifier for the created task
+
+**Events Emitted:**
+```solidity
+event TaskCreated(
+    uint256 indexed taskId,
+    address indexed creator,
+    address indexed asset,
+    uint256 reward,
+    uint256 bond,
+    uint64 claimDeadline,
+    uint64 completionDeadline,
+    string metadataURI
+);
+```
+
+**Errors:**
+- `InvalidAmount()` - Reward is 0 or msg.value mismatch
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript (ETH Reward)
+import { ethers } from 'ethers';
+
+// Task parameters
+const taskParams = {
+  asset: ethers.ZeroAddress,           // ETH
+  reward: ethers.parseEther("0.1"),    // 0.1 ETH
+  bond: ethers.parseEther("0.05"),     // 0.05 ETH bond required
+  claimWindow: 3600,                    // 1 hour to claim
+  completionWindow: 86400,              // 24 hours to complete
+  metadataURI: "ipfs://QmTaskMetadata...",
+  inputURI: "ipfs://QmTaskInput..."
+};
+
+// Post task
+const tx = await tasks.postTask(
+  taskParams.asset,
+  taskParams.reward,
+  taskParams.bond,
+  taskParams.claimWindow,
+  taskParams.completionWindow,
+  taskParams.metadataURI,
+  taskParams.inputURI,
+  { value: taskParams.reward } // Send ETH with transaction
+);
+
+const receipt = await tx.wait();
+
+// Extract task ID from event
+const event = receipt.logs.find(log =>
+  log.topics[0] === ethers.id('TaskCreated(uint256,address,address,uint256,uint256,uint64,uint64,string)')
+);
+const taskId = Number(event.topics[1]);
+
+console.log("Task created with ID:", taskId);
+```
+
+```javascript JavaScript (ERC20 Reward)
+// Using USDC as reward
+const usdcAddress = "0x...";
+const usdc = new ethers.Contract(usdcAddress, erc20ABI, wallet);
+const reward = ethers.parseUnits("100", 6); // 100 USDC (6 decimals)
+
+// Approve Tasks contract
+const approveTx = await usdc.approve(tasksAddress, reward);
+await approveTx.wait();
+
+// Post task
+const tx = await tasks.postTask(
+  usdcAddress,
+  reward,
+  ethers.parseUnits("50", 6), // 50 USDC bond
+  3600,
+  86400,
+  "ipfs://QmTaskMetadata...",
+  "ipfs://QmTaskInput..."
+  // No value needed for ERC20
+);
+
+const receipt = await tx.wait();
+console.log("Task created with USDC reward");
+```
+
+```python Python (ETH Reward)
+from web3 import Web3
+
+# Task parameters
+reward_wei = w3.to_wei(0.1, 'ether')
+bond_wei = w3.to_wei(0.05, 'ether')
+
+# Post task
+tx = tasks.functions.postTask(
+    '0x0000000000000000000000000000000000000000',  # ETH
+    reward_wei,
+    bond_wei,
+    3600,    # 1 hour claim window
+    86400,   # 24 hour completion window
+    'ipfs://QmTaskMetadata...',
+    'ipfs://QmTaskInput...'
+).build_transaction({
+    'from': creator_account.address,
+    'value': reward_wei,  # Send ETH reward
+    'gas': 500000,
+    'gasPrice': w3.eth.gas_price,
+    'nonce': w3.eth.get_transaction_count(creator_account.address)
+})
+
+signed_tx = creator_account.sign_transaction(tx)
+tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+# Get task ID from event
+task_event = tasks.events.TaskCreated().process_receipt(receipt)
+task_id = task_event[0]['args']['taskId']
+print(f"Task created with ID: {task_id}")
+```
+
+```solidity Solidity
+function postTask(
+    address asset,
+    uint256 reward,
+    uint256 bond,
+    uint64 claimWindow,
+    uint64 completionWindow,
+    string calldata metadataURI,
+    string calldata inputURI
+) external payable whenNotPaused returns (uint256 taskId);
+```
+
+</CodeGroup>
+
+---
+
+### cancelTask
+
+Cancel an open task and refund the reward to creator.
+
+<ParamField path="taskId" type="uint256" required>
+  Task ID to cancel
+</ParamField>
+
+**Requirements:**
+- Task must be in `Open` status
+- Caller must be task creator or have DEFAULT_ADMIN_ROLE
+
+**Events Emitted:**
+```solidity
+event TaskCancelled(uint256 indexed taskId, address indexed creator);
+```
+
+**Errors:**
+- `InvalidStatus()` - Task not in Open status
+- `AuthorizationFailed()` - Caller not authorized
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+// Cancel task
+const tx = await tasks.cancelTask(taskId);
+await tx.wait();
+
+console.log("Task cancelled, reward refunded");
+```
+
+```python Python
+tx = tasks.functions.cancelTask(task_id).transact({
+    'from': creator_account.address
+})
+
+receipt = w3.eth.wait_for_transaction_receipt(tx)
+print("Task cancelled, reward refunded")
+```
+
+</CodeGroup>
+
+---
+
+### claimTask
+
+Claim a task with an agent. Locks required stake bond if specified.
+
+<ParamField path="taskId" type="uint256" required>
+  Task ID to claim
+</ParamField>
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID to claim with (must be registered)
+</ParamField>
+
+**Requirements:**
+- Task must be in `Open` status
+- Claim deadline not expired (if set)
+- Agent must be registered
+- Caller must be agent owner or have PERMISSION_WITHDRAW delegation
+- Agent must have sufficient total stake
+- Agent must have sufficient available stake for bond (if bond > 0)
+
+**Events Emitted:**
+```solidity
+event TaskClaimed(
+    uint256 indexed taskId,
+    uint256 indexed agentId,
+    address indexed claimant,
+    uint256 bond
+);
+```
+
+**Errors:**
+- `InvalidStatus()` - Task not open
+- `DeadlineExpired()` - Claim deadline passed
+- `AuthorizationFailed()` - Not authorized for agent
+- `InsufficientStake()` - Agent has no stake
+- `InvalidAmount()` - Insufficient available stake for bond
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+// Agent owner claims task
+const agentId = 12345;
+const tx = await tasks.claimTask(taskId, agentId);
+await tx.wait();
+
+console.log(`Task ${taskId} claimed by agent ${agentId}`);
+
+// Query updated task
+const task = await tasks.getTask(taskId);
+console.log("Task status:", task.status); // 1 = Claimed
+console.log("Claimant:", task.claimant);
+console.log("Agent ID:", task.agentId);
+```
+
+```python Python
+# Agent owner claims task
+agent_id = 12345
+
+tx = tasks.functions.claimTask(task_id, agent_id).transact({
+    'from': agent_owner_account.address
+})
+
+receipt = w3.eth.wait_for_transaction_receipt(tx)
+print(f"Task {task_id} claimed by agent {agent_id}")
+
+# Query updated task
+task = tasks.functions.getTask(task_id).call()
+print(f"Task status: {task[9]}")  # status field
+print(f"Claimant: {task[6]}")     # claimant field
+```
+
+</CodeGroup>
+
+---
+
+### submitWork
+
+Submit completed work for a claimed task using an inference commitment.
+
+<ParamField path="taskId" type="uint256" required>
+  Task ID to submit work for
+</ParamField>
+
+<ParamField path="inferenceId" type="bytes32" required>
+  Inference ID from Agents.recordInference() matching this task
+</ParamField>
+
+**Requirements:**
+- Task must be in `Claimed` status
+- Completion deadline not expired (if set)
+- Inference not already submitted
+- Caller must be agent owner or have PERMISSION_INFERENCE delegation
+- Inference must be recorded on Agents contract
+- Inference must reference the same agentId and taskId
+
+**Events Emitted:**
+```solidity
+event TaskSubmitted(
+    uint256 indexed taskId,
+    bytes32 inferenceId,
+    address indexed submitter
+);
+```
+
+**Errors:**
+- `InvalidStatus()` - Task not claimed
+- `DeadlineExpired()` - Completion deadline passed
+- `AlreadySubmitted()` - Work already submitted
+- `AuthorizationFailed()` - Not authorized or inference mismatch
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+// Step 1: Record inference on Agents contract
+const inputHash = ethers.keccak256(ethers.toUtf8Bytes(taskInput));
+const outputHash = ethers.keccak256(ethers.toUtf8Bytes(agentOutput));
+const modelHash = ethers.keccak256(ethers.toUtf8Bytes("gpt-4-turbo"));
+
+const recordTx = await agents.recordInference(
+  agentId,
+  inputHash,
+  outputHash,
+  modelHash,
+  taskId, // Link to this task
+  "ipfs://QmProof..." // Proof data
+);
+
+const recordReceipt = await recordTx.wait();
+
+// Extract inference ID
+const inferenceEvent = recordReceipt.logs.find(log =>
+  log.topics[0] === ethers.id('InferenceRecorded(uint256,bytes32,bytes32,bytes32,bytes32,uint256,address,string)')
+);
+const inferenceId = inferenceEvent.topics[2];
+
+// Step 2: Submit work to Tasks contract
+const submitTx = await tasks.submitWork(taskId, inferenceId);
+await submitTx.wait();
+
+console.log("Work submitted, awaiting verification");
+```
+
+```python Python
+# Step 1: Record inference
+input_hash = w3.keccak(text=task_input)
+output_hash = w3.keccak(text=agent_output)
+model_hash = w3.keccak(text="gpt-4-turbo")
+
+record_tx = agents.functions.recordInference(
+    agent_id,
+    input_hash,
+    output_hash,
+    model_hash,
+    task_id,
+    "ipfs://QmProof..."
+).transact({'from': agent_operator})
+
+record_receipt = w3.eth.wait_for_transaction_receipt(record_tx)
+
+# Extract inference ID from event
+inference_event = agents.events.InferenceRecorded().process_receipt(record_receipt)
+inference_id = inference_event[0]['args']['inferenceId']
+
+# Step 2: Submit work
+submit_tx = tasks.functions.submitWork(task_id, inference_id).transact({
+    'from': agent_operator
+})
+
+w3.eth.wait_for_transaction_receipt(submit_tx)
+print("Work submitted, awaiting verification")
+```
+
+</CodeGroup>
+
+---
+
+### onInferenceVerified
+
+Callback from Agents contract when inference is verified. Automatically completes task or marks as disputed.
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID
+</ParamField>
+
+<ParamField path="taskId" type="uint256" required>
+  Task ID
+</ParamField>
+
+<ParamField path="inferenceId" type="bytes32" required>
+  Inference ID
+</ParamField>
+
+<ParamField path="success" type="bool" required>
+  Verification result
+</ParamField>
+
+**Requirements:**
+- Can only be called by Agents contract
+- Task must be in `Submitted` status
+- Inference must match task
+
+**Behavior:**
+- If `success = true`: Unlocks bond, pays reward to agent owner, marks task as `Completed`
+- If `success = false`: Marks task as `Disputed` for manual resolution
+
+**Events Emitted:**
+```solidity
+// On success:
+event TaskCompleted(
+    uint256 indexed taskId,
+    uint256 indexed agentId,
+    address indexed recipient,
+    uint256 reward
+);
+
+// On failure:
+event TaskDisputed(
+    uint256 indexed taskId,
+    uint256 indexed agentId,
+    bytes32 inferenceId
+);
+```
+
+**Example:**
+
+```javascript JavaScript
+// This is called automatically by Agents contract
+// Monitor for TaskCompleted or TaskDisputed events
+
+tasks.on("TaskCompleted", (taskId, agentId, recipient, reward, event) => {
+  console.log(`Task ${taskId} completed!`);
+  console.log(`Agent ${agentId} received ${ethers.formatEther(reward)} ETH`);
+});
+
+tasks.on("TaskDisputed", (taskId, agentId, inferenceId, event) => {
+  console.log(`Task ${taskId} disputed, requires resolution`);
+});
+```
+
+---
+
+### resolveDispute
+
+Manually resolve a disputed task (DISPUTE_ROLE only).
+
+<ParamField path="taskId" type="uint256" required>
+  Task ID to resolve
+</ParamField>
+
+<ParamField path="slashBond" type="bool" required>
+  If true, slash the agent's bond; if false, unlock it
+</ParamField>
+
+<ParamField path="refundCreator" type="bool" required>
+  If true, refund reward to creator; if false, send to treasury
+</ParamField>
+
+<ParamField path="reason" type="string" required>
+  Human-readable reason for resolution
+</ParamField>
+
+**Requirements:**
+- Task must be in `Disputed` status
+- Caller must have DISPUTE_ROLE
+
+**Behavior:**
+- Handles bond: slashes or unlocks based on `slashBond`
+- Handles reward: refunds to creator or sends to treasury based on `refundCreator`
+- Marks task as `Completed`
+
+**Events Emitted:**
+```solidity
+event TaskResolved(
+    uint256 indexed taskId,
+    uint256 indexed agentId,
+    bool slashed,
+    bool rewardRefunded,
+    string reason
+);
+```
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+// Scenario 1: Agent at fault - slash bond, refund creator
+await tasks.resolveDispute(
+  taskId,
+  true,  // Slash bond
+  true,  // Refund creator
+  "Agent submitted incorrect output verified by human review"
+);
+
+// Scenario 2: Creator at fault - return bond, no refund (treasury keeps reward)
+await tasks.resolveDispute(
+  taskId,
+  false, // Don't slash bond
+  false, // Don't refund creator
+  "Task requirements were ambiguous, agent acted in good faith"
+);
+
+// Scenario 3: Honest mistake - return bond, refund creator
+await tasks.resolveDispute(
+  taskId,
+  false, // Don't slash bond
+  true,  // Refund creator
+  "Inference failed due to network issues, no fault"
+);
+```
+
+```python Python
+# Resolve dispute - agent at fault
+tx = tasks.functions.resolveDispute(
+    task_id,
+    True,  # Slash bond
+    True,  # Refund creator
+    "Agent submitted incorrect output"
+).transact({'from': dispute_resolver})
+
+receipt = w3.eth.wait_for_transaction_receipt(tx)
+print("Dispute resolved")
+```
+
+</CodeGroup>
+
+---
+
+## Query Methods
+
+### getTask
+
+```solidity
+function getTask(uint256 taskId) external view returns (Task memory);
+```
+
+Get complete task information.
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+const task = await tasks.getTask(taskId);
+
+console.log("Task Details:");
+console.log("  Creator:", task.creator);
+console.log("  Reward:", ethers.formatEther(task.reward), "ETH");
+console.log("  Bond:", ethers.formatEther(task.bond), "ETH");
+console.log("  Status:", ["Open", "Claimed", "Submitted", "Completed", "Disputed", "Cancelled"][task.status]);
+console.log("  Agent ID:", task.agentId.toString());
+console.log("  Claimant:", task.claimant);
+console.log("  Metadata URI:", task.metadataURI);
+console.log("  Input URI:", task.inputURI);
+console.log("  Inference ID:", task.inferenceId);
+
+// Check deadlines
+const now = Math.floor(Date.now() / 1000);
+if (task.claimDeadline > 0) {
+  const timeToClaimDeadline = task.claimDeadline - now;
+  console.log("  Time to claim deadline:", timeToClaimDeadline, "seconds");
+}
+if (task.completionDeadline > 0) {
+  const timeToCompleteDeadline = task.completionDeadline - now;
+  console.log("  Time to complete deadline:", timeToCompleteDeadline, "seconds");
+}
+```
+
+```python Python
+task = tasks.functions.getTask(task_id).call()
+
+# Task struct fields (in order):
+# creator, asset, reward, bond, agentId, claimant,
+# createdAt, claimDeadline, completionDeadline, status,
+# metadataURI, inputURI, inferenceId, paidOut
+
+print("Task Details:")
+print(f"  Creator: {task[0]}")
+print(f"  Asset: {task[1]}")
+print(f"  Reward: {w3.from_wei(task[2], 'ether')} ETH")
+print(f"  Bond: {w3.from_wei(task[3], 'ether')} ETH")
+print(f"  Status: {task[9]}")
+print(f"  Agent ID: {task[4]}")
+print(f"  Metadata URI: {task[10]}")
+```
+
+</CodeGroup>
+
+### taskCount
+
+```solidity
+uint256 public taskCount;
+```
+
+Get total number of tasks created.
+
+```javascript JavaScript
+const totalTasks = await tasks.taskCount();
+console.log("Total tasks:", totalTasks.toString());
+```
+
+---
+
+## Complete Task Flow Example
+
+Here's a complete example of the task lifecycle from creation to completion:
+
+<CodeGroup>
+
+```javascript JavaScript
+import { ethers } from 'ethers';
+
+// Setup
+const provider = new ethers.JsonRpcProvider('https://testnet-rpc.nexis.network');
+const creatorWallet = new ethers.Wallet(creatorPrivateKey, provider);
+const agentWallet = new ethers.Wallet(agentPrivateKey, provider);
+
+const tasksAddress = '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512';
+const agentsAddress = '0x5FbDB2315678afecb367f032d93F642f64180aa3';
+
+const tasks = new ethers.Contract(tasksAddress, tasksABI, creatorWallet);
+const agents = new ethers.Contract(agentsAddress, agentsABI, agentWallet);
+
+// ========================================
+// Step 1: Creator posts task
+// ========================================
+console.log("Step 1: Posting task...");
+
+const taskParams = {
+  asset: ethers.ZeroAddress,
+  reward: ethers.parseEther("0.1"),
+  bond: ethers.parseEther("0.05"),
+  claimWindow: 3600,
+  completionWindow: 86400,
+  metadataURI: "ipfs://QmTaskMetadata...",
+  inputURI: "ipfs://QmTaskInput..."
+};
+
+const postTx = await tasks.postTask(
+  taskParams.asset,
+  taskParams.reward,
+  taskParams.bond,
+  taskParams.claimWindow,
+  taskParams.completionWindow,
+  taskParams.metadataURI,
+  taskParams.inputURI,
+  { value: taskParams.reward }
+);
+
+const postReceipt = await postTx.wait();
+const taskId = Number(postReceipt.logs[0].topics[1]);
+console.log("Task created with ID:", taskId);
+
+// ========================================
+// Step 2: Agent claims task
+// ========================================
+console.log("\nStep 2: Agent claiming task...");
+
+const agentId = 12345;
+const tasksAsAgent = tasks.connect(agentWallet);
+const claimTx = await tasksAsAgent.claimTask(taskId, agentId);
+await claimTx.wait();
+
+console.log("Task claimed by agent", agentId);
+
+// ========================================
+// Step 3: Agent performs inference and records it
+// ========================================
+console.log("\nStep 3: Recording inference...");
+
+// Simulate inference
+const input = "Summarize: Nexis is an AI-focused blockchain...";
+const output = "Nexis provides decentralized AI infrastructure...";
+
+const inputHash = ethers.keccak256(ethers.toUtf8Bytes(input));
+const outputHash = ethers.keccak256(ethers.toUtf8Bytes(output));
+const modelHash = ethers.keccak256(ethers.toUtf8Bytes("gpt-4-turbo"));
+
+const recordTx = await agents.recordInference(
+  agentId,
+  inputHash,
+  outputHash,
+  modelHash,
+  taskId,
+  "ipfs://QmProof..."
+);
+
+const recordReceipt = await recordTx.wait();
+const inferenceId = recordReceipt.logs[0].topics[2];
+console.log("Inference recorded:", inferenceId);
+
+// ========================================
+// Step 4: Agent submits work
+// ========================================
+console.log("\nStep 4: Submitting work...");
+
+const submitTx = await tasksAsAgent.submitWork(taskId, inferenceId);
+await submitTx.wait();
+
+console.log("Work submitted, status: Submitted");
+
+// ========================================
+// Step 5: Verification (automatic via Agents contract)
+// ========================================
+console.log("\nStep 5: Awaiting verification...");
+
+// In production, a verifier with VERIFIER_ROLE would call:
+// await agents.attestInference(inferenceId, true, "ipfs://verification", []);
+
+// This triggers onInferenceVerified callback which:
+// - Unlocks bond
+// - Pays reward to agent owner
+// - Marks task as Completed
+
+// Monitor for completion
+const filter = tasks.filters.TaskCompleted(taskId);
+tasks.once(filter, (taskId, agentId, recipient, reward, event) => {
+  console.log("Task completed!");
+  console.log("Agent received:", ethers.formatEther(reward), "ETH");
+});
+
+// ========================================
+// Step 6: Query final state
+// ========================================
+const finalTask = await tasks.getTask(taskId);
+console.log("\nFinal task status:",
+  ["Open", "Claimed", "Submitted", "Completed", "Disputed", "Cancelled"][finalTask.status]
+);
+```
+
+```python Python
+from web3 import Web3
+import time
+
+# Setup
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nexis.network'))
+
+# Load contracts
+tasks = w3.eth.contract(address=tasks_address, abi=tasks_abi)
+agents = w3.eth.contract(address=agents_address, abi=agents_abi)
+
+# Step 1: Post task
+print("Step 1: Posting task...")
+reward = w3.to_wei(0.1, 'ether')
+bond = w3.to_wei(0.05, 'ether')
+
+post_tx = tasks.functions.postTask(
+    '0x0000000000000000000000000000000000000000',
+    reward,
+    bond,
+    3600,
+    86400,
+    'ipfs://QmTaskMetadata...',
+    'ipfs://QmTaskInput...'
+).build_transaction({
+    'from': creator_account.address,
+    'value': reward,
+    'gas': 500000,
+    'gasPrice': w3.eth.gas_price,
+    'nonce': w3.eth.get_transaction_count(creator_account.address)
+})
+
+signed_tx = creator_account.sign_transaction(post_tx)
+tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+task_event = tasks.events.TaskCreated().process_receipt(receipt)
+task_id = task_event[0]['args']['taskId']
+print(f"Task created: {task_id}")
+
+# Step 2: Claim task
+print("\nStep 2: Claiming task...")
+agent_id = 12345
+
+claim_tx = tasks.functions.claimTask(task_id, agent_id).transact({
+    'from': agent_account.address
+})
+w3.eth.wait_for_transaction_receipt(claim_tx)
+print(f"Task claimed by agent {agent_id}")
+
+# Step 3: Record inference
+print("\nStep 3: Recording inference...")
+input_hash = w3.keccak(text="Input data...")
+output_hash = w3.keccak(text="Output data...")
+model_hash = w3.keccak(text="gpt-4-turbo")
+
+record_tx = agents.functions.recordInference(
+    agent_id,
+    input_hash,
+    output_hash,
+    model_hash,
+    task_id,
+    "ipfs://QmProof..."
+).transact({'from': agent_account.address})
+
+record_receipt = w3.eth.wait_for_transaction_receipt(record_tx)
+inference_event = agents.events.InferenceRecorded().process_receipt(record_receipt)
+inference_id = inference_event[0]['args']['inferenceId']
+print(f"Inference recorded: {inference_id.hex()}")
+
+# Step 4: Submit work
+print("\nStep 4: Submitting work...")
+submit_tx = tasks.functions.submitWork(task_id, inference_id).transact({
+    'from': agent_account.address
+})
+w3.eth.wait_for_transaction_receipt(submit_tx)
+print("Work submitted")
+
+# Step 5: Monitor for completion
+print("\nStep 5: Monitoring for completion...")
+# In production, wait for TaskCompleted event
+
+# Query final state
+final_task = tasks.functions.getTask(task_id).call()
+print(f"\nFinal status: {final_task[9]}")
+```
+
+</CodeGroup>
+
+---
+
+## Events Reference
+
+```solidity
+event TaskCreated(
+    uint256 indexed taskId,
+    address indexed creator,
+    address indexed asset,
+    uint256 reward,
+    uint256 bond,
+    uint64 claimDeadline,
+    uint64 completionDeadline,
+    string metadataURI
+);
+
+event TaskCancelled(uint256 indexed taskId, address indexed creator);
+
+event TaskClaimed(
+    uint256 indexed taskId,
+    uint256 indexed agentId,
+    address indexed claimant,
+    uint256 bond
+);
+
+event TaskSubmitted(
+    uint256 indexed taskId,
+    bytes32 inferenceId,
+    address indexed submitter
+);
+
+event TaskCompleted(
+    uint256 indexed taskId,
+    uint256 indexed agentId,
+    address indexed recipient,
+    uint256 reward
+);
+
+event TaskDisputed(
+    uint256 indexed taskId,
+    uint256 indexed agentId,
+    bytes32 inferenceId
+);
+
+event TaskResolved(
+    uint256 indexed taskId,
+    uint256 indexed agentId,
+    bool slashed,
+    bool rewardRefunded,
+    string reason
+);
+```
+
+---
+
+## Error Reference
+
+```solidity
+error InvalidAddress();
+error InvalidAmount();
+error InvalidStatus();
+error AuthorizationFailed();
+error DeadlineExpired();
+error NotAgentsContract();
+error AlreadySubmitted();
+error InsufficientStake();
+```
+
+---
+
+## Admin Functions
+
+### pause / unpause
+
+```solidity
+function pause() external onlyRole(PAUSER_ROLE);
+function unpause() external onlyRole(PAUSER_ROLE);
+```
+
+Pause/unpause task operations.
+
+### setTreasury
+
+```solidity
+function setTreasury(address newTreasury) external onlyRole(DEFAULT_ADMIN_ROLE);
+```
+
+Update treasury contract address.
+
+---
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Setting Appropriate Deadlines">
+    - **Claim Window**: Consider agent availability and task complexity
+    - **Completion Window**: Factor in inference time, verification delays
+    - Set `0` for no deadline if time is not critical
+    - Monitor tasks to ensure timely completion
+  </Accordion>
+
+  <Accordion title="Bond Requirements">
+    - Higher bonds discourage malicious behavior
+    - Ensure agents have sufficient available stake
+    - Consider bond size relative to reward value
+    - Typical range: 25-100% of reward amount
+  </Accordion>
+
+  <Accordion title="Metadata and Input URIs">
+    - Use immutable storage (IPFS, Arweave) for task data
+    - Include clear requirements and success criteria
+    - Provide sufficient context for agents
+    - Structure metadata as JSON for easy parsing
+  </Accordion>
+
+  <Accordion title="Dispute Resolution">
+    - Document resolution criteria clearly
+    - Consider appointing trusted dispute resolvers
+    - Review inference proofs and verification reports
+    - Be fair and consistent in decisions
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Integration Notes
+
+The Tasks contract integrates tightly with the Agents contract:
+
+1. **Claiming**: Verifies agent registration and stake availability
+2. **Bond Locking**: Calls `Agents.lockStake()` when task is claimed
+3. **Submission**: Validates inference was recorded on Agents contract
+4. **Verification**: Receives callback from `Agents.attestInference()`
+5. **Completion**: Calls `Agents.unlockStake()` and pays reward
+6. **Slashing**: Calls `Agents.slashStake()` during dispute resolution

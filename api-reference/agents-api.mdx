@@ -1,0 +1,1197 @@
+---
+title: 'Agents Contract API'
+description: 'Complete API reference for the Nexis Agents Registry contract'
+icon: 'robot'
+---
+
+## Overview
+
+The **Agents** contract is the core registry and economic coordination layer for AI agents on Nexis Network. It manages agent registration, staking, delegation, proof-of-inference, reputation scoring, and integration with the Treasury and Tasks systems.
+
+**Contract Address (Testnet):** `0x5FbDB2315678afecb367f032d93F642f64180aa3`
+
+**Key Features:**
+- Agent registration and metadata management
+- Multi-asset staking (ETH and ERC20 tokens)
+- Stake locking and unbonding with configurable periods
+- Proof-of-inference recording and verification
+- Multi-dimensional reputation system
+- Delegation of permissions to operators
+- Treasury integration for slashing and penalties
+- Upgradeable UUPS proxy pattern
+
+## Contract Constants
+
+```solidity
+// Roles
+bytes32 public constant SLASHER_ROLE = keccak256("SLASHER_ROLE");
+bytes32 public constant REPUTATION_ROLE = keccak256("REPUTATION_ROLE");
+bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
+bytes32 public constant CONTRIBUTION_ROLE = keccak256("CONTRIBUTION_ROLE");
+bytes32 public constant VERIFIER_ROLE = keccak256("VERIFIER_ROLE");
+bytes32 public constant TASK_MODULE_ROLE = keccak256("TASK_MODULE_ROLE");
+
+// Permissions
+bytes32 public constant PERMISSION_METADATA = keccak256("PERMISSION_METADATA");
+bytes32 public constant PERMISSION_INFERENCE = keccak256("PERMISSION_INFERENCE");
+bytes32 public constant PERMISSION_WITHDRAW = keccak256("PERMISSION_WITHDRAW");
+
+// Assets
+address internal constant ETH_ASSET = address(0);
+```
+
+## Data Structures
+
+### StakeView
+
+```solidity
+struct StakeView {
+    uint256 total;      // Total staked amount
+    uint256 locked;     // Amount locked in tasks
+    uint256 available;  // Available for withdrawal
+}
+```
+
+### PendingWithdrawal
+
+```solidity
+struct PendingWithdrawal {
+    uint256 amount;        // Amount to withdraw
+    uint64 releaseTime;    // Unix timestamp when withdrawal can be claimed
+}
+```
+
+### InferenceCommitment
+
+```solidity
+struct InferenceCommitment {
+    uint256 agentId;       // Agent that performed inference
+    bytes32 inputHash;     // Hash of input data
+    bytes32 outputHash;    // Hash of output data
+    bytes32 modelHash;     // Hash of model identifier
+    uint256 taskId;        // Associated task ID (0 if none)
+    address reporter;      // Address that recorded inference
+    string proofURI;       // URI to proof data
+    uint64 timestamp;      // When inference was recorded
+}
+```
+
+### VerifierAttestation
+
+```solidity
+struct VerifierAttestation {
+    address verifier;      // Verifier address
+    bool success;          // Verification result
+    string uri;            // URI to verification report
+    uint64 timestamp;      // When attestation was made
+}
+```
+
+### AgentSummary
+
+```solidity
+struct AgentSummary {
+    uint256 agentId;
+    address owner;
+    string metadata;
+    string serviceURI;
+    uint256 totalStake;           // Sum across all assets
+    uint256 lockedStake;          // Sum of locked stakes
+    int256 weightedReputation;    // Aggregated reputation score
+}
+```
+
+### ReputationDelta
+
+```solidity
+struct ReputationDelta {
+    bytes32 dimension;     // e.g., keccak256("reliability")
+    int256 delta;          // Change to apply
+    string reason;         // Human-readable reason
+}
+```
+
+---
+
+## Registration and Metadata
+
+### register
+
+Register a new AI agent with metadata and service endpoint.
+
+<ParamField path="agentId" type="uint256" required>
+  Unique identifier for the agent. Must not be already registered.
+</ParamField>
+
+<ParamField path="metadata" type="string" required>
+  JSON metadata string containing agent information (name, model, capabilities, etc.)
+</ParamField>
+
+<ParamField path="serviceURI" type="string" required>
+  URI endpoint for agent inference requests (e.g., https://api.agent.com/inference)
+</ParamField>
+
+**Events Emitted:**
+```solidity
+event AgentRegistered(
+    address indexed owner,
+    uint256 indexed agentId,
+    string metadata,
+    string serviceURI
+);
+```
+
+**Errors:**
+- `AgentAlreadyRegistered(uint256 agentId, address currentOwner)` - Agent ID already taken
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+const metadata = JSON.stringify({
+  name: "GPT-4 Research Agent",
+  model: "gpt-4-turbo",
+  version: "1.0.0",
+  capabilities: ["text-generation", "research", "analysis"],
+  maxTokens: 8192
+});
+
+const tx = await agents.register(
+  12345,
+  metadata,
+  "https://api.myagent.com/inference"
+);
+
+await tx.wait();
+console.log("Agent registered!");
+```
+
+```python Python
+import json
+
+metadata = json.dumps({
+    "name": "GPT-4 Research Agent",
+    "model": "gpt-4-turbo",
+    "version": "1.0.0",
+    "capabilities": ["text-generation", "research", "analysis"],
+    "maxTokens": 8192
+})
+
+tx = agents.functions.register(
+    12345,
+    metadata,
+    "https://api.myagent.com/inference"
+).transact({'from': owner_account})
+
+receipt = w3.eth.wait_for_transaction_receipt(tx)
+print("Agent registered!")
+```
+
+```solidity Solidity
+function register(
+    uint256 agentId,
+    string calldata metadata,
+    string calldata serviceURI
+) external whenNotPaused;
+```
+
+</CodeGroup>
+
+---
+
+### updateMetadata
+
+Update agent metadata. Requires owner or PERMISSION_METADATA delegate.
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID to update
+</ParamField>
+
+<ParamField path="metadata" type="string" required>
+  New metadata JSON string
+</ParamField>
+
+**Events Emitted:**
+```solidity
+event AgentMetadataUpdated(uint256 indexed agentId, string metadata);
+```
+
+**Errors:**
+- `AgentNotRegistered(uint256)` - Agent doesn't exist
+- `UnauthorizedDelegate(address)` - Caller not authorized
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+const newMetadata = JSON.stringify({
+  name: "GPT-4 Research Agent v2",
+  model: "gpt-4-turbo",
+  version: "2.0.0",
+  capabilities: ["text-generation", "research", "analysis", "coding"],
+  maxTokens: 16384
+});
+
+const tx = await agents.updateMetadata(12345, newMetadata);
+await tx.wait();
+```
+
+```solidity Solidity
+function updateMetadata(
+    uint256 agentId,
+    string calldata metadata
+) external onlyOwnerOrDelegate(agentId, PERMISSION_METADATA);
+```
+
+</CodeGroup>
+
+---
+
+### updateServiceURI
+
+Update agent service endpoint URI.
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID to update
+</ParamField>
+
+<ParamField path="serviceURI" type="string" required>
+  New service URI endpoint
+</ParamField>
+
+**Events Emitted:**
+```solidity
+event AgentServiceURIUpdated(uint256 indexed agentId, string serviceURI);
+```
+
+**Example:**
+
+```javascript JavaScript
+await agents.updateServiceURI(12345, "https://api-v2.myagent.com/inference");
+```
+
+---
+
+### transferAgentOwnership
+
+Transfer ownership of an agent to a new address. Only current owner can call.
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID to transfer
+</ParamField>
+
+<ParamField path="newOwner" type="address" required>
+  Address of new owner (cannot be zero address)
+</ParamField>
+
+**Events Emitted:**
+```solidity
+event AgentOwnershipTransferred(
+    uint256 indexed agentId,
+    address indexed previousOwner,
+    address indexed newOwner
+);
+```
+
+**Example:**
+
+```javascript JavaScript
+const newOwner = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb";
+await agents.transferAgentOwnership(12345, newOwner);
+```
+
+---
+
+## Query Methods (Registration)
+
+### agentOwner
+
+```solidity
+function agentOwner(uint256 agentId) external view returns (address);
+```
+
+Returns the owner address of an agent.
+
+### agentMetadata
+
+```solidity
+function agentMetadata(uint256 agentId) external view returns (string memory);
+```
+
+Returns the metadata JSON string for an agent.
+
+### agentServiceURI
+
+```solidity
+function agentServiceURI(uint256 agentId) external view returns (string memory);
+```
+
+Returns the service URI endpoint for an agent.
+
+### isAgentRegistered
+
+```solidity
+function isAgentRegistered(uint256 agentId) public view returns (bool);
+```
+
+Check if an agent ID is registered.
+
+**Example:**
+
+```javascript JavaScript
+const owner = await agents.agentOwner(12345);
+const metadata = await agents.agentMetadata(12345);
+const serviceURI = await agents.agentServiceURI(12345);
+const isRegistered = await agents.isAgentRegistered(12345);
+
+console.log("Owner:", owner);
+console.log("Metadata:", JSON.parse(metadata));
+console.log("Service URI:", serviceURI);
+console.log("Registered:", isRegistered);
+```
+
+---
+
+## Staking
+
+### stakeETH
+
+Stake native ETH tokens for an agent.
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID to stake for
+</ParamField>
+
+<ParamField path="msg.value" type="uint256" required>
+  Amount of ETH to stake (sent as transaction value)
+</ParamField>
+
+**Events Emitted:**
+```solidity
+event StakeIncreased(
+    uint256 indexed agentId,
+    address indexed asset,
+    address indexed staker,
+    uint256 amount,
+    uint256 totalStaked
+);
+```
+
+**Errors:**
+- `AgentNotRegistered(uint256)` - Agent doesn't exist
+- `ZeroAmount()` - msg.value is 0
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+// Stake 1 ETH
+const tx = await agents.stakeETH(12345, {
+  value: ethers.parseEther("1.0")
+});
+await tx.wait();
+
+console.log("Staked 1 ETH for agent 12345");
+```
+
+```python Python
+# Stake 1 ETH
+tx = agents.functions.stakeETH(12345).transact({
+    'from': staker_account,
+    'value': w3.to_wei(1, 'ether')
+})
+
+receipt = w3.eth.wait_for_transaction_receipt(tx)
+print("Staked 1 ETH for agent 12345")
+```
+
+```solidity Solidity
+function stakeETH(uint256 agentId)
+    external
+    payable
+    nonReentrant
+    whenNotPaused;
+```
+
+</CodeGroup>
+
+---
+
+### stakeERC20
+
+Stake ERC20 tokens for an agent.
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID to stake for
+</ParamField>
+
+<ParamField path="token" type="address" required>
+  ERC20 token contract address
+</ParamField>
+
+<ParamField path="amount" type="uint256" required>
+  Amount of tokens to stake (must have approved contract first)
+</ParamField>
+
+**Prerequisites:**
+- Caller must have approved the Agents contract to spend `amount` of `token`
+
+**Events Emitted:**
+```solidity
+event StakeIncreased(
+    uint256 indexed agentId,
+    address indexed asset,
+    address indexed staker,
+    uint256 amount,
+    uint256 totalStaked
+);
+```
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+const tokenAddress = "0x..."; // USDC, USDT, etc.
+const amount = ethers.parseUnits("1000", 6); // 1000 USDC (6 decimals)
+
+// First approve
+const token = new ethers.Contract(tokenAddress, erc20ABI, wallet);
+const approveTx = await token.approve(agentsAddress, amount);
+await approveTx.wait();
+
+// Then stake
+const stakeTx = await agents.stakeERC20(12345, tokenAddress, amount);
+await stakeTx.wait();
+
+console.log("Staked 1000 USDC for agent 12345");
+```
+
+```python Python
+token_address = "0x..."  # USDC, USDT, etc.
+amount = 1000 * 10**6  # 1000 USDC (6 decimals)
+
+# First approve
+token = w3.eth.contract(address=token_address, abi=erc20_abi)
+approve_tx = token.functions.approve(agents_address, amount).transact({
+    'from': staker_account
+})
+w3.eth.wait_for_transaction_receipt(approve_tx)
+
+# Then stake
+stake_tx = agents.functions.stakeERC20(12345, token_address, amount).transact({
+    'from': staker_account
+})
+w3.eth.wait_for_transaction_receipt(stake_tx)
+print("Staked 1000 USDC for agent 12345")
+```
+
+</CodeGroup>
+
+---
+
+### requestWithdrawal
+
+Initiate unbonding period for staked assets. Requires owner or PERMISSION_WITHDRAW delegate.
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID to withdraw from
+</ParamField>
+
+<ParamField path="asset" type="address" required>
+  Asset address (address(0) for ETH, token address for ERC20)
+</ParamField>
+
+<ParamField path="amount" type="uint256" required>
+  Amount to withdraw (must be ≤ available stake)
+</ParamField>
+
+**Events Emitted:**
+```solidity
+event UnbondingInitiated(
+    uint256 indexed agentId,
+    address indexed asset,
+    uint256 amount,
+    uint64 releaseTime
+);
+```
+
+**Errors:**
+- `ZeroAmount()` - Amount is 0
+- `AmountTooLarge(uint256 requested, uint256 available)` - Insufficient available stake
+- `UnauthorizedDelegate(address)` - Caller not authorized
+
+**Notes:**
+- Withdrawal enters unbonding queue with configured unbonding period (default 7 days for ETH)
+- Amount is removed from staked balance immediately
+- Cannot withdraw locked stake (stake locked by Tasks contract)
+
+**Example:**
+
+```javascript JavaScript
+// Request withdrawal of 0.5 ETH
+const amount = ethers.parseEther("0.5");
+const tx = await agents.requestWithdrawal(
+  12345,
+  ethers.ZeroAddress, // ETH
+  amount
+);
+
+const receipt = await tx.wait();
+
+// Extract release time from event
+const event = receipt.logs.find(log =>
+  log.topics[0] === ethers.id('UnbondingInitiated(uint256,address,uint256,uint64)')
+);
+// releaseTime is in the event data
+
+console.log("Withdrawal requested, unbonding period started");
+```
+
+---
+
+### cancelWithdrawal
+
+Cancel a pending withdrawal and return amount to staked balance.
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID
+</ParamField>
+
+<ParamField path="asset" type="address" required>
+  Asset address
+</ParamField>
+
+<ParamField path="queueIndex" type="uint256" required>
+  Index in the withdrawal queue (relative to current head)
+</ParamField>
+
+**Events Emitted:**
+```solidity
+event WithdrawalCancelled(uint256 indexed agentId, address indexed asset, uint256 amount);
+```
+
+**Example:**
+
+```javascript JavaScript
+// Cancel the first pending withdrawal
+await agents.cancelWithdrawal(12345, ethers.ZeroAddress, 0);
+```
+
+---
+
+### claimWithdrawals
+
+Claim completed withdrawals after unbonding period.
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID
+</ParamField>
+
+<ParamField path="asset" type="address" required>
+  Asset address
+</ParamField>
+
+<ParamField path="maxEntries" type="uint256" required>
+  Maximum number of withdrawal entries to process (0 = unlimited)
+</ParamField>
+
+<ParamField path="receiver" type="address" required>
+  Address to receive funds (address(0) = agent owner)
+</ParamField>
+
+<ParamField path="forceEarly" type="bool" required>
+  If true, claim before unbonding period ends (incurs penalty)
+</ParamField>
+
+**Returns:**
+- `releasedAmount` (uint256) - Amount released to receiver
+- `penaltyAmount` (uint256) - Amount taken as early exit penalty
+
+**Events Emitted:**
+```solidity
+event WithdrawalExecuted(uint256 indexed agentId, address indexed asset, uint256 amount, address indexed receiver);
+// OR
+event EarlyWithdrawal(uint256 indexed agentId, address indexed asset, uint256 amount, uint256 penalty, address receiver);
+```
+
+**Example:**
+
+<CodeGroup>
+
+```javascript JavaScript
+// Claim all ready withdrawals
+const [released, penalty] = await agents.claimWithdrawals(
+  12345,
+  ethers.ZeroAddress, // ETH
+  0,                  // Process all entries
+  ethers.ZeroAddress, // Send to agent owner
+  false               // Wait for unbonding period
+);
+
+console.log("Released:", ethers.formatEther(released), "ETH");
+console.log("Penalty:", ethers.formatEther(penalty), "ETH");
+```
+
+```javascript JavaScript (Early Withdrawal)
+// Force early withdrawal (with penalty)
+const [released, penalty] = await agents.claimWithdrawals(
+  12345,
+  ethers.ZeroAddress,
+  0,
+  ethers.ZeroAddress,
+  true // Force early
+);
+
+console.log("Released:", ethers.formatEther(released), "ETH");
+console.log("Penalty:", ethers.formatEther(penalty), "ETH");
+```
+
+</CodeGroup>
+
+---
+
+## Staking Query Methods
+
+### stakedBalance
+
+```solidity
+function stakedBalance(uint256 agentId, address asset) external view returns (uint256);
+```
+
+Get total staked balance for an agent and asset.
+
+### lockedBalance
+
+```solidity
+function lockedBalance(uint256 agentId, address asset) external view returns (uint256);
+```
+
+Get locked stake balance (locked by Tasks contract).
+
+### stakeBalances
+
+```solidity
+function stakeBalances(uint256 agentId, address asset)
+    public
+    view
+    returns (StakeView memory);
+```
+
+Get comprehensive stake information (total, locked, available).
+
+### pendingWithdrawalCount
+
+```solidity
+function pendingWithdrawalCount(uint256 agentId, address asset)
+    external
+    view
+    returns (uint256);
+```
+
+Get number of pending withdrawals in queue.
+
+### pendingWithdrawalAt
+
+```solidity
+function pendingWithdrawalAt(uint256 agentId, address asset, uint256 index)
+    external
+    view
+    returns (PendingWithdrawal memory);
+```
+
+Get details of a specific pending withdrawal.
+
+**Example:**
+
+```javascript JavaScript
+// Query stake information
+const stakeInfo = await agents.stakeBalances(12345, ethers.ZeroAddress);
+console.log("Total:", ethers.formatEther(stakeInfo.total));
+console.log("Locked:", ethers.formatEther(stakeInfo.locked));
+console.log("Available:", ethers.formatEther(stakeInfo.available));
+
+// Query pending withdrawals
+const count = await agents.pendingWithdrawalCount(12345, ethers.ZeroAddress);
+console.log("Pending withdrawals:", count);
+
+for (let i = 0; i < count; i++) {
+  const withdrawal = await agents.pendingWithdrawalAt(12345, ethers.ZeroAddress, i);
+  console.log(`Withdrawal ${i}:`, {
+    amount: ethers.formatEther(withdrawal.amount),
+    releaseTime: new Date(Number(withdrawal.releaseTime) * 1000)
+  });
+}
+```
+
+---
+
+## Proof of Inference
+
+### recordInference
+
+Record an inference commitment on-chain. Requires owner or PERMISSION_INFERENCE delegate.
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID that performed inference
+</ParamField>
+
+<ParamField path="inputHash" type="bytes32" required>
+  Hash of input data (e.g., keccak256 of prompt)
+</ParamField>
+
+<ParamField path="outputHash" type="bytes32" required>
+  Hash of output data (e.g., keccak256 of completion)
+</ParamField>
+
+<ParamField path="modelHash" type="bytes32" required>
+  Hash of model identifier
+</ParamField>
+
+<ParamField path="taskId" type="uint256" required>
+  Associated task ID (0 if not task-related)
+</ParamField>
+
+<ParamField path="proofURI" type="string" required>
+  URI to detailed proof data (IPFS, Arweave, etc.)
+</ParamField>
+
+**Returns:**
+- `inferenceId` (bytes32) - Unique identifier for this inference
+
+**Events Emitted:**
+```solidity
+event InferenceRecorded(
+    uint256 indexed agentId,
+    bytes32 indexed inferenceId,
+    bytes32 indexed inputHash,
+    bytes32 outputHash,
+    bytes32 modelHash,
+    uint256 taskId,
+    address reporter,
+    string proofURI
+);
+```
+
+**Example:**
+
+```javascript JavaScript
+// Record inference
+const inputHash = ethers.keccak256(ethers.toUtf8Bytes("What is 2+2?"));
+const outputHash = ethers.keccak256(ethers.toUtf8Bytes("4"));
+const modelHash = ethers.keccak256(ethers.toUtf8Bytes("gpt-4-turbo"));
+
+const tx = await agents.recordInference(
+  12345,
+  inputHash,
+  outputHash,
+  modelHash,
+  0, // No task
+  "ipfs://Qm..." // Proof data
+);
+
+const receipt = await tx.wait();
+
+// Extract inference ID from event
+const event = receipt.logs.find(log =>
+  log.topics[0] === ethers.id('InferenceRecorded(uint256,bytes32,bytes32,bytes32,bytes32,uint256,address,string)')
+);
+const inferenceId = event.topics[2];
+
+console.log("Inference recorded:", inferenceId);
+```
+
+---
+
+### attestInference
+
+Verify and attest to an inference (VERIFIER_ROLE only). Can apply reputation deltas.
+
+<ParamField path="inferenceId" type="bytes32" required>
+  Inference ID to attest
+</ParamField>
+
+<ParamField path="success" type="bool" required>
+  Verification result
+</ParamField>
+
+<ParamField path="uri" type="string" required>
+  URI to verification report
+</ParamField>
+
+<ParamField path="deltas" type="ReputationDelta[]" required>
+  Reputation adjustments to apply
+</ParamField>
+
+**Events Emitted:**
+```solidity
+event InferenceAttested(
+    bytes32 indexed inferenceId,
+    uint256 indexed agentId,
+    uint256 indexed taskId,
+    address verifier,
+    bool success,
+    string uri
+);
+```
+
+**Example:**
+
+```javascript JavaScript
+// Attest inference with reputation update
+const deltas = [
+  {
+    dimension: ethers.keccak256(ethers.toUtf8Bytes("accuracy")),
+    delta: 10, // +10 points
+    reason: "Correct output verified"
+  },
+  {
+    dimension: ethers.keccak256(ethers.toUtf8Bytes("reliability")),
+    delta: 5,
+    reason: "Timely response"
+  }
+];
+
+await agents.attestInference(
+  inferenceId,
+  true, // Success
+  "ipfs://Qm...", // Verification report
+  deltas
+);
+```
+
+---
+
+### getInference
+
+```solidity
+function getInference(bytes32 inferenceId)
+    external
+    view
+    returns (
+        InferenceCommitment memory commitment,
+        VerifierAttestation memory attestation
+    );
+```
+
+Query inference commitment and attestation details.
+
+### listInferenceIds
+
+```solidity
+function listInferenceIds(uint256 agentId) external view returns (bytes32[] memory);
+```
+
+Get all inference IDs for an agent.
+
+---
+
+## Reputation Management
+
+### adjustReputation
+
+Adjust reputation score for an agent (REPUTATION_ROLE only).
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID
+</ParamField>
+
+<ParamField path="dimension" type="bytes32" required>
+  Reputation dimension (reliability, accuracy, performance, trustworthiness)
+</ParamField>
+
+<ParamField path="delta" type="int256" required>
+  Change to apply (positive or negative)
+</ParamField>
+
+<ParamField path="reason" type="string" required>
+  Human-readable reason
+</ParamField>
+
+**Events Emitted:**
+```solidity
+event ReputationAdjusted(
+    uint256 indexed agentId,
+    bytes32 indexed dimension,
+    int256 newScore,
+    string reason
+);
+```
+
+**Example:**
+
+```javascript JavaScript
+const DIM_RELIABILITY = ethers.keccak256(ethers.toUtf8Bytes("reliability"));
+
+await agents.adjustReputation(
+  12345,
+  DIM_RELIABILITY,
+  -20, // Penalize by 20 points
+  "Failed to respond to 3 consecutive tasks"
+);
+```
+
+---
+
+### getReputation
+
+```solidity
+function getReputation(uint256 agentId, bytes32 dimension)
+    external
+    view
+    returns (int256);
+```
+
+Get reputation score for a specific dimension.
+
+### aggregatedReputation
+
+```solidity
+function aggregatedReputation(uint256 agentId) public view returns (int256 weighted);
+```
+
+Get weighted aggregate reputation score across all dimensions.
+
+### reputationDimensions
+
+```solidity
+function reputationDimensions() external view returns (bytes32[] memory);
+```
+
+Get list of configured reputation dimensions.
+
+**Example:**
+
+```javascript JavaScript
+// Query reputation
+const reliability = await agents.getReputation(12345, DIM_RELIABILITY);
+const overall = await agents.aggregatedReputation(12345);
+const dimensions = await agents.reputationDimensions();
+
+console.log("Reliability score:", reliability);
+console.log("Overall score:", overall);
+console.log("Dimensions:", dimensions.map(d => ethers.toUtf8String(d)));
+```
+
+---
+
+## Delegation
+
+### setDelegate
+
+Delegate specific permissions to an operator.
+
+<ParamField path="agentId" type="uint256" required>
+  Agent ID (caller must be owner)
+</ParamField>
+
+<ParamField path="delegate" type="address" required>
+  Address to delegate to
+</ParamField>
+
+<ParamField path="permission" type="bytes32" required>
+  Permission to grant (PERMISSION_METADATA, PERMISSION_INFERENCE, PERMISSION_WITHDRAW)
+</ParamField>
+
+<ParamField path="enabled" type="bool" required>
+  True to grant, false to revoke
+</ParamField>
+
+**Events Emitted:**
+```solidity
+event DelegateUpdated(
+    uint256 indexed agentId,
+    address indexed delegate,
+    bytes32 indexed permission,
+    bool enabled
+);
+```
+
+**Example:**
+
+```javascript JavaScript
+const PERMISSION_INFERENCE = ethers.keccak256(ethers.toUtf8Bytes("PERMISSION_INFERENCE"));
+const operatorAddress = "0x...";
+
+// Grant inference permission to operator
+await agents.setDelegate(12345, operatorAddress, PERMISSION_INFERENCE, true);
+
+// Later, revoke permission
+await agents.setDelegate(12345, operatorAddress, PERMISSION_INFERENCE, false);
+```
+
+---
+
+### hasDelegatedPermission
+
+```solidity
+function hasDelegatedPermission(
+    uint256 agentId,
+    address operator,
+    bytes32 permission
+) public view returns (bool);
+```
+
+Check if an operator has a delegated permission.
+
+---
+
+## Discovery and Aggregation
+
+### listAgents
+
+Query paginated list of registered agents with summary information.
+
+<ParamField path="offset" type="uint256" required>
+  Starting index (0-based)
+</ParamField>
+
+<ParamField path="limit" type="uint256" required>
+  Number of agents to return (0 = all remaining)
+</ParamField>
+
+**Returns:**
+- `AgentSummary[]` - Array of agent summaries
+
+**Example:**
+
+```javascript JavaScript
+// Get first 10 agents
+const agents = await agentsContract.listAgents(0, 10);
+
+agents.forEach(agent => {
+  console.log(`Agent ${agent.agentId}:`);
+  console.log(`  Owner: ${agent.owner}`);
+  console.log(`  Total Stake: ${ethers.formatEther(agent.totalStake)} ETH`);
+  console.log(`  Reputation: ${agent.weightedReputation}`);
+  console.log(`  Metadata:`, JSON.parse(agent.metadata));
+});
+
+// Get next 10 agents
+const moreAgents = await agentsContract.listAgents(10, 10);
+```
+
+---
+
+### aggregatedStats
+
+```solidity
+function aggregatedStats() external view returns (AggregatedStats memory stats);
+```
+
+Get network-wide statistics (total agents, total staked per asset).
+
+**Example:**
+
+```javascript JavaScript
+const stats = await agents.aggregatedStats();
+
+console.log("Total Agents:", stats.totalAgents);
+console.log("\nStaked Assets:");
+stats.assets.forEach((asset, i) => {
+  const name = asset === ethers.ZeroAddress ? "ETH" : asset;
+  const amount = ethers.formatEther(stats.totalStakedPerAsset[i]);
+  console.log(`  ${name}: ${amount}`);
+});
+```
+
+---
+
+## Admin Functions
+
+### pause / unpause
+
+```solidity
+function pause() external onlyRole(DEFAULT_ADMIN_ROLE);
+function unpause() external onlyRole(DEFAULT_ADMIN_ROLE);
+```
+
+Pause/unpause contract operations (emergency stop).
+
+### setTreasury
+
+```solidity
+function setTreasury(address newTreasury) external onlyRole(DEFAULT_ADMIN_ROLE);
+```
+
+Update treasury contract address.
+
+### setTasksContract
+
+```solidity
+function setTasksContract(address newTasksContract) external onlyRole(DEFAULT_ADMIN_ROLE);
+```
+
+Update tasks contract address.
+
+### setUnbondingPeriod
+
+```solidity
+function setUnbondingPeriod(address asset, uint64 period) external onlyRole(DEFAULT_ADMIN_ROLE);
+```
+
+Set unbonding period for an asset (in seconds).
+
+### setEarlyExitPenalty
+
+```solidity
+function setEarlyExitPenalty(address asset, uint16 bps) external onlyRole(DEFAULT_ADMIN_ROLE);
+```
+
+Set early exit penalty in basis points (10000 = 100%).
+
+### updateReputationWeight
+
+```solidity
+function updateReputationWeight(bytes32 dimension, uint256 weight)
+    external
+    onlyRole(DEFAULT_ADMIN_ROLE);
+```
+
+Update weighting for a reputation dimension.
+
+---
+
+## Events Reference
+
+```solidity
+event AgentRegistered(address indexed owner, uint256 indexed agentId, string metadata, string serviceURI);
+event AgentMetadataUpdated(uint256 indexed agentId, string metadata);
+event AgentServiceURIUpdated(uint256 indexed agentId, string serviceURI);
+event AgentOwnershipTransferred(uint256 indexed agentId, address indexed previousOwner, address indexed newOwner);
+
+event StakeIncreased(uint256 indexed agentId, address indexed asset, address indexed staker, uint256 amount, uint256 totalStaked);
+event StakeLocked(uint256 indexed agentId, address indexed asset, uint256 amount, uint256 newLockedBalance);
+event StakeUnlocked(uint256 indexed agentId, address indexed asset, uint256 amount, uint256 newLockedBalance);
+event UnbondingInitiated(uint256 indexed agentId, address indexed asset, uint256 amount, uint64 releaseTime);
+event WithdrawalCancelled(uint256 indexed agentId, address indexed asset, uint256 amount);
+event WithdrawalExecuted(uint256 indexed agentId, address indexed asset, uint256 amount, address indexed receiver);
+event EarlyWithdrawal(uint256 indexed agentId, address indexed asset, uint256 amount, uint256 penalty, address receiver);
+event StakeSlashed(uint256 indexed agentId, address indexed asset, uint256 amount);
+
+event InferenceRecorded(uint256 indexed agentId, bytes32 indexed inferenceId, bytes32 indexed inputHash, bytes32 outputHash, bytes32 modelHash, uint256 taskId, address reporter, string proofURI);
+event InferenceAttested(bytes32 indexed inferenceId, uint256 indexed agentId, uint256 indexed taskId, address verifier, bool success, string uri);
+
+event ReputationAdjusted(uint256 indexed agentId, bytes32 indexed dimension, int256 newScore, string reason);
+event DelegateUpdated(uint256 indexed agentId, address indexed delegate, bytes32 indexed permission, bool enabled);
+```
+
+---
+
+## Error Reference
+
+```solidity
+error AgentAlreadyRegistered(uint256 agentId, address currentOwner);
+error AgentNotRegistered(uint256 agentId);
+error NotAgentOwner(uint256 agentId, address expectedOwner, address actualCaller);
+error ZeroAmount();
+error AmountTooLarge(uint256 requested, uint256 available);
+error NothingToWithdraw(uint256 agentId, address asset);
+error UnauthorizedDelegate(address delegate);
+error InvalidPermission(bytes32 permission);
+error UnknownInference(bytes32 inferenceId);
+error TreasuryRequired();
+```

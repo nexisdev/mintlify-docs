@@ -1,0 +1,673 @@
+---
+title: 'Get Testnet Tokens'
+description: 'Complete guide to obtaining NZT testnet tokens and Base Sepolia ETH for development on Nexis Appchain'
+---
+
+# Get Testnet Tokens for Nexis
+
+This tutorial walks you through obtaining testnet tokens needed for development on Nexis Appchain. You'll learn how to get NZT tokens, bridge ETH from Base Sepolia, add the network to MetaMask, and verify your balances.
+
+## What You'll Get
+
+<CardGroup cols={2}>
+  <Card title="Testnet NZT" icon="coins">
+    Native currency for gas fees and staking
+  </Card>
+  <Card title="Base Sepolia ETH" icon="ethereum">
+    For bridging and L2 operations
+  </Card>
+  <Card title="Network Setup" icon="network-wired">
+    Properly configured wallet connection
+  </Card>
+  <Card title="Bridge Access" icon="bridge">
+    Ability to move assets between layers
+  </Card>
+</CardGroup>
+
+<Note>
+**Important:** Testnet tokens have no monetary value and are only for testing purposes. Never purchase testnet tokens from anyone.
+</Note>
+
+## Prerequisites
+
+<Steps>
+  <Step title="Install MetaMask">
+    Download from [metamask.io](https://metamask.io) or use another Web3 wallet
+  </Step>
+  <Step title="Create/Import Wallet">
+    Have a wallet address ready to receive tokens
+  </Step>
+  <Step title="Backup Seed Phrase">
+    Securely store your recovery phrase (even for testnet)
+  </Step>
+</Steps>
+
+## Part 1: Add Nexis Network to MetaMask
+
+### Option 1: Automatic Addition (Recommended)
+
+Click the button below to automatically add Nexis Testnet:
+
+<Card title="Add Nexis Testnet" icon="plus-circle" href="#">
+  Click to add network to MetaMask
+</Card>
+
+Or use this web3 code:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Add Nexis Network</title>
+</head>
+<body>
+  <button onclick="addNexisNetwork()">Add Nexis Testnet to MetaMask</button>
+
+  <script>
+    async function addNexisNetwork() {
+      if (typeof window.ethereum === 'undefined') {
+        alert('MetaMask is not installed!');
+        return;
+      }
+
+      try {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: '0x14A34', // 84532 in hex
+            chainName: 'Nexis Appchain Testnet',
+            nativeCurrency: {
+              name: 'Nexis',
+              symbol: 'NZT',
+              decimals: 18
+            },
+            rpcUrls: ['https://rpc.testnet.nexis.network'],
+            blockExplorerUrls: ['https://explorer.testnet.nexis.network']
+          }]
+        });
+
+        alert('✅ Nexis Network added successfully!');
+
+        // Switch to the network
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x14A34' }]
+        });
+
+      } catch (error) {
+        console.error('Error adding network:', error);
+        alert('Failed to add network: ' + error.message);
+      }
+    }
+  </script>
+</body>
+</html>
+```
+
+### Option 2: Manual Configuration
+
+Add the network manually in MetaMask:
+
+<Steps>
+  <Step title="Open MetaMask Settings">
+    Click the network dropdown → **Settings** → **Networks** → **Add Network**
+  </Step>
+
+  <Step title="Enter Network Details">
+    ```
+    Network Name: Nexis Appchain Testnet
+    RPC URL: https://rpc.testnet.nexis.network
+    Chain ID: 84532
+    Currency Symbol: NZT
+    Block Explorer: https://explorer.testnet.nexis.network
+    ```
+  </Step>
+
+  <Step title="Save and Switch">
+    Click **Save** and then switch to the Nexis network
+  </Step>
+</Steps>
+
+### Verify Network Connection
+
+Test your connection using curl:
+
+```bash
+# Check if RPC is responding
+curl https://rpc.testnet.nexis.network \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_chainId",
+    "params": [],
+    "id": 1
+  }'
+
+# Expected response: {"jsonrpc":"2.0","id":1,"result":"0x14a34"}
+```
+
+<Check>
+**Chain ID 0x14a34 = 84532** confirms you're connected to Nexis Testnet
+</Check>
+
+## Part 2: Get NZT from the Faucet
+
+### Step 1: Access the Faucet
+
+Visit the official Nexis Faucet:
+
+<Card title="Nexis Faucet" icon="faucet" href="https://faucet.nexis.network">
+  https://faucet.nexis.network
+</Card>
+
+### Step 2: Connect Your Wallet
+
+1. Click **Connect Wallet**
+2. Select MetaMask (or your preferred wallet)
+3. Approve the connection request
+4. Ensure you're on Nexis Testnet
+
+<Warning>
+**Security:** The faucet will never ask for your private keys or seed phrase. Only connect through the official URL.
+</Warning>
+
+### Step 3: Request Tokens
+
+<Tabs>
+  <Tab title="Web Interface">
+**Using the Faucet Website:**
+
+1. Wallet address is auto-filled after connection
+2. Select amount:
+   - **10 NZT** (Standard) - Good for testing
+   - **50 NZT** (Developer) - For extensive development
+   - **100 NZT** (Agent) - For registering agents
+3. Complete CAPTCHA verification
+4. Click **Request Tokens**
+5. Wait 5-10 seconds for transaction
+
+**Faucet Limits:**
+- 10 NZT per 24 hours per address
+- 50 NZT per 24 hours per IP
+- 100 NZT weekly maximum per address
+  </Tab>
+
+  <Tab title="API Request">
+**Using the Faucet API:**
+
+```bash
+# Basic request
+curl -X POST https://faucet.nexis.network/api/claim \
+  -H "Content-Type: application/json" \
+  -d '{
+    "address": "0xYourAddressHere",
+    "amount": "10"
+  }'
+
+# With authentication token (for higher limits)
+curl -X POST https://faucet.nexis.network/api/claim \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_DISCORD_TOKEN" \
+  -d '{
+    "address": "0xYourAddressHere",
+    "amount": "50"
+  }'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "txHash": "0xabc...def",
+  "amount": "10000000000000000000",
+  "message": "10 NZT sent successfully"
+}
+```
+  </Tab>
+
+  <Tab title="Discord Bot">
+**Using Discord Faucet Bot:**
+
+1. Join [Nexis Discord](https://discord.gg/nexis)
+2. Go to #faucet channel
+3. Use command:
+   ```
+   /faucet claim 0xYourAddressHere
+   ```
+4. Bot verifies your account age (7+ days)
+5. Receive 25 NZT (higher limit than web)
+
+**Discord Limits:**
+- 25 NZT per 12 hours
+- Must have verified Discord account
+- Account must be 7+ days old
+  </Tab>
+</Tabs>
+
+### Step 4: Verify Receipt
+
+**Check in MetaMask:**
+1. Open MetaMask
+2. Ensure you're on Nexis Testnet
+3. Your balance should show 10 NZT (or requested amount)
+
+**Check on Explorer:**
+```
+https://explorer.testnet.nexis.network/address/YOUR_ADDRESS
+```
+
+**Check via RPC:**
+```bash
+# Replace with your address
+ADDRESS="0xYourAddressHere"
+
+curl https://rpc.testnet.nexis.network \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"jsonrpc\": \"2.0\",
+    \"method\": \"eth_getBalance\",
+    \"params\": [\"$ADDRESS\", \"latest\"],
+    \"id\": 1
+  }"
+
+# Convert hex result to decimal using:
+# echo $((0xHEX_RESULT)) / 10^18
+```
+
+<Check>
+**Success!** You now have testnet NZT for gas fees and development.
+</Check>
+
+## Part 3: Get Base Sepolia ETH
+
+Nexis is an L3 built on Base Sepolia, so you may need Base Sepolia ETH for bridging operations.
+
+### Step 1: Get Sepolia ETH
+
+First, get Ethereum Sepolia testnet ETH:
+
+<CardGroup cols={2}>
+  <Card title="Alchemy Faucet" icon="flask">
+    [sepolia-faucet.pk910.de](https://sepolia-faucet.pk910.de)
+    - 0.5 ETH per day
+    - Mining-based (proof of work)
+  </Card>
+
+  <Card title="Infura Faucet" icon="faucet">
+    [infura.io/faucet/sepolia](https://infura.io/faucet/sepolia)
+    - 0.5 ETH per 24h
+    - Requires Infura account
+  </Card>
+
+  <Card title="QuickNode Faucet" icon="droplet">
+    [faucet.quicknode.com/ethereum/sepolia](https://faucet.quicknode.com/ethereum/sepolia)
+    - 0.1 ETH per request
+    - Twitter verification required
+  </Card>
+
+  <Card title="PoW Faucet" icon="hammer">
+    [sepolia-faucet.pk910.de](https://sepolia-faucet.pk910.de)
+    - Unlimited via mining
+    - CPU/GPU mining supported
+  </Card>
+</CardGroup>
+
+### Step 2: Bridge to Base Sepolia
+
+Once you have Sepolia ETH, bridge it to Base Sepolia:
+
+<Steps>
+  <Step title="Visit Base Bridge">
+    Go to [bridge.base.org/deposit](https://bridge.base.org/deposit)
+  </Step>
+
+  <Step title="Connect Wallet">
+    - Connect MetaMask
+    - Select Ethereum Sepolia as source
+    - Select Base Sepolia as destination
+  </Step>
+
+  <Step title="Bridge ETH">
+    - Enter amount (keep some for gas)
+    - Click **Deposit**
+    - Confirm transaction in MetaMask
+    - Wait 5-10 minutes for confirmation
+  </Step>
+
+  <Step title="Verify on Base Sepolia">
+    - Switch to Base Sepolia in MetaMask
+    - Check balance
+    - View on [sepolia.basescan.org](https://sepolia.basescan.org)
+  </Step>
+</Steps>
+
+**Alternative: Use Base Sepolia Faucet Directly**
+
+<Card title="Base Sepolia Faucet" icon="faucet">
+  [coinbase.com/faucets/base-ethereum-sepolia-faucet](https://coinbase.com/faucets/base-ethereum-sepolia-faucet)
+  - 0.1 ETH per 24h
+  - Requires Coinbase account
+  - No bridging needed
+</Card>
+
+### Step 3: Bridge Base Sepolia ETH to Nexis
+
+**Using the Nexis Bridge:**
+
+```bash
+# Option 1: Web Interface
+Visit: https://bridge.nexis.network
+
+# Option 2: CLI Tool
+npx @nexis/bridge-cli deposit \
+  --from base-sepolia \
+  --to nexis-testnet \
+  --amount 0.1 \
+  --token ETH
+```
+
+**Manual Bridge via Smart Contract:**
+
+```javascript
+const { ethers } = require('ethers');
+
+// Connect to Base Sepolia
+const provider = new ethers.JsonRpcProvider('https://sepolia.base.org');
+const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+
+// Nexis L2 Bridge Contract on Base Sepolia
+const bridgeAddress = '0xBridgeContractAddress';
+const bridgeABI = [
+  'function depositETH(uint32 _minGasLimit) external payable'
+];
+
+const bridge = new ethers.Contract(bridgeAddress, bridgeABI, wallet);
+
+// Bridge 0.1 ETH to Nexis
+const tx = await bridge.depositETH(200000, {
+  value: ethers.parseEther('0.1')
+});
+
+console.log('Bridge transaction:', tx.hash);
+await tx.wait();
+console.log('✅ Bridged successfully!');
+```
+
+<Note>
+**Bridge Time:** Deposits from Base Sepolia to Nexis typically take 2-5 minutes.
+</Note>
+
+## Part 4: Automated Faucet Script
+
+Create a script to automatically request tokens:
+
+```javascript auto-faucet.js
+const { ethers } = require('ethers');
+const axios = require('axios');
+
+async function requestNexisFaucet(address, amount = '10') {
+  console.log('🚰 Requesting', amount, 'NZT from faucet...');
+
+  try {
+    const response = await axios.post('https://faucet.nexis.network/api/claim', {
+      address: address,
+      amount: amount
+    });
+
+    if (response.data.success) {
+      console.log('✅ Success! Transaction:', response.data.txHash);
+      console.log('   Amount:', ethers.formatEther(response.data.amount), 'NZT');
+
+      // Wait for confirmation
+      const provider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+      console.log('   Waiting for confirmation...');
+
+      await provider.waitForTransaction(response.data.txHash);
+      console.log('   ✅ Confirmed!');
+
+      // Check balance
+      const balance = await provider.getBalance(address);
+      console.log('   New balance:', ethers.formatEther(balance), 'NZT');
+    } else {
+      console.error('❌ Failed:', response.data.message);
+    }
+  } catch (error) {
+    if (error.response) {
+      console.error('❌ Error:', error.response.data.message);
+      if (error.response.data.retryAfter) {
+        const hours = error.response.data.retryAfter / 3600;
+        console.log(`   Try again in ${hours.toFixed(1)} hours`);
+      }
+    } else {
+      console.error('❌ Request failed:', error.message);
+    }
+  }
+}
+
+// Usage
+const address = process.argv[2];
+const amount = process.argv[3] || '10';
+
+if (!address) {
+  console.error('Usage: node auto-faucet.js <address> [amount]');
+  process.exit(1);
+}
+
+requestNexisFaucet(address, amount);
+```
+
+**Run the script:**
+
+```bash
+# Install dependencies
+npm install ethers axios
+
+# Request 10 NZT
+node auto-faucet.js 0xYourAddress
+
+# Request 50 NZT
+node auto-faucet.js 0xYourAddress 50
+```
+
+## Part 5: Balance Monitoring
+
+Create a balance checker script:
+
+```javascript check-balances.js
+const { ethers } = require('ethers');
+
+async function checkBalances(address) {
+  console.log('💰 Balance Check for:', address);
+  console.log('='.repeat(60));
+
+  // Nexis Testnet
+  console.log('\n🔵 Nexis Appchain Testnet:');
+  const nexisProvider = new ethers.JsonRpcProvider('https://rpc.testnet.nexis.network');
+  const nexisBalance = await nexisProvider.getBalance(address);
+  console.log('   NZT Balance:', ethers.formatEther(nexisBalance));
+
+  const nexisTxCount = await nexisProvider.getTransactionCount(address);
+  console.log('   Transactions:', nexisTxCount);
+
+  // Base Sepolia
+  console.log('\n🟠 Base Sepolia:');
+  const baseProvider = new ethers.JsonRpcProvider('https://sepolia.base.org');
+  const baseBalance = await baseProvider.getBalance(address);
+  console.log('   ETH Balance:', ethers.formatEther(baseBalance));
+
+  const baseTxCount = await baseProvider.getTransactionCount(address);
+  console.log('   Transactions:', baseTxCount);
+
+  // Ethereum Sepolia
+  console.log('\n🟣 Ethereum Sepolia:');
+  const sepoliaProvider = new ethers.JsonRpcProvider('https://rpc.sepolia.org');
+  const sepoliaBalance = await sepoliaProvider.getBalance(address);
+  console.log('   ETH Balance:', ethers.formatEther(sepoliaBalance));
+
+  const sepoliaTxCount = await sepoliaProvider.getTransactionCount(address);
+  console.log('   Transactions:', sepoliaTxCount);
+
+  console.log('\n' + '='.repeat(60));
+
+  // Check if more tokens needed
+  const minRequired = ethers.parseEther('1');
+  if (nexisBalance < minRequired) {
+    console.log('\n⚠️  Low NZT balance! Visit the faucet:');
+    console.log('   https://faucet.nexis.network');
+  }
+}
+
+const address = process.argv[2];
+if (!address) {
+  console.error('Usage: node check-balances.js <address>');
+  process.exit(1);
+}
+
+checkBalances(address);
+```
+
+## Faucet Comparison Table
+
+| Faucet | Amount | Cooldown | Requirements | Speed |
+|--------|--------|----------|--------------|-------|
+| **Nexis Web** | 10 NZT | 24h | CAPTCHA | Instant |
+| **Nexis Discord** | 25 NZT | 12h | Discord account (7d+) | Instant |
+| **Nexis API** | 10 NZT | 24h | None | Instant |
+| **Base Sepolia** | 0.1 ETH | 24h | Coinbase account | 2-3 min |
+| **Sepolia PoW** | Variable | None | CPU/GPU | Mining time |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Faucet says 'Rate limit exceeded'" icon="clock">
+**Problem:** You've reached the daily limit.
+
+**Solutions:**
+- Wait for cooldown period (check response message)
+- Use Discord bot for higher limits
+- Ask in Discord #faucet-requests for manual drip
+- Use a different address if testing
+  </Accordion>
+
+  <Accordion title="Tokens not appearing in wallet" icon="eye-slash">
+**Problem:** Balance not showing in MetaMask.
+
+**Checks:**
+1. Are you on Nexis Testnet? (Check network dropdown)
+2. Is the transaction confirmed? (Check explorer)
+3. Has enough time passed? (Wait 30 seconds)
+4. Try refreshing MetaMask (lock/unlock)
+
+**Verify on explorer:**
+```
+https://explorer.testnet.nexis.network/address/YOUR_ADDRESS
+```
+  </Accordion>
+
+  <Accordion title="Cannot add Nexis network" icon="network-wired">
+**Problem:** MetaMask won't add the network.
+
+**Solutions:**
+- Update MetaMask to latest version
+- Clear browser cache
+- Try manual addition instead of automatic
+- Check RPC URL is exactly: `https://rpc.testnet.nexis.network`
+- Verify Chain ID is exactly: `84532`
+  </Accordion>
+
+  <Accordion title="Bridge stuck pending" icon="bridge">
+**Problem:** Bridge transaction not completing.
+
+**Investigation:**
+```bash
+# Check transaction on Base Sepolia
+https://sepolia.basescan.org/tx/YOUR_TX_HASH
+
+# Check if it arrived on Nexis
+https://explorer.testnet.nexis.network/address/YOUR_ADDRESS
+```
+
+**Common causes:**
+- Insufficient gas on source chain
+- Network congestion (wait 10-15 minutes)
+- Wrong destination address
+- Bridge contract paused (check Discord)
+  </Accordion>
+
+  <Accordion title="RPC not responding" icon="server">
+**Problem:** Cannot connect to Nexis RPC.
+
+**Test connectivity:**
+```bash
+# Test main RPC
+curl -i https://rpc.testnet.nexis.network
+
+# Try backup RPC
+curl -i https://rpc-backup.testnet.nexis.network
+```
+
+**Solutions:**
+- Check your internet connection
+- Try backup RPC URL
+- Wait if network is upgrading (announced in Discord)
+- Use VPN if region-blocked
+  </Accordion>
+</AccordionGroup>
+
+## Need More Tokens?
+
+If you've exhausted faucet limits and need more tokens for testing:
+
+<CardGroup cols={2}>
+  <Card title="Discord Community" icon="discord">
+    Ask in #faucet-requests with your use case
+    - Active developers get priority
+    - Explain what you're building
+  </Card>
+
+  <Card title="Developer Grant" icon="gift">
+    Apply for developer grant program
+    - Receive 1,000+ NZT
+    - For serious projects
+    - Submit proposal in Discord
+  </Card>
+
+  <Card title="GitHub Issues" icon="github">
+    Report faucet issues
+    - Technical problems
+    - Rate limit issues
+    - API bugs
+  </Card>
+
+  <Card title="Twitter Campaigns" icon="twitter">
+    Follow [@nexis_network](https://twitter.com/nexis_network)
+    - Occasional token giveaways
+    - Developer spotlights
+    - Build in public rewards
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Deploy a Contract" icon="file-contract" href="/tutorials/deploy-contract">
+    Use your testnet NZT to deploy smart contracts
+  </Card>
+  <Card title="Register an Agent" icon="robot" href="/tutorials/register-agent">
+    Stake NZT and become an AI agent
+  </Card>
+  <Card title="Create Tasks" icon="list-check" href="/tutorials/create-task">
+    Post AI inference tasks with rewards
+  </Card>
+  <Card title="Developer Guide" icon="code" href="/developers/overview">
+    Start building on Nexis
+  </Card>
+</CardGroup>
+
+---
+
+<Tip>
+**Save this page!** You'll need to use the faucet regularly during development. Bookmark for quick access.
+</Tip>

@@ -1,0 +1,781 @@
+---
+title: 'Deploy Your First Smart Contract'
+description: 'Complete guide to deploying and verifying smart contracts on Nexis Appchain using Hardhat and Foundry'
+---
+
+# Deploy Your First Smart Contract on Nexis
+
+This comprehensive tutorial walks you through deploying a smart contract on Nexis Appchain from start to finish. You'll learn how to set up your development environment, write a contract, deploy it to the testnet, and verify it on the block explorer.
+
+## Prerequisites
+
+Before starting this tutorial, ensure you have:
+
+<CardGroup cols={2}>
+  <Card title="Node.js v16+" icon="node-js">
+    Download from [nodejs.org](https://nodejs.org)
+  </Card>
+  <Card title="MetaMask Wallet" icon="wallet">
+    Install from [metamask.io](https://metamask.io)
+  </Card>
+  <Card title="Testnet NZT" icon="coins">
+    Get tokens from the [faucet](/tutorials/use-faucet)
+  </Card>
+  <Card title="Code Editor" icon="code">
+    VS Code, Sublime, or your preferred editor
+  </Card>
+</CardGroup>
+
+<Warning>
+**Important:** Never share your private keys or commit them to version control. Always use environment variables for sensitive data.
+</Warning>
+
+## Part 1: Network Setup
+
+### Step 1: Add Nexis Network to MetaMask
+
+First, configure your wallet to connect to Nexis Appchain Testnet.
+
+<Tabs>
+  <Tab title="Manual Configuration">
+Open MetaMask and navigate to **Settings → Networks → Add Network**. Enter these parameters:
+
+| Field | Value |
+|-------|-------|
+| **Network Name** | Nexis Appchain Testnet |
+| **RPC URL** | `https://rpc.testnet.nexis.network` |
+| **Chain ID** | `84532` |
+| **Currency Symbol** | NZT |
+| **Block Explorer** | `https://explorer.testnet.nexis.network` |
+
+Click "Save" to add the network.
+  </Tab>
+
+  <Tab title="Programmatic Addition">
+Create an HTML file or add this to your dApp to automatically add the network:
+
+```javascript
+async function addNexisNetwork() {
+  try {
+    await window.ethereum.request({
+      method: 'wallet_addEthereumChain',
+      params: [{
+        chainId: '0x14A34', // 84532 in hexadecimal
+        chainName: 'Nexis Appchain Testnet',
+        nativeCurrency: {
+          name: 'Nexis',
+          symbol: 'NZT',
+          decimals: 18
+        },
+        rpcUrls: ['https://rpc.testnet.nexis.network'],
+        blockExplorerUrls: ['https://explorer.testnet.nexis.network']
+      }]
+    });
+    console.log('Network added successfully!');
+  } catch (error) {
+    if (error.code === 4902) {
+      console.log('Please add Nexis network to MetaMask manually');
+    }
+    console.error('Error:', error);
+  }
+}
+
+// Call the function
+addNexisNetwork();
+```
+  </Tab>
+</Tabs>
+
+### Step 2: Verify Network Connection
+
+Test your RPC connection:
+
+```bash
+# Check if RPC is responding
+curl https://rpc.testnet.nexis.network \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+
+# Expected output:
+# {"jsonrpc":"2.0","id":1,"result":"0x1a2b3c"}
+```
+
+<Check>
+**Success!** If you see a hex result, your RPC connection is working correctly.
+</Check>
+
+## Part 2: Project Setup with Hardhat
+
+### Step 1: Initialize a New Project
+
+Create a new directory and initialize your project:
+
+```bash
+# Create project directory
+mkdir nexis-contract-demo
+cd nexis-contract-demo
+
+# Initialize npm project
+npm init -y
+
+# Install Hardhat and dependencies
+npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+npm install @openzeppelin/contracts dotenv
+```
+
+### Step 2: Initialize Hardhat
+
+Run the Hardhat initialization wizard:
+
+```bash
+npx hardhat init
+```
+
+Select these options:
+- **What do you want to do?** → Create a JavaScript project
+- **Hardhat project root** → Press Enter (use current directory)
+- **Add a .gitignore?** → Yes
+- **Install dependencies?** → Yes
+
+<Note>
+Hardhat will create a basic project structure with sample contracts, tests, and scripts.
+</Note>
+
+### Step 3: Configure Hardhat for Nexis
+
+Edit `hardhat.config.js` to add Nexis network configuration:
+
+```javascript hardhat.config.js
+require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config();
+
+/** @type import('hardhat/config').HardhatUserConfig */
+module.exports = {
+  solidity: {
+    version: "0.8.20",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200
+      }
+    }
+  },
+  networks: {
+    // Nexis Testnet
+    nexis: {
+      url: process.env.NEXIS_RPC_URL || "https://rpc.testnet.nexis.network",
+      chainId: 84532,
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      gasPrice: 1000000000, // 1 gwei
+    },
+    // For local testing
+    localhost: {
+      url: "http://127.0.0.1:8545"
+    }
+  },
+  etherscan: {
+    apiKey: {
+      nexis: "no-api-key-needed" // Nexis doesn't require API key for verification
+    },
+    customChains: [
+      {
+        network: "nexis",
+        chainId: 84532,
+        urls: {
+          apiURL: "https://explorer.testnet.nexis.network/api",
+          browserURL: "https://explorer.testnet.nexis.network"
+        }
+      }
+    ]
+  },
+  paths: {
+    sources: "./contracts",
+    tests: "./test",
+    cache: "./cache",
+    artifacts: "./artifacts"
+  }
+};
+```
+
+### Step 4: Create Environment Variables
+
+Create a `.env` file in your project root:
+
+```bash .env
+# Your MetaMask private key (keep this secret!)
+PRIVATE_KEY=your_private_key_here
+
+# RPC URL (optional, uses default if not set)
+NEXIS_RPC_URL=https://rpc.testnet.nexis.network
+```
+
+<Warning>
+**Security Best Practice:** Add `.env` to your `.gitignore` file to prevent committing secrets:
+
+```bash
+echo ".env" >> .gitignore
+```
+</Warning>
+
+### Step 5: Get Your Private Key
+
+To export your private key from MetaMask:
+
+1. Open MetaMask
+2. Click the three dots menu
+3. Select **Account details**
+4. Click **Show private key**
+5. Enter your MetaMask password
+6. Copy the private key and paste it in your `.env` file
+
+## Part 3: Write Your Smart Contract
+
+### Step 1: Create the Contract File
+
+Create a new file `contracts/AITaskRequester.sol`:
+
+```solidity contracts/AITaskRequester.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+/**
+ * @title AITaskRequester
+ * @dev A contract that creates AI inference tasks on Nexis Appchain
+ */
+contract AITaskRequester is Ownable, ReentrancyGuard {
+    // Interface for Nexis Tasks contract
+    interface ITasks {
+        function createTask(
+            string calldata description,
+            uint256 reward,
+            uint256 deadline,
+            bytes calldata requirements
+        ) external payable returns (uint256 taskId);
+
+        function getTaskStatus(uint256 taskId)
+            external
+            view
+            returns (uint8 status, address agent, bytes32 resultHash);
+    }
+
+    // Events
+    event TaskCreated(
+        uint256 indexed taskId,
+        address indexed requester,
+        string description,
+        uint256 reward,
+        uint256 deadline
+    );
+
+    event TaskCompleted(
+        uint256 indexed taskId,
+        address indexed agent,
+        bytes32 resultHash
+    );
+
+    // State variables
+    ITasks public immutable tasksContract;
+    mapping(uint256 => address) public taskRequesters;
+    mapping(address => uint256[]) public userTasks;
+    uint256 public totalTasksCreated;
+
+    /**
+     * @dev Constructor sets the Tasks contract address
+     * @param _tasksContract Address of the Nexis Tasks.sol contract
+     */
+    constructor(address _tasksContract) {
+        require(_tasksContract != address(0), "Invalid tasks contract");
+        tasksContract = ITasks(_tasksContract);
+    }
+
+    /**
+     * @dev Request an AI inference by creating a task
+     * @param prompt The input prompt for the AI
+     * @param reward Amount to reward the agent (in wei)
+     * @param duration How long until task deadline (in seconds)
+     * @param modelRequirements Encoded requirements (model, parameters, etc.)
+     * @return taskId The ID of the created task
+     */
+    function requestInference(
+        string calldata prompt,
+        uint256 reward,
+        uint256 duration,
+        bytes calldata modelRequirements
+    ) external payable nonReentrant returns (uint256) {
+        require(bytes(prompt).length > 0, "Empty prompt");
+        require(bytes(prompt).length <= 5000, "Prompt too long");
+        require(reward > 0, "Zero reward");
+        require(msg.value >= reward, "Insufficient payment");
+        require(duration >= 300 && duration <= 86400, "Invalid duration");
+
+        // Calculate deadline
+        uint256 deadline = block.timestamp + duration;
+
+        // Create task on Nexis
+        uint256 taskId = tasksContract.createTask{value: reward}(
+            prompt,
+            reward,
+            deadline,
+            modelRequirements
+        );
+
+        // Track the task
+        taskRequesters[taskId] = msg.sender;
+        userTasks[msg.sender].push(taskId);
+        totalTasksCreated++;
+
+        emit TaskCreated(taskId, msg.sender, prompt, reward, deadline);
+
+        // Refund excess payment
+        if (msg.value > reward) {
+            payable(msg.sender).transfer(msg.value - reward);
+        }
+
+        return taskId;
+    }
+
+    /**
+     * @dev Get tasks created by a user
+     * @param user Address of the user
+     * @return Array of task IDs
+     */
+    function getUserTasks(address user) external view returns (uint256[] memory) {
+        return userTasks[user];
+    }
+
+    /**
+     * @dev Check if a task is complete
+     * @param taskId The task ID to check
+     * @return completed True if task is completed
+     * @return agent Address of agent who completed it
+     * @return resultHash Hash of the result
+     */
+    function checkTaskStatus(uint256 taskId)
+        external
+        view
+        returns (bool completed, address agent, bytes32 resultHash)
+    {
+        (uint8 status, address taskAgent, bytes32 hash) = tasksContract.getTaskStatus(taskId);
+
+        // Status: 0=Open, 1=Claimed, 2=Completed, 3=Disputed, 4=Resolved
+        completed = (status == 2 || status == 4);
+        agent = taskAgent;
+        resultHash = hash;
+    }
+
+    /**
+     * @dev Emergency withdraw function (only owner)
+     */
+    function emergencyWithdraw() external onlyOwner {
+        payable(owner()).transfer(address(this).balance);
+    }
+
+    /**
+     * @dev Allow contract to receive ETH
+     */
+    receive() external payable {}
+}
+```
+
+<Note>
+This contract demonstrates best practices:
+- Uses OpenZeppelin's secure contracts
+- Implements proper access control
+- Includes reentrancy protection
+- Has comprehensive error handling
+- Emits events for tracking
+- Includes detailed NatSpec documentation
+</Note>
+
+### Step 2: Compile the Contract
+
+Compile your contract to check for errors:
+
+```bash
+npx hardhat compile
+```
+
+**Expected output:**
+```
+Compiled 1 Solidity file successfully
+```
+
+If you see compilation errors, check:
+- Solidity version matches your config
+- All imports are correctly installed
+- No syntax errors in the code
+
+## Part 4: Deploy to Nexis Testnet
+
+### Step 1: Create Deployment Script
+
+Create `scripts/deploy.js`:
+
+```javascript scripts/deploy.js
+const hre = require("hardhat");
+
+async function main() {
+  console.log("Deploying AITaskRequester to Nexis Appchain...");
+
+  // Address of Tasks.sol on Nexis Testnet
+  const TASKS_CONTRACT = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb";
+
+  // Get the deployer account
+  const [deployer] = await hre.ethers.getSigners();
+  const balance = await hre.ethers.provider.getBalance(deployer.address);
+
+  console.log("Deploying with account:", deployer.address);
+  console.log("Account balance:", hre.ethers.formatEther(balance), "NZT");
+
+  // Check if we have enough balance
+  if (balance < hre.ethers.parseEther("0.01")) {
+    throw new Error("Insufficient balance. Get testnet NZT from the faucet.");
+  }
+
+  // Deploy the contract
+  const AITaskRequester = await hre.ethers.getContractFactory("AITaskRequester");
+  const contract = await AITaskRequester.deploy(TASKS_CONTRACT);
+
+  await contract.waitForDeployment();
+
+  const contractAddress = await contract.getAddress();
+  console.log("✅ AITaskRequester deployed to:", contractAddress);
+
+  // Wait for a few blocks before verification
+  console.log("Waiting for 5 block confirmations...");
+  await contract.deploymentTransaction().wait(5);
+
+  console.log("\nDeployment Summary:");
+  console.log("===================");
+  console.log("Contract Address:", contractAddress);
+  console.log("Deployer:", deployer.address);
+  console.log("Tasks Contract:", TASKS_CONTRACT);
+  console.log("Network:", hre.network.name);
+  console.log("Chain ID:", (await hre.ethers.provider.getNetwork()).chainId.toString());
+
+  console.log("\n📝 To verify on explorer, run:");
+  console.log(`npx hardhat verify --network nexis ${contractAddress} ${TASKS_CONTRACT}`);
+
+  console.log("\n🔗 View on explorer:");
+  console.log(`https://explorer.testnet.nexis.network/address/${contractAddress}`);
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error("❌ Deployment failed:", error);
+    process.exit(1);
+  });
+```
+
+### Step 2: Deploy the Contract
+
+Run the deployment script:
+
+```bash
+npx hardhat run scripts/deploy.js --network nexis
+```
+
+<Note>
+**Deployment typically takes 5-15 seconds** on Nexis due to 2-second block times.
+</Note>
+
+**Expected output:**
+```
+Deploying AITaskRequester to Nexis Appchain...
+Deploying with account: 0x1234...5678
+Account balance: 10.5 NZT
+✅ AITaskRequester deployed to: 0xAbC1...23dE
+Waiting for 5 block confirmations...
+
+Deployment Summary:
+===================
+Contract Address: 0xAbC1...23dE
+Deployer: 0x1234...5678
+Tasks Contract: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
+Network: nexis
+Chain ID: 84532
+```
+
+<Check>
+**Congratulations!** Your contract is now deployed on Nexis Appchain.
+</Check>
+
+### Step 3: Verify the Contract
+
+Verify your contract on the block explorer:
+
+```bash
+npx hardhat verify --network nexis DEPLOYED_ADDRESS "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+```
+
+Replace `DEPLOYED_ADDRESS` with your actual contract address.
+
+**Expected output:**
+```
+Successfully verified contract AITaskRequester on Nexis Explorer.
+https://explorer.testnet.nexis.network/address/0xAbC1...23dE#code
+```
+
+## Part 5: Deploy with Foundry (Alternative)
+
+If you prefer Foundry over Hardhat, follow these steps:
+
+### Step 1: Install Foundry
+
+```bash
+# Install Foundry
+curl -L https://foundry.paradigm.xyz | bash
+
+# Update to latest version
+foundryup
+```
+
+### Step 2: Create Foundry Project
+
+```bash
+# Initialize project
+forge init nexis-foundry-demo
+cd nexis-foundry-demo
+
+# Install dependencies
+forge install OpenZeppelin/openzeppelin-contracts
+```
+
+### Step 3: Configure Foundry
+
+Edit `foundry.toml`:
+
+```toml foundry.toml
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.20"
+optimizer = true
+optimizer_runs = 200
+
+[rpc_endpoints]
+nexis = "https://rpc.testnet.nexis.network"
+
+[etherscan]
+nexis = { key = "no-api-key-needed", url = "https://explorer.testnet.nexis.network/api" }
+```
+
+### Step 4: Create Contract
+
+Move your contract to `src/AITaskRequester.sol` (use the same code as above).
+
+### Step 5: Deploy with Forge
+
+```bash
+# Set your private key
+export PRIVATE_KEY=your_private_key_here
+
+# Deploy
+forge create src/AITaskRequester.sol:AITaskRequester \
+  --rpc-url nexis \
+  --private-key $PRIVATE_KEY \
+  --constructor-args 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb \
+  --verify
+
+# Or use a script for more control
+forge script script/Deploy.s.sol:DeployScript \
+  --rpc-url nexis \
+  --private-key $PRIVATE_KEY \
+  --broadcast \
+  --verify
+```
+
+## Part 6: Testing Your Deployment
+
+### Step 1: Interact via Hardhat Console
+
+Test your deployed contract:
+
+```bash
+npx hardhat console --network nexis
+```
+
+In the console:
+
+```javascript
+// Get contract instance
+const AITaskRequester = await ethers.getContractFactory("AITaskRequester");
+const contract = await AITaskRequester.attach("YOUR_CONTRACT_ADDRESS");
+
+// Check tasks contract address
+const tasksAddress = await contract.tasksContract();
+console.log("Tasks contract:", tasksAddress);
+
+// Create a test task
+const tx = await contract.requestInference(
+  "Explain quantum computing in simple terms",
+  ethers.parseEther("0.1"), // 0.1 NZT reward
+  3600, // 1 hour deadline
+  ethers.AbiCoder.defaultAbiCoder().encode(
+    ['string', 'uint256'],
+    ['gpt-4', 1000] // model and max tokens
+  ),
+  { value: ethers.parseEther("0.1") }
+);
+
+await tx.wait();
+console.log("Task created! Tx:", tx.hash);
+```
+
+### Step 2: View on Block Explorer
+
+Visit the explorer to see your contract:
+
+```
+https://explorer.testnet.nexis.network/address/YOUR_CONTRACT_ADDRESS
+```
+
+You should see:
+- Contract code (if verified)
+- Recent transactions
+- Events emitted
+- Current balance
+
+## Troubleshooting Common Issues
+
+<AccordionGroup>
+  <Accordion title="Error: Insufficient funds" icon="circle-xmark">
+**Problem:** Your account doesn't have enough NZT for gas fees.
+
+**Solution:**
+1. Visit the [faucet](/tutorials/use-faucet)
+2. Request testnet NZT
+3. Wait for transaction to confirm
+4. Check balance: `await ethers.provider.getBalance(YOUR_ADDRESS)`
+  </Accordion>
+
+  <Accordion title="Error: Nonce too high" icon="hashtag">
+**Problem:** Your local nonce is out of sync with the network.
+
+**Solution:**
+```bash
+# Reset Hardhat cache
+rm -rf cache artifacts
+
+# Or specify nonce manually
+await contract.deploy({
+  nonce: await ethers.provider.getTransactionCount(deployer.address)
+})
+```
+  </Accordion>
+
+  <Accordion title="Error: Contract verification failed" icon="shield-xmark">
+**Problem:** Verification on explorer is failing.
+
+**Solution:**
+1. Wait 1-2 minutes after deployment
+2. Make sure constructor arguments are correct
+3. Check Solidity version matches (0.8.20)
+4. Try manual verification on explorer UI
+  </Accordion>
+
+  <Accordion title="Error: Invalid JSON RPC response" icon="network-wired">
+**Problem:** Cannot connect to Nexis RPC.
+
+**Solution:**
+```bash
+# Test RPC connectivity
+curl https://rpc.testnet.nexis.network \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"net_version","params":[],"id":1}'
+
+# Try alternative RPC if main is down
+url: "https://rpc-backup.testnet.nexis.network"
+```
+  </Accordion>
+
+  <Accordion title="Gas estimation failed" icon="gas-pump">
+**Problem:** Transaction gas estimation is failing.
+
+**Solution:**
+```javascript
+// Specify gas limit manually
+await contract.deploy({
+  gasLimit: 5000000
+});
+
+// Or increase gas price
+await contract.deploy({
+  gasPrice: ethers.parseUnits("2", "gwei")
+});
+```
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices Checklist
+
+<Steps>
+  <Step title="Security">
+    - Never commit private keys to git
+    - Use environment variables for secrets
+    - Add `.env` to `.gitignore`
+    - Test on testnet before mainnet
+    - Get contracts audited for production
+  </Step>
+
+  <Step title="Gas Optimization">
+    - Enable Solidity optimizer
+    - Use `immutable` for constants set in constructor
+    - Batch operations when possible
+    - Emit events instead of storing strings
+    - Use `calldata` instead of `memory` for external function parameters
+  </Step>
+
+  <Step title="Testing">
+    - Write comprehensive unit tests
+    - Test edge cases and error conditions
+    - Use Hardhat's local network for rapid testing
+    - Test with actual testnet before production
+    - Monitor gas usage in tests
+  </Step>
+
+  <Step title="Documentation">
+    - Add NatSpec comments to all functions
+    - Document constructor parameters
+    - Explain complex logic
+    - Keep README up to date
+    - Document deployment process
+  </Step>
+</Steps>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Register an AI Agent" icon="robot" href="/tutorials/register-agent">
+    Learn how to register and stake an agent to claim tasks
+  </Card>
+  <Card title="Create Tasks" icon="list-check" href="/tutorials/create-task">
+    Post AI inference tasks for agents to complete
+  </Card>
+  <Card title="Integrate AI Services" icon="brain" href="/tutorials/integrate-ai">
+    Connect your AI models to Nexis for verifiable inference
+  </Card>
+  <Card title="Smart Contract Reference" icon="book" href="/contracts/tasks">
+    Explore all available contract methods
+  </Card>
+</CardGroup>
+
+## Additional Resources
+
+- [Hardhat Documentation](https://hardhat.org/docs)
+- [Foundry Book](https://book.getfoundry.sh/)
+- [OpenZeppelin Contracts](https://docs.openzeppelin.com/contracts)
+- [Nexis GitHub Examples](https://github.com/nexis-network/nexis-base-appchain/tree/main/examples)
+
+---
+
+<Tip>
+**Pro Tip:** Save your deployment addresses in a `deployments.json` file to track contracts across networks. This makes it easier to interact with them later.
+</Tip>
