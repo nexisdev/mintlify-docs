@@ -1,0 +1,701 @@
+---
+title: 'Use Cases'
+description: 'Real-world applications powered by Nexis Appchain - from decentralized AI APIs to autonomous task automation'
+---
+
+# Use Cases for Nexis Appchain
+
+Nexis Appchain enables a new generation of decentralized AI applications by combining verifiable inference, economic incentives, and autonomous agent coordination. Here are the key use cases transforming how AI services are built and consumed.
+
+## Decentralized AI API Infrastructure
+
+### The Problem
+Traditional AI APIs are centralized, opaque, and require blind trust in providers. Users cannot verify that the claimed model was actually used, outputs haven't been tampered with, or that their data remains private.
+
+### The Nexis Solution
+Build verifiable AI APIs where every inference is backed by cryptographic proofs committed on-chain.
+
+<CardGroup cols={2}>
+  <Card title="Proof-of-Inference" icon="shield-check">
+    Cryptographic commitments (inputHash, outputHash, modelHash) prove the integrity of each inference
+  </Card>
+  <Card title="Economic Guarantees" icon="lock">
+    Agents stake collateral that gets slashed for malicious behavior or false attestations
+  </Card>
+  <Card title="Reputation System" icon="star">
+    Multi-dimensional scoring (reliability, accuracy, performance) guides user selection
+  </Card>
+  <Card title="Dispute Resolution" icon="gavel">
+    Governance-managed challenge system for contested inferences
+  </Card>
+</CardGroup>
+
+### Example Implementation
+
+```javascript Verifiable AI API Server
+const express = require('express');
+const { ethers } = require('ethers');
+const OpenAI = require('openai');
+
+const app = express();
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// Nexis contracts
+const tasksContract = new ethers.Contract(TASKS_ADDRESS, TASKS_ABI, signer);
+
+app.post('/api/v1/inference', async (req, res) => {
+  const { prompt, model, taskId } = req.body;
+
+  try {
+    // Run inference
+    const response = await openai.chat.completions.create({
+      model: model || 'gpt-4',
+      messages: [{ role: 'user', content: prompt }]
+    });
+
+    const output = response.choices[0].message.content;
+
+    // Generate cryptographic commitments
+    const inputHash = ethers.keccak256(ethers.toUtf8Bytes(prompt));
+    const outputHash = ethers.keccak256(ethers.toUtf8Bytes(output));
+    const modelHash = ethers.keccak256(ethers.toUtf8Bytes(model));
+
+    // Submit proof on-chain
+    const proof = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['string', 'string', 'string', 'uint256'],
+      [prompt, output, model, Date.now()]
+    );
+
+    const tx = await tasksContract.submitProof(
+      taskId,
+      inputHash,
+      outputHash,
+      modelHash,
+      proof
+    );
+
+    // Return response with proof
+    res.json({
+      output,
+      proof: {
+        txHash: tx.hash,
+        inputHash,
+        outputHash,
+        modelHash,
+        timestamp: Date.now()
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.listen(3000, () => console.log('Verifiable AI API running on port 3000'));
+```
+
+### Real-World Applications
+- **Financial Analysis**: Verifiable market predictions and risk assessments
+- **Medical Diagnostics**: Provable AI recommendations for healthcare
+- **Legal Research**: Auditable document analysis and contract review
+- **Content Moderation**: Transparent AI decisions with proof of consistency
+
+---
+
+## Autonomous Task Automation
+
+### The Problem
+Existing automation platforms require centralized orchestration, lack transparency in execution, and don't provide economic guarantees for task completion.
+
+### The Nexis Solution
+Create autonomous agents that discover, claim, and execute tasks with on-chain proof of completion and automated payment distribution.
+
+### Architecture
+
+```mermaid
+graph LR
+    A[Task Creator] -->|Posts Task| B[Tasks.sol]
+    B -->|Event Emission| C[Agent Network]
+    C -->|Claims Task| B
+    C -->|Executes Off-Chain| D[External Services]
+    D -->|Results| C
+    C -->|Submits Proof| B
+    B -->|Validates & Pays| C
+    B -->|Completion Event| A
+```
+
+### Example: Automated Data Pipeline
+
+```solidity Smart Contract: Data Pipeline Manager
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+interface ITasks {
+    function createTask(
+        string calldata description,
+        uint256 reward,
+        uint256 deadline,
+        bytes calldata requirements
+    ) external payable returns (uint256);
+}
+
+contract DataPipelineManager {
+    ITasks public tasks;
+
+    struct Pipeline {
+        string source;
+        string transformation;
+        string destination;
+        uint256 frequency; // seconds
+        uint256 lastRun;
+        bool active;
+    }
+
+    mapping(uint256 => Pipeline) public pipelines;
+    uint256 public pipelineCount;
+
+    event PipelineCreated(uint256 indexed pipelineId, string source, uint256 frequency);
+    event PipelineExecuted(uint256 indexed pipelineId, uint256 taskId);
+
+    constructor(address _tasks) {
+        tasks = ITasks(_tasks);
+    }
+
+    function createPipeline(
+        string calldata source,
+        string calldata transformation,
+        string calldata destination,
+        uint256 frequency
+    ) external returns (uint256) {
+        uint256 pipelineId = pipelineCount++;
+        pipelines[pipelineId] = Pipeline({
+            source: source,
+            transformation: transformation,
+            destination: destination,
+            frequency: frequency,
+            lastRun: block.timestamp,
+            active: true
+        });
+
+        emit PipelineCreated(pipelineId, source, frequency);
+        return pipelineId;
+    }
+
+    function triggerPipeline(uint256 pipelineId, uint256 reward) external payable {
+        Pipeline storage pipeline = pipelines[pipelineId];
+        require(pipeline.active, "Pipeline inactive");
+        require(block.timestamp >= pipeline.lastRun + pipeline.frequency, "Too soon");
+
+        // Create task for agents to execute
+        bytes memory requirements = abi.encode(
+            pipeline.source,
+            pipeline.transformation,
+            pipeline.destination
+        );
+
+        uint256 taskId = tasks.createTask{value: reward}(
+            string(abi.encodePacked("Execute pipeline #", pipelineId)),
+            reward,
+            block.timestamp + 1 hours,
+            requirements
+        );
+
+        pipeline.lastRun = block.timestamp;
+        emit PipelineExecuted(pipelineId, taskId);
+    }
+}
+```
+
+### Use Cases
+- **DeFi Automation**: Automated yield farming, rebalancing, and arbitrage
+- **Data Aggregation**: Periodic collection and transformation of off-chain data
+- **Social Media Management**: Scheduled posts, analytics, and engagement tracking
+- **DevOps Tasks**: Automated deployments, monitoring, and incident response
+
+---
+
+## Verifiable Inference Services
+
+### The Problem
+AI model outputs are non-deterministic and difficult to verify. Users need proof that specific models generated specific outputs for specific inputs.
+
+### The Nexis Solution
+Proof-of-inference protocol that creates verifiable, tamper-proof records of AI computations.
+
+### How It Works
+
+<Steps>
+  <Step title="Input Commitment">
+    Agent generates `inputHash = keccak256(userPrompt)` before inference
+  </Step>
+  <Step title="Model Execution">
+    Agent runs inference using the committed model (e.g., GPT-4)
+  </Step>
+  <Step title="Output Commitment">
+    Agent generates `outputHash = keccak256(modelOutput)` and `modelHash = keccak256(modelIdentifier)`
+  </Step>
+  <Step title="On-Chain Proof">
+    All three hashes are submitted on-chain with a cryptographic proof
+  </Step>
+  <Step title="Verification">
+    Anyone can verify the proof by hashing the claimed inputs/outputs and comparing
+  </Step>
+  <Step title="Attestation">
+    Other agents or validators can attest to the proof's validity
+  </Step>
+</Steps>
+
+### Example: Content Generation Platform
+
+```typescript Verifiable Content Generator
+import { ethers } from 'ethers';
+import Anthropic from '@anthropic-ai/sdk';
+
+class VerifiableContentGenerator {
+  private anthropic: Anthropic;
+  private tasksContract: ethers.Contract;
+  private signer: ethers.Wallet;
+
+  constructor(apiKey: string, contractAddress: string, privateKey: string) {
+    this.anthropic = new Anthropic({ apiKey });
+    const provider = new ethers.JsonRpcProvider(RPC_URL);
+    this.signer = new ethers.Wallet(privateKey, provider);
+    this.tasksContract = new ethers.Contract(contractAddress, TASKS_ABI, this.signer);
+  }
+
+  async generateContent(prompt: string, taskId: number): Promise<{
+    content: string;
+    proof: {
+      inputHash: string;
+      outputHash: string;
+      modelHash: string;
+      txHash: string;
+    }
+  }> {
+    // Generate input hash before inference
+    const inputHash = ethers.keccak256(ethers.toUtf8Bytes(prompt));
+    console.log('Input committed:', inputHash);
+
+    // Run inference with Claude
+    const message = await this.anthropic.messages.create({
+      model: 'claude-3-sonnet-20240229',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }]
+    });
+
+    const content = message.content[0].text;
+
+    // Generate output and model hashes
+    const outputHash = ethers.keccak256(ethers.toUtf8Bytes(content));
+    const modelHash = ethers.keccak256(ethers.toUtf8Bytes('claude-3-sonnet-20240229'));
+
+    // Create proof bundle
+    const proof = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['string', 'string', 'string', 'uint256', 'bytes32'],
+      [prompt, content, 'claude-3-sonnet-20240229', Date.now(), inputHash]
+    );
+
+    // Submit on-chain
+    const tx = await this.tasksContract.submitProof(
+      taskId,
+      inputHash,
+      outputHash,
+      modelHash,
+      proof
+    );
+
+    await tx.wait();
+
+    return {
+      content,
+      proof: {
+        inputHash,
+        outputHash,
+        modelHash,
+        txHash: tx.hash
+      }
+    };
+  }
+
+  async verifyContent(
+    prompt: string,
+    content: string,
+    model: string,
+    proof: { inputHash: string; outputHash: string; modelHash: string }
+  ): Promise<boolean> {
+    const computedInputHash = ethers.keccak256(ethers.toUtf8Bytes(prompt));
+    const computedOutputHash = ethers.keccak256(ethers.toUtf8Bytes(content));
+    const computedModelHash = ethers.keccak256(ethers.toUtf8Bytes(model));
+
+    return (
+      computedInputHash === proof.inputHash &&
+      computedOutputHash === proof.outputHash &&
+      computedModelHash === proof.modelHash
+    );
+  }
+}
+
+// Usage
+const generator = new VerifiableContentGenerator(
+  process.env.ANTHROPIC_API_KEY,
+  TASKS_CONTRACT_ADDRESS,
+  process.env.PRIVATE_KEY
+);
+
+const result = await generator.generateContent(
+  'Write a blog post about decentralized AI',
+  12345
+);
+
+console.log('Content:', result.content);
+console.log('Proof:', result.proof);
+
+// Later: verify the content
+const isValid = await generator.verifyContent(
+  'Write a blog post about decentralized AI',
+  result.content,
+  'claude-3-sonnet-20240229',
+  result.proof
+);
+```
+
+### Applications
+- **Academic Publishing**: Verifiable AI-assisted research
+- **Legal Documents**: Provable AI-generated contracts and briefs
+- **Journalism**: Transparent AI fact-checking and content generation
+- **Software Development**: Verifiable AI code generation and review
+
+---
+
+## AI Model Marketplaces
+
+### The Problem
+AI models are typically locked behind closed APIs. No open marketplace exists for model providers to monetize their work with transparent economics and quality guarantees.
+
+### The Nexis Solution
+Decentralized marketplace where model providers stake collateral, users pay per inference, and reputation determines pricing power.
+
+### Market Dynamics
+
+| Participant | Role | Incentives |
+|------------|------|-----------|
+| **Model Providers** | Stake NZT, register models, serve inferences | Earn fees, build reputation, increase stake |
+| **Users** | Request inferences, pay fees | Access to diverse models, verifiable results |
+| **Validators** | Attest to proof validity | Earn attestation rewards from treasury |
+| **Governance** | Set parameters, resolve disputes | Protocol sustainability, ecosystem growth |
+
+### Example: Model Registry
+
+```solidity Model Marketplace Contract
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+
+contract ModelMarketplace is UUPSUpgradeable, OwnableUpgradeable {
+    struct Model {
+        address provider;
+        string name;
+        string modelHash; // IPFS hash or identifier
+        uint256 pricePerInference;
+        uint256 totalInferences;
+        uint256 totalRevenue;
+        uint256 stakeAmount;
+        uint256 reputationScore;
+        bool active;
+    }
+
+    struct Inference {
+        uint256 modelId;
+        address requester;
+        bytes32 inputHash;
+        bytes32 outputHash;
+        uint256 fee;
+        uint256 timestamp;
+        bool verified;
+    }
+
+    mapping(uint256 => Model) public models;
+    mapping(uint256 => Inference) public inferences;
+    uint256 public modelCount;
+    uint256 public inferenceCount;
+
+    uint256 public constant MIN_STAKE = 1000 ether; // 1000 NZT
+    uint256 public constant PLATFORM_FEE_BPS = 250; // 2.5%
+
+    event ModelRegistered(uint256 indexed modelId, address indexed provider, string name);
+    event InferenceRequested(uint256 indexed inferenceId, uint256 indexed modelId, address requester);
+    event InferenceCompleted(uint256 indexed inferenceId, bytes32 outputHash);
+    event ReputationUpdated(uint256 indexed modelId, uint256 newScore);
+
+    function initialize() public initializer {
+        __Ownable_init(msg.sender);
+        __UUPSUpgradeable_init();
+    }
+
+    function registerModel(
+        string calldata name,
+        string calldata modelHash,
+        uint256 pricePerInference
+    ) external payable returns (uint256) {
+        require(msg.value >= MIN_STAKE, "Insufficient stake");
+        require(pricePerInference > 0, "Invalid price");
+
+        uint256 modelId = modelCount++;
+        models[modelId] = Model({
+            provider: msg.sender,
+            name: name,
+            modelHash: modelHash,
+            pricePerInference: pricePerInference,
+            totalInferences: 0,
+            totalRevenue: 0,
+            stakeAmount: msg.value,
+            reputationScore: 100, // Starting score
+            active: true
+        });
+
+        emit ModelRegistered(modelId, msg.sender, name);
+        return modelId;
+    }
+
+    function requestInference(uint256 modelId, bytes32 inputHash) external payable returns (uint256) {
+        Model storage model = models[modelId];
+        require(model.active, "Model not active");
+        require(msg.value >= model.pricePerInference, "Insufficient payment");
+
+        uint256 inferenceId = inferenceCount++;
+        inferences[inferenceId] = Inference({
+            modelId: modelId,
+            requester: msg.sender,
+            inputHash: inputHash,
+            outputHash: bytes32(0),
+            fee: msg.value,
+            timestamp: block.timestamp,
+            verified: false
+        });
+
+        emit InferenceRequested(inferenceId, modelId, msg.sender);
+        return inferenceId;
+    }
+
+    function submitInference(
+        uint256 inferenceId,
+        bytes32 outputHash,
+        bytes calldata proof
+    ) external {
+        Inference storage inference = inferences[inferenceId];
+        Model storage model = models[inference.modelId];
+
+        require(msg.sender == model.provider, "Not model provider");
+        require(inference.outputHash == bytes32(0), "Already submitted");
+
+        inference.outputHash = outputHash;
+        inference.verified = true;
+
+        // Calculate fees
+        uint256 platformFee = (inference.fee * PLATFORM_FEE_BPS) / 10000;
+        uint256 providerPayout = inference.fee - platformFee;
+
+        // Update model stats
+        model.totalInferences++;
+        model.totalRevenue += providerPayout;
+
+        // Pay provider
+        payable(model.provider).transfer(providerPayout);
+
+        emit InferenceCompleted(inferenceId, outputHash);
+    }
+
+    function updateReputation(uint256 modelId, uint256 newScore) external onlyOwner {
+        require(newScore <= 1000, "Score too high");
+        models[modelId].reputationScore = newScore;
+        emit ReputationUpdated(modelId, newScore);
+    }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+}
+```
+
+### Applications
+- **Specialized Models**: Fine-tuned models for specific industries (legal, medical, finance)
+- **Open Source Models**: Community-run models (LLaMA, Mistral, Falcon)
+- **Proprietary Models**: Commercial models with IP protection
+- **Model Ensembles**: Combined predictions from multiple models
+
+---
+
+## Reputation-Based Agent Selection
+
+### The Problem
+Users need a way to evaluate agent quality beyond simple metrics. Traditional reputation systems are gameable and don't capture multi-dimensional performance.
+
+### The Nexis Solution
+Multi-dimensional reputation system that tracks:
+- **Reliability**: Task completion rate, uptime, response time
+- **Accuracy**: Proof verification success rate, dispute outcomes
+- **Performance**: Inference speed, gas efficiency, cost optimization
+- **Trustworthiness**: Stake amount, time in network, slash history
+
+### Reputation Score Calculation
+
+```solidity Reputation Algorithm
+function calculateReputationScore(address agent) public view returns (uint256) {
+    AgentStats memory stats = agentStats[agent];
+
+    // Reliability (0-250 points)
+    uint256 reliabilityScore = (stats.completedTasks * 250) / (stats.totalTasks + 1);
+
+    // Accuracy (0-250 points)
+    uint256 accuracyScore = (stats.verifiedProofs * 250) / (stats.submittedProofs + 1);
+
+    // Performance (0-250 points)
+    uint256 avgResponseTime = stats.totalResponseTime / (stats.completedTasks + 1);
+    uint256 performanceScore = avgResponseTime < 60 ? 250 : 250 * 60 / avgResponseTime;
+
+    // Trustworthiness (0-250 points)
+    uint256 stakeScore = (stats.stakeAmount * 125) / (1000 ether); // Max at 1000 NZT
+    uint256 timeScore = (block.timestamp - stats.registrationTime) > 30 days ? 125 : 0;
+    uint256 trustScore = stakeScore + timeScore;
+
+    // Apply slash penalty
+    uint256 rawScore = reliabilityScore + accuracyScore + performanceScore + trustScore;
+    uint256 slashPenalty = (rawScore * stats.slashCount * 10) / 100; // -10% per slash
+
+    return rawScore > slashPenalty ? rawScore - slashPenalty : 0;
+}
+```
+
+### Agent Selection Algorithm
+
+```javascript Client-Side Agent Selection
+class AgentSelector {
+  constructor(agentsContract) {
+    this.agentsContract = agentsContract;
+  }
+
+  async findBestAgent(taskRequirements) {
+    // Get all active agents
+    const agents = await this.agentsContract.getActiveAgents();
+
+    // Filter by capabilities
+    const capable = agents.filter(agent =>
+      this.hasCapabilities(agent, taskRequirements)
+    );
+
+    // Score each agent
+    const scored = await Promise.all(capable.map(async agent => {
+      const reputation = await this.agentsContract.getReputation(agent.address);
+      const availability = await this.checkAvailability(agent);
+      const cost = await this.estimateCost(agent, taskRequirements);
+
+      // Weighted scoring
+      const score = (
+        reputation.reliability * 0.3 +
+        reputation.accuracy * 0.4 +
+        reputation.performance * 0.2 +
+        availability * 0.1
+      ) / cost;
+
+      return { agent, score, cost };
+    }));
+
+    // Sort by score descending
+    scored.sort((a, b) => b.score - a.score);
+
+    return scored[0].agent;
+  }
+
+  hasCapabilities(agent, requirements) {
+    const metadata = JSON.parse(agent.metadata);
+    return requirements.every(req =>
+      metadata.capabilities && metadata.capabilities.includes(req)
+    );
+  }
+
+  async checkAvailability(agent) {
+    const pending = await this.agentsContract.getPendingTasks(agent.address);
+    const capacity = JSON.parse(agent.metadata).maxConcurrentTasks || 10;
+    return pending.length < capacity ? 1 : capacity / (pending.length + 1);
+  }
+
+  async estimateCost(agent, requirements) {
+    const basePrice = agent.pricePerTask;
+    const complexity = requirements.estimatedTokens / 1000;
+    return basePrice * complexity;
+  }
+}
+```
+
+---
+
+## Integration Examples
+
+### DeFi Protocol Integration
+
+```solidity Yield Optimizer with AI Agents
+contract AIYieldOptimizer {
+    ITasks public tasks;
+    IAgents public agents;
+
+    function optimizeYield() external returns (uint256 taskId) {
+        // Create task for AI agents to analyze best yields
+        bytes memory requirements = abi.encode(
+            "protocols", ["Aave", "Compound", "Curve"],
+            "amount", address(this).balance,
+            "minAPY", 5e16 // 5%
+        );
+
+        taskId = tasks.createTask{value: 1 ether}(
+            "Optimize yield strategy",
+            0.5 ether,
+            block.timestamp + 30 minutes,
+            requirements
+        );
+    }
+}
+```
+
+### NFT Marketplace with AI Valuation
+
+```solidity AI-Powered NFT Pricing
+contract AINFTMarketplace {
+    function listNFT(uint256 tokenId) external {
+        // Request AI valuation
+        uint256 taskId = tasks.createTask(
+            string(abi.encodePacked("Value NFT #", tokenId)),
+            0.1 ether,
+            block.timestamp + 1 hours,
+            abi.encode("collection", address(this), "tokenId", tokenId)
+        );
+
+        pendingListings[tokenId] = taskId;
+    }
+}
+```
+
+---
+
+## Get Started
+
+Ready to build your use case on Nexis?
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Deploy your first AI agent in 5 minutes
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Explore all available smart contract methods
+  </Card>
+  <Card title="Tutorials" icon="book-open" href="/tutorials/register-agent">
+    Step-by-step guides for common patterns
+  </Card>
+  <Card title="Join Discord" icon="discord" href="https://discord.gg/nexis">
+    Discuss your use case with the community
+  </Card>
+</CardGroup>
+
+---
+
+<Note>
+**Have a unique use case?** We'd love to hear about it! Join our [Discord](https://discord.gg/nexis) and share in the #use-cases channel.
+</Note>

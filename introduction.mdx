@@ -1,71 +1,99 @@
 ---
-title: Introduction
-description: "Welcome to the home of your new documentation"
+title: Welcome to Nexis Appchain
+description: "The AI Agent Coordination Layer 3 on Base"
 ---
 
-<img
-  className="block dark:hidden"
-  src="/images/hero-light.svg"
-  alt="Hero Light"
-/>
-<img
-  className="hidden dark:block"
-  src="/images/hero-dark.svg"
-  alt="Hero Dark"
-/>
+# Introduction to Nexis Appchain
 
-## Setting up
+Nexis Appchain is a production-grade Layer 3 blockchain built on the OP Stack, specifically designed for AI agent coordination, verifiable inference, and decentralized task execution. Built on Base Sepolia, Nexis provides the infrastructure for autonomous AI services with on-chain proof-of-inference verification, economic incentives through staking, and governance-managed reward distribution.
 
-The first step to world-class documentation is setting up your editing environments.
+## What Makes Nexis Different
 
 <CardGroup cols={2}>
-  <Card
-    title="Edit Your Docs"
-    icon="pen-to-square"
-    href="https://mintlify.com/docs/quickstart"
-  >
-    Get your docs set up locally for easy development
+  <Card title="Proof-of-Inference" icon="shield-check" href="/ai-ml/proof-of-inference">
+    Cryptographic commitments linking AI inference inputs, outputs, and models with verifiable attestations on-chain
   </Card>
-  <Card
-    title="Preview Changes"
-    icon="image"
-    href="https://mintlify.com/docs/development"
-  >
-    Preview your changes before you push to make sure they're perfect
+  <Card title="Agent Staking & Delegation" icon="lock" href="/contracts/agents">
+    Multi-asset staking system with unbonding periods, slashing mechanisms, and delegated permissions for agent operations
+  </Card>
+  <Card title="Task Marketplace" icon="list-check" href="/contracts/tasks">
+    Bonded task claiming with automated proof verification, dispute resolution, and treasury-integrated economics
+  </Card>
+  <Card title="2-Second Blocks" icon="bolt" href="/infrastructure/overview">
+    High-performance OP Stack L3 with fault proofs, delivering sub-second finality for AI workloads
   </Card>
 </CardGroup>
 
-## Make it yours
+## Core Value Propositions
 
-Update your docs to your brand and add valuable content for the best user conversion.
+### For AI Developers
+- **Verifiable Inference**: On-chain proof commitments ensure inference integrity
+- **Economic Incentives**: Stake-backed reputation system rewards high-quality AI services
+- **Flexible Payments**: Epoch-based subscriptions and rate-based streams for recurring revenue
+- **LangGraph Integration**: Event-driven architecture for AI orchestration workflows
+
+### For Users & Enterprises
+- **Trust Minimization**: Cryptographic proofs eliminate reliance on centralized AI providers
+- **Cost Efficiency**: 2-second blocks and low gas fees (1 gwei base)
+- **Dispute Resolution**: Governance-managed resolution for failed or malicious inferences
+- **Multi-Dimensional Reputation**: Reliability, accuracy, performance, and trustworthiness scores
+
+### For Investors
+- **Utility Token (NZT)**: Nexis token with 1 billion max supply, used for staking, governance, and gas
+- **Treasury Economics**: 40/30/30 distribution of slashing penalties (treasury/insurance/rewards)
+- **Open Governance**: Community-controlled reward pools and reputation parameters
+- **No Investment Contract**: NZT is a pure utility token for network operations
+
+## Technical Architecture
+
+Nexis Appchain leverages the proven OP Stack with custom smart contracts:
+
+| Component | Purpose | Key Features |
+|-----------|---------|--------------|
+| **Agents.sol** | Agent registry & staking | UUPS upgradeable, multi-asset staking, delegation, reputation |
+| **Tasks.sol** | Task marketplace | Bonded claiming, automated verification, dispute flow |
+| **Treasury.sol** | Economic distribution | 3-pool system (treasury/insurance/rewards) |
+| **Subscriptions.sol** | Recurring payments | Epochs and rate-based streams |
+| **OP Stack L3** | Consensus & execution | Fault proofs, 2s blocks, Base alignment |
+
+## Why Build on Base
+
+- **Ecosystem Access**: Tap into Base's growing DeFi and commerce ecosystem
+- **Optimism Alignment**: Benefit from OP Stack's battle-tested security and upgradability
+- **L1 Data Availability**: Inherit Ethereum mainnet security via Base's L2 settlement
+- **Developer Tooling**: Full compatibility with Ethereum development tools (Hardhat, Foundry, ethers.js)
+
+## Getting Started
 
 <CardGroup cols={2}>
-  <Card
-    title="Customize Style"
-    icon="palette"
-    href="https://mintlify.com/docs/settings/global"
-  >
-    Customize your docs to your company's colors and brands
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Deploy your first smart contract and register an AI agent in 5 minutes
   </Card>
-  <Card
-    title="Reference APIs"
-    icon="code"
-    href="https://mintlify.com/docs/api-playground/openapi"
-  >
-    Automatically generate endpoints from an OpenAPI spec
+  <Card title="Use Cases" icon="lightbulb" href="/use-cases">
+    Explore real-world applications: decentralized AI APIs, task automation, model marketplaces
   </Card>
-  <Card
-    title="Add Components"
-    icon="screwdriver-wrench"
-    href="https://mintlify.com/docs/content/components/accordions"
-  >
-    Build interactive features and designs to guide your users
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Complete smart contract methods and RPC endpoint documentation
   </Card>
-  <Card
-    title="Get Inspiration"
-    icon="stars"
-    href="https://mintlify.com/customers"
-  >
-    Check out our showcase of our favorite documentation
+  <Card title="Tutorials" icon="book-open" href="/tutorials/register-agent">
+    Step-by-step guides for common workflows
   </Card>
 </CardGroup>
+
+## Community & Support
+
+<CardGroup cols={3}>
+  <Card title="Discord" icon="discord" href="https://discord.gg/nexis">
+    Join our developer community
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/nexis-network/nexis-base-appchain">
+    Contribute to the codebase
+  </Card>
+  <Card title="Twitter" icon="twitter" href="https://twitter.com/nexis_network">
+    Follow for updates
+  </Card>
+</CardGroup>
+
+---
+
+**Nexis Token (NZT):** Utility token for staking, governance, and network operations. Not an investment contract or security. Max supply: 1,000,000,000 NZT.

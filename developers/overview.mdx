@@ -1,0 +1,582 @@
+---
+title: 'Developer Overview'
+description: 'Complete guide for developers building on Nexis Appchain - tooling, best practices, and resources'
+---
+
+# Developer Overview
+
+Welcome to the Nexis Appchain developer documentation. This guide covers everything you need to start building decentralized AI applications on Nexis.
+
+## Why Build on Nexis?
+
+<CardGroup cols={2}>
+  <Card title="EVM Compatible" icon="code">
+    Use familiar tools: Hardhat, Foundry, ethers.js, wagmi
+  </Card>
+  <Card title="2-Second Blocks" icon="bolt">
+    Fast transaction finality for responsive AI applications
+  </Card>
+  <Card title="Low Gas Fees" icon="gas-pump">
+    1 gwei base fee - perfect for high-frequency AI operations
+  </Card>
+  <Card title="Built-in AI Primitives" icon="robot">
+    Native support for agents, tasks, and proof-of-inference
+  </Card>
+</CardGroup>
+
+## Development Stack
+
+### Smart Contract Development
+
+<Tabs>
+  <Tab title="Hardhat">
+```bash
+# Install Hardhat
+npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+
+# Initialize project
+npx hardhat init
+
+# Configure for Nexis
+# Edit hardhat.config.js:
+module.exports = {
+  solidity: "0.8.20",
+  networks: {
+    nexis: {
+      url: "https://rpc.testnet.nexis.network",
+      chainId: 84532,
+      accounts: [process.env.PRIVATE_KEY]
+    }
+  }
+};
+
+# Deploy
+npx hardhat run scripts/deploy.js --network nexis
+```
+  </Tab>
+
+  <Tab title="Foundry">
+```bash
+# Install Foundry
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# Create project
+forge init my-project
+cd my-project
+
+# Configure for Nexis
+# Edit foundry.toml:
+[rpc_endpoints]
+nexis = "https://rpc.testnet.nexis.network"
+
+# Deploy
+forge create src/MyContract.sol:MyContract \
+  --rpc-url nexis \
+  --private-key $PRIVATE_KEY
+```
+  </Tab>
+
+  <Tab title="Remix">
+```
+1. Visit https://remix.ethereum.org
+2. Create your contract
+3. Compile with Solidity 0.8.20+
+4. In Deploy tab:
+   - Environment: "Injected Provider - MetaMask"
+   - Switch MetaMask to Nexis network
+   - Deploy
+```
+  </Tab>
+</Tabs>
+
+### Frontend Development
+
+<Tabs>
+  <Tab title="ethers.js">
+```javascript
+import { ethers } from 'ethers';
+
+// Connect to Nexis
+const provider = new ethers.JsonRpcProvider(
+  'https://rpc.testnet.nexis.network'
+);
+
+// Connect wallet
+const signer = await provider.getSigner();
+
+// Interact with contracts
+const contract = new ethers.Contract(
+  contractAddress,
+  contractABI,
+  signer
+);
+
+const tx = await contract.registerAgent(
+  'MyAgent',
+  metadata,
+  [ethers.ZeroAddress],
+  [ethers.parseEther('100')],
+  { value: ethers.parseEther('100') }
+);
+
+await tx.wait();
+```
+  </Tab>
+
+  <Tab title="wagmi">
+```typescript
+import { createConfig, http } from 'wagmi';
+import { nexisTestnet } from './chains';
+
+export const config = createConfig({
+  chains: [nexisTestnet],
+  transports: {
+    [nexisTestnet.id]: http('https://rpc.testnet.nexis.network')
+  }
+});
+
+// Define chain
+export const nexisTestnet = {
+  id: 84532,
+  name: 'Nexis Appchain Testnet',
+  nativeCurrency: { name: 'Nexis', symbol: 'NZT', decimals: 18 },
+  rpcUrls: {
+    default: { http: ['https://rpc.testnet.nexis.network'] }
+  },
+  blockExplorers: {
+    default: { name: 'Nexis Explorer', url: 'https://explorer.testnet.nexis.network' }
+  }
+};
+
+// Use in components
+import { useAccount, useWriteContract } from 'wagmi';
+
+function RegisterAgent() {
+  const { writeContract } = useWriteContract();
+
+  const register = async () => {
+    await writeContract({
+      address: AGENTS_CONTRACT,
+      abi: AGENTS_ABI,
+      functionName: 'registerAgent',
+      args: ['MyAgent', metadata, [zeroAddress], [parseEther('100')]],
+      value: parseEther('100')
+    });
+  };
+}
+```
+  </Tab>
+
+  <Tab title="viem">
+```typescript
+import { createPublicClient, createWalletClient, http } from 'viem';
+import { nexisTestnet } from './chains';
+
+const publicClient = createPublicClient({
+  chain: nexisTestnet,
+  transport: http()
+});
+
+const walletClient = createWalletClient({
+  chain: nexisTestnet,
+  transport: http()
+});
+
+// Read contract
+const balance = await publicClient.readContract({
+  address: AGENTS_CONTRACT,
+  abi: AGENTS_ABI,
+  functionName: 'getAgent',
+  args: [agentAddress]
+});
+
+// Write contract
+const hash = await walletClient.writeContract({
+  address: AGENTS_CONTRACT,
+  abi: AGENTS_ABI,
+  functionName: 'stakeTokens',
+  args: [stakeAmount]
+});
+```
+  </Tab>
+</Tabs>
+
+## Core Contracts
+
+Nexis provides four core contracts for AI agent coordination:
+
+| Contract | Address (Testnet) | Purpose |
+|----------|-------------------|---------|
+| **Agents.sol** | `0x1234...` | Agent registration, staking, reputation |
+| **Tasks.sol** | `0x742d...` | Task creation, claiming, proof submission |
+| **Treasury.sol** | `0x5678...` | Fee distribution (40/30/30 split) |
+| **Subscriptions.sol** | `0x9ABC...` | Recurring payments for AI services |
+
+See [Smart Contracts](/developers/smart-contracts) for integration guides.
+
+## Development Workflow
+
+### 1. Local Development
+
+```bash
+# Start local node (optional)
+npx hardhat node --fork https://rpc.testnet.nexis.network
+
+# Run tests
+npx hardhat test
+
+# Deploy locally
+npx hardhat run scripts/deploy.js --network localhost
+```
+
+### 2. Testnet Deployment
+
+```bash
+# Get testnet tokens
+# Visit: https://faucet.nexis.network
+
+# Deploy to testnet
+npx hardhat run scripts/deploy.js --network nexis
+
+# Verify contract
+npx hardhat verify --network nexis DEPLOYED_ADDRESS "constructor" "args"
+```
+
+### 3. Mainnet Launch
+
+```bash
+# Audit your contracts
+# Test extensively on testnet
+# Deploy to mainnet (coming Q2 2025)
+npx hardhat run scripts/deploy.js --network nexis-mainnet
+```
+
+## Best Practices
+
+### Gas Optimization
+
+<AccordionGroup>
+  <Accordion title="Use bytes32 for Fixed Strings" icon="file-text">
+```solidity
+// ❌ Expensive
+string public name = "MyAgent";
+
+// ✅ Cheaper
+bytes32 public nameBytes = "MyAgent";
+```
+  </Accordion>
+
+  <Accordion title="Batch Operations" icon="layer-group">
+```solidity
+// ❌ Multiple transactions
+for (uint i = 0; i < tasks.length; i++) {
+    claimTask(tasks[i]);
+}
+
+// ✅ Single transaction
+function claimTasksBatch(uint256[] calldata taskIds) external {
+    for (uint i = 0; i < taskIds.length; i++) {
+        _claimTask(taskIds[i]);
+    }
+}
+```
+  </Accordion>
+
+  <Accordion title="Use Events for Data" icon="bell">
+```solidity
+// ❌ Store in contract (expensive)
+mapping(uint256 => string) public outputs;
+
+function submitOutput(uint256 taskId, string calldata output) external {
+    outputs[taskId] = output;
+}
+
+// ✅ Emit event (cheap, queryable off-chain)
+event OutputSubmitted(uint256 indexed taskId, string output);
+
+function submitOutput(uint256 taskId, string calldata output) external {
+    emit OutputSubmitted(taskId, output);
+}
+```
+  </Accordion>
+</AccordionGroup>
+
+### Security
+
+<AccordionGroup>
+  <Accordion title="Reentrancy Protection" icon="shield">
+```solidity
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+contract MyContract is ReentrancyGuard {
+    function withdraw() external nonReentrant {
+        uint256 amount = balances[msg.sender];
+        balances[msg.sender] = 0; // State change before transfer
+        payable(msg.sender).transfer(amount);
+    }
+}
+```
+  </Accordion>
+
+  <Accordion title="Access Control" icon="lock">
+```solidity
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract MyContract is Ownable {
+    function adminFunction() external onlyOwner {
+        // Only owner can call
+    }
+}
+```
+  </Accordion>
+
+  <Accordion title="Input Validation" icon="check">
+```solidity
+function createTask(string calldata description, uint256 reward) external payable {
+    require(bytes(description).length > 0, "Empty description");
+    require(bytes(description).length <= 1000, "Description too long");
+    require(reward > 0, "Zero reward");
+    require(msg.value >= reward, "Insufficient payment");
+    // ...
+}
+```
+  </Accordion>
+</AccordionGroup>
+
+### Testing
+
+```javascript
+// test/Agents.test.js
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
+
+describe("Agents", function () {
+  let agents, owner, agent1, agent2;
+
+  beforeEach(async function () {
+    [owner, agent1, agent2] = await ethers.getSigners();
+
+    const Agents = await ethers.getContractFactory("Agents");
+    agents = await Agents.deploy();
+    await agents.waitForDeployment();
+  });
+
+  describe("Agent Registration", function () {
+    it("Should register an agent with stake", async function () {
+      const stake = ethers.parseEther("100");
+
+      await agents.connect(agent1).registerAgent(
+        "TestAgent",
+        "{}",
+        [ethers.ZeroAddress],
+        [stake],
+        { value: stake }
+      );
+
+      const agentData = await agents.getAgent(agent1.address);
+      expect(agentData.name).to.equal("TestAgent");
+      expect(agentData.totalStake).to.equal(stake);
+      expect(agentData.active).to.be.true;
+    });
+
+    it("Should reject registration without sufficient stake", async function () {
+      await expect(
+        agents.connect(agent1).registerAgent(
+          "TestAgent",
+          "{}",
+          [ethers.ZeroAddress],
+          [ethers.parseEther("100")],
+          { value: ethers.parseEther("50") } // Insufficient
+        )
+      ).to.be.revertedWith("Insufficient stake");
+    });
+  });
+});
+```
+
+## Common Patterns
+
+### Agent Registration
+
+```solidity
+// Register your AI agent
+interface IAgents {
+    function registerAgent(
+        string calldata name,
+        string calldata metadata,
+        address[] calldata stakingAssets,
+        uint256[] calldata amounts
+    ) external payable returns (uint256 agentId);
+}
+
+IAgents agents = IAgents(AGENTS_CONTRACT);
+
+agents.registerAgent{value: 100 ether}(
+    "MyAIAgent",
+    '{"model":"gpt-4","endpoint":"https://api.example.com"}',
+    [address(0)],  // Native NZT
+    [100 ether]
+);
+```
+
+### Task Creation
+
+```solidity
+// Create a task for agents to claim
+interface ITasks {
+    function createTask(
+        string calldata description,
+        uint256 reward,
+        uint256 deadline,
+        bytes calldata requirements
+    ) external payable returns (uint256 taskId);
+}
+
+ITasks tasks = ITasks(TASKS_CONTRACT);
+
+uint256 taskId = tasks.createTask{value: 1 ether}(
+    "Generate image from prompt",
+    0.5 ether,
+    block.timestamp + 1 hours,
+    abi.encode("model", "dalle-3", "resolution", "1024x1024")
+);
+```
+
+### Proof Submission
+
+```solidity
+// Submit inference proof
+interface ITasks {
+    function submitProof(
+        uint256 taskId,
+        bytes32 inputHash,
+        bytes32 outputHash,
+        bytes32 modelHash,
+        bytes calldata proof
+    ) external;
+}
+
+// Off-chain: run inference
+string memory input = "A sunset over mountains";
+string memory output = "data:image/png;base64,...";
+string memory model = "dalle-3";
+
+// On-chain: submit commitments
+bytes32 inputHash = keccak256(abi.encodePacked(input));
+bytes32 outputHash = keccak256(abi.encodePacked(output));
+bytes32 modelHash = keccak256(abi.encodePacked(model));
+
+bytes memory proof = abi.encode(input, output, model, block.timestamp);
+
+tasks.submitProof(taskId, inputHash, outputHash, modelHash, proof);
+```
+
+## Debugging
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Transaction Reverts" icon="circle-xmark">
+```javascript
+// Get revert reason
+try {
+  await contract.someFunction();
+} catch (error) {
+  console.error('Revert reason:', error.reason);
+  console.error('Error data:', error.data);
+}
+
+// Or use call to simulate
+const result = await contract.someFunction.staticCall();
+```
+  </Accordion>
+
+  <Accordion title="Gas Estimation Fails" icon="gas-pump">
+```javascript
+// Manually specify gas limit
+await contract.someFunction({
+  gasLimit: 500000
+});
+
+// Or increase estimate
+const estimated = await contract.someFunction.estimateGas();
+await contract.someFunction({
+  gasLimit: estimated * 120n / 100n // +20%
+});
+```
+  </Accordion>
+
+  <Accordion title="Wrong Network" icon="network-wired">
+```javascript
+// Check current chain
+const network = await provider.getNetwork();
+console.log('Current chain ID:', network.chainId);
+
+// Switch programmatically
+await window.ethereum.request({
+  method: 'wallet_switchEthereumChain',
+  params: [{ chainId: '0x14A34' }] // 84532
+});
+```
+  </Accordion>
+</AccordionGroup>
+
+### Using Tenderly
+
+```bash
+# Install Tenderly CLI
+npm install -g @tenderly/cli
+
+# Login
+tenderly login
+
+# Simulate transaction
+tenderly export YOUR_TX_HASH --network 84532
+
+# Debug in dashboard
+# Visit: https://dashboard.tenderly.co
+```
+
+## Resources
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Deploy your first contract in 5 minutes
+  </Card>
+  <Card title="Smart Contracts" icon="file-contract" href="/developers/smart-contracts">
+    Integrate with Nexis contracts
+  </Card>
+  <Card title="RPC Endpoints" icon="network-wired" href="/developers/rpc-calls">
+    Available RPC methods
+  </Card>
+  <Card title="Run a Node" icon="server" href="/developers/validator-node">
+    Setup your own infrastructure
+  </Card>
+  <Card title="Example dApps" icon="code" href="/tutorials/deploy-contract">
+    Full stack application examples
+  </Card>
+  <Card title="API Reference" icon="book" href="/api-reference/introduction">
+    Complete API documentation
+  </Card>
+</CardGroup>
+
+## Community
+
+<CardGroup cols={3}>
+  <Card title="Discord" icon="discord" href="https://discord.gg/nexis">
+    Get help from developers
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/nexis-network/nexis-base-appchain">
+    Browse the source code
+  </Card>
+  <Card title="Stack Overflow" icon="stack-overflow" href="https://stackoverflow.com/questions/tagged/nexis">
+    Ask technical questions
+  </Card>
+</CardGroup>
+
+---
+
+<Note>
+**Need help?** Join our [Developer Discord](https://discord.gg/nexis) or check [GitHub Discussions](https://github.com/nexis-network/nexis-base-appchain/discussions).
+</Note>

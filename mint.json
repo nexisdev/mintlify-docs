@@ -1,91 +1,156 @@
 {
   "$schema": "https://mintlify.com/schema.json",
-  "name": "Starter Kit",
+  "name": "Nexis Appchain",
   "logo": {
     "dark": "/logo/dark.svg",
     "light": "/logo/light.svg"
   },
   "favicon": "/favicon.svg",
   "colors": {
-    "primary": "#0D9373",
-    "light": "#07C983",
-    "dark": "#0D9373",
+    "primary": "#0D6B93",
+    "light": "#07B2C9",
+    "dark": "#D5D5D5",
+    "background": {
+      "dark": "#101011",
+      "light": "#080808"
+    },
     "anchors": {
-      "from": "#0D9373",
-      "to": "#07C983"
+      "from": "#0D6B93",
+      "to": "#07B2C9"
     }
+  },
+  "theme": "dark",
+  "modeToggle": {
+    "default": "dark"
   },
   "topbarLinks": [
     {
-      "name": "Support",
-      "url": "mailto:hi@mintlify.com"
+      "name": "GitHub",
+      "url": "https://github.com/nexis-network/nexis-base-appchain"
     }
   ],
   "topbarCtaButton": {
-    "name": "Dashboard",
-    "url": "https://dashboard.mintlify.com"
+    "name": "Launch App",
+    "url": "https://app.nexis.network"
   },
   "tabs": [
     {
       "name": "API Reference",
       "url": "api-reference"
+    },
+    {
+      "name": "Tutorials",
+      "url": "tutorials"
+    },
+    {
+      "name": "AI & ML",
+      "url": "ai-ml"
     }
   ],
   "anchors": [
     {
-      "name": "Documentation",
-      "icon": "book-open-cover",
-      "url": "https://mintlify.com/docs"
-    },
-    {
       "name": "Community",
-      "icon": "slack",
-      "url": "https://mintlify.com/community"
+      "icon": "discord",
+      "url": "https://discord.gg/nexis"
     },
     {
       "name": "Blog",
       "icon": "newspaper",
-      "url": "https://mintlify.com/blog"
+      "url": "https://blog.nexis.network"
     }
   ],
   "navigation": [
     {
-      "group": "Get Started",
+      "group": "Getting Started",
       "pages": [
         "introduction",
         "quickstart",
-        "development"
+        "use-cases"
       ]
     },
     {
-      "group": "Essentials",
+      "group": "Infrastructure",
       "pages": [
-        "essentials/markdown",
-        "essentials/code",
-        "essentials/images",
-        "essentials/settings",
-        "essentials/navigation",
-        "essentials/reusable-snippets"
+        "infrastructure/overview",
+        "infrastructure/consensus",
+        "infrastructure/block-validation",
+        "infrastructure/rpc-nodes",
+        "infrastructure/fault-proofs"
       ]
     },
     {
-      "group": "API Documentation",
+      "group": "Developers",
       "pages": [
-        "api-reference/introduction"
+        "developers/overview",
+        "developers/building-on-nexis",
+        "developers/testnet-tokens",
+        "developers/rpc-calls",
+        "developers/smart-contracts",
+        "developers/validator-node",
+        "developers/rpc-node"
       ]
     },
     {
-      "group": "Endpoint Examples",
+      "group": "AI & ML",
       "pages": [
-        "api-reference/endpoint/get",
-        "api-reference/endpoint/create",
-        "api-reference/endpoint/delete"
+        "ai-ml/overview",
+        "ai-ml/proof-of-inference",
+        "ai-ml/ai-agents",
+        "ai-ml/langgraph",
+        "ai-ml/examples"
+      ]
+    },
+    {
+      "group": "Smart Contracts",
+      "pages": [
+        "contracts/agents",
+        "contracts/tasks",
+        "contracts/treasury",
+        "contracts/subscriptions"
+      ]
+    },
+    {
+      "group": "Tokenomics",
+      "pages": [
+        "tokenomics/overview",
+        "tokenomics/token-details",
+        "tokenomics/emissions",
+        "tokenomics/fees",
+        "tokenomics/staking"
+      ]
+    },
+    {
+      "group": "Tutorials",
+      "pages": [
+        "tutorials/deploy-contract",
+        "tutorials/register-agent",
+        "tutorials/create-task",
+        "tutorials/use-faucet",
+        "tutorials/integrate-ai"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/introduction",
+        "api-reference/agents-api",
+        "api-reference/tasks-api",
+        "api-reference/treasury-api",
+        "api-reference/subscriptions-api",
+        "api-reference/rpc-methods"
+      ]
+    },
+    {
+      "group": "Legal",
+      "pages": [
+        "legal/disclaimer",
+        "legal/terms"
       ]
     }
   ],
   "footerSocials": {
-    "x": "https://x.com/mintlify",
-    "github": "https://github.com/mintlify",
-    "linkedin": "https://linkedin.com/company/mintlify"
+    "twitter": "https://twitter.com/nexis_network",
+    "github": "https://github.com/nexis-network",
+    "discord": "https://discord.gg/nexis"
   }
 }

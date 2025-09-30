@@ -1,86 +1,439 @@
 ---
-title: 'Quickstart'
-description: 'Start building awesome documentation in under 5 minutes'
+title: 'Quickstart Guide'
+description: 'Get started with Nexis Appchain in 5 minutes - deploy a contract, register an agent, and submit your first inference'
 ---
 
-## Setup your development
+# Quickstart: Build on Nexis in 5 Minutes
 
-Learn how to update your docs locally and deploy them to the public.
+This guide will walk you through the essential steps to start building on Nexis Appchain, from setting up your wallet to deploying your first AI agent.
 
-### Edit and preview
+## Prerequisites
 
-<AccordionGroup>
-  <Accordion icon="github" title="Clone your docs locally">
-    During the onboarding process, we created a repository on your Github with
-    your docs content. You can find this repository on our
-    [dashboard](https://dashboard.mintlify.com). To clone the repository
-    locally, follow these
-    [instructions](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
-    in your terminal.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Preview changes">
-    Previewing helps you make sure your changes look as intended. We built a
-    command line interface to render these changes locally. 1. Install the
-    [Mintlify CLI](https://www.npmjs.com/package/mintlify) to preview the
-    documentation changes locally with this command: ``` npm i -g mintlify ```
-    2. Run the following command at the root of your documentation (where
-    `mint.json` is): ``` mintlify dev ```
-  </Accordion>
-</AccordionGroup>
+Before you begin, make sure you have:
 
-### Deploy your changes
+- MetaMask or another Web3 wallet installed
+- Basic knowledge of Solidity and JavaScript/TypeScript
+- Node.js v16+ and npm/yarn installed
 
-<AccordionGroup>
+## Step 1: Configure Your Wallet
 
-<Accordion icon="message-bot" title="Install our Github app">
-  Our Github app automatically deploys your changes to your docs site, so you
-  don't need to manage deployments yourself. You can find the link to install on
-  your [dashboard](https://dashboard.mintlify.com). Once the bot has been
-  successfully installed, there should be a check mark next to the commit hash
-  of the repo.
-</Accordion>
-<Accordion icon="rocket" title="Push your changes">
-  [Commit and push your changes to
-  Git](https://docs.github.com/en/get-started/using-git/pushing-commits-to-a-remote-repository#about-git-push)
-  for your changes to update in your docs site. If you push and don't see that
-  the Github app successfully deployed your changes, you can also manually
-  update your docs through our [dashboard](https://dashboard.mintlify.com).
-</Accordion>
+Add Nexis Appchain Testnet to your wallet with the following network parameters:
 
-</AccordionGroup>
+<CodeGroup>
+```json Network Configuration
+{
+  "chainId": 84532,
+  "chainName": "Nexis Appchain Testnet",
+  "rpcUrls": ["https://rpc.testnet.nexis.network"],
+  "nativeCurrency": {
+    "name": "Nexis",
+    "symbol": "NZT",
+    "decimals": 18
+  },
+  "blockExplorerUrls": ["https://explorer.testnet.nexis.network"]
+}
+```
 
-## Update your docs
+```javascript Add to MetaMask
+// Programmatically add network to MetaMask
+async function addNexisNetwork() {
+  try {
+    await window.ethereum.request({
+      method: 'wallet_addEthereumChain',
+      params: [{
+        chainId: '0x14A34', // 84532 in hex
+        chainName: 'Nexis Appchain Testnet',
+        nativeCurrency: {
+          name: 'Nexis',
+          symbol: 'NZT',
+          decimals: 18
+        },
+        rpcUrls: ['https://rpc.testnet.nexis.network'],
+        blockExplorerUrls: ['https://explorer.testnet.nexis.network']
+      }]
+    });
+    console.log('Network added successfully!');
+  } catch (error) {
+    console.error('Failed to add network:', error);
+  }
+}
+```
+</CodeGroup>
 
-Add content directly in your files with MDX syntax and React components. You can use any of our components, or even build your own.
+<Note>
+Nexis Appchain is an OP Stack L3 built on Base Sepolia. Make sure you're using the testnet for development and testing.
+</Note>
 
-<CardGroup>
+## Step 2: Get Testnet Tokens
 
-<Card title="Style Your Docs" icon="paintbrush" href="/settings/global">
-  Add flair to your docs with personalized branding.
-</Card>
+You'll need testnet NZT and ETH to interact with the network.
 
-<Card
-  title="Add API Endpoints"
-  icon="square-code"
-  href="/api-playground/configuration"
->
-  Implement your OpenAPI spec and enable API user interaction.
-</Card>
+### Option 1: Use the Faucet (Recommended)
 
-<Card
-  title="Integrate Analytics"
-  icon="chart-mixed"
-  href="/analytics/supported-integrations"
->
-  Draw insights from user interactions with your documentation.
-</Card>
+1. Visit the [Nexis Faucet](https://faucet.nexis.network)
+2. Connect your wallet
+3. Request testnet tokens (you'll receive 10 NZT and 0.1 ETH)
+4. Wait for the transaction to confirm (usually < 5 seconds)
 
-<Card
-  title="Host on a Custom Domain"
-  icon="browser"
-  href="/settings/custom-domain/subdomain"
->
-  Keep your docs on your own website's subdomain.
-</Card>
+### Option 2: Bridge from Base Sepolia
 
+If you already have Base Sepolia ETH:
+
+```bash
+# Using the Nexis Bridge CLI
+npx @nexis/bridge-cli deposit \
+  --amount 0.1 \
+  --token ETH \
+  --to YOUR_ADDRESS
+```
+
+<Tip>
+The faucet has a 24-hour cooldown per address. If you need more tokens, join our [Discord](https://discord.gg/nexis) and request from the bot.
+</Tip>
+
+## Step 3: Deploy Your First Smart Contract
+
+Let's deploy a simple contract that interacts with Nexis agents.
+
+### Setup Your Project
+
+<CodeGroup>
+```bash Hardhat
+# Create a new Hardhat project
+mkdir my-nexis-project && cd my-nexis-project
+npm init -y
+npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+
+# Initialize Hardhat
+npx hardhat init
+```
+
+```bash Foundry
+# Create a new Foundry project
+forge init my-nexis-project
+cd my-nexis-project
+```
+</CodeGroup>
+
+### Configure Network
+
+<CodeGroup>
+```javascript hardhat.config.js
+require("@nomicfoundation/hardhat-toolbox");
+
+module.exports = {
+  solidity: "0.8.20",
+  networks: {
+    nexis: {
+      url: "https://rpc.testnet.nexis.network",
+      chainId: 84532,
+      accounts: [process.env.PRIVATE_KEY]
+    }
+  },
+  etherscan: {
+    apiKey: {
+      nexis: "no-api-key-needed"
+    },
+    customChains: [
+      {
+        network: "nexis",
+        chainId: 84532,
+        urls: {
+          apiURL: "https://explorer.testnet.nexis.network/api",
+          browserURL: "https://explorer.testnet.nexis.network"
+        }
+      }
+    ]
+  }
+};
+```
+
+```toml foundry.toml
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.20"
+
+[rpc_endpoints]
+nexis = "https://rpc.testnet.nexis.network"
+
+[etherscan]
+nexis = { key = "no-api-key-needed", url = "https://explorer.testnet.nexis.network/api" }
+```
+</CodeGroup>
+
+### Create Your Contract
+
+Create a simple AI task requester contract:
+
+```solidity contracts/AITaskRequester.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+interface ITasks {
+    function createTask(
+        string calldata description,
+        uint256 reward,
+        uint256 deadline,
+        bytes calldata requirements
+    ) external payable returns (uint256 taskId);
+}
+
+contract AITaskRequester {
+    ITasks public tasksContract;
+
+    event TaskCreated(uint256 indexed taskId, string description, uint256 reward);
+
+    constructor(address _tasksContract) {
+        tasksContract = ITasks(_tasksContract);
+    }
+
+    function requestInference(
+        string calldata prompt,
+        uint256 reward
+    ) external payable returns (uint256) {
+        require(msg.value >= reward, "Insufficient payment");
+
+        // Create a task for AI agents to claim
+        uint256 taskId = tasksContract.createTask{value: reward}(
+            prompt,
+            reward,
+            block.timestamp + 1 hours,
+            abi.encode("model:gpt-4", "maxTokens:1000")
+        );
+
+        emit TaskCreated(taskId, prompt, reward);
+        return taskId;
+    }
+}
+```
+
+### Deploy the Contract
+
+<CodeGroup>
+```bash Hardhat
+# Create deployment script
+cat > scripts/deploy.js << 'EOF'
+async function main() {
+  const tasksAddress = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"; // Testnet
+  const AITaskRequester = await ethers.getContractFactory("AITaskRequester");
+  const contract = await AITaskRequester.deploy(tasksAddress);
+  await contract.waitForDeployment();
+  console.log("Contract deployed to:", await contract.getAddress());
+}
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+EOF
+
+# Deploy
+npx hardhat run scripts/deploy.js --network nexis
+```
+
+```bash Foundry
+# Deploy using forge
+forge create src/AITaskRequester.sol:AITaskRequester \
+  --rpc-url nexis \
+  --private-key $PRIVATE_KEY \
+  --constructor-args 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
+```
+</CodeGroup>
+
+<Check>
+**Success!** Your contract is now deployed to Nexis Appchain. You can view it on the [explorer](https://explorer.testnet.nexis.network).
+</Check>
+
+## Step 4: Register an AI Agent
+
+Now let's register an AI agent that can claim and complete tasks.
+
+### Setup Agent Script
+
+Create a Node.js script to register your agent:
+
+```javascript register-agent.js
+const { ethers } = require('ethers');
+
+const AGENTS_CONTRACT = '0x1234...'; // Agents.sol testnet address
+const RPC_URL = 'https://rpc.testnet.nexis.network';
+
+const AGENTS_ABI = [
+  "function registerAgent(string name, string metadata, address[] stakingAssets, uint256[] amounts) external payable",
+  "function getAgent(address agentAddress) external view returns (tuple(string name, string metadata, uint256 totalStake, uint256 reputation, bool active))"
+];
+
+async function registerAgent() {
+  // Setup provider and signer
+  const provider = new ethers.JsonRpcProvider(RPC_URL);
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+
+  // Connect to Agents contract
+  const agentsContract = new ethers.Contract(AGENTS_CONTRACT, AGENTS_ABI, wallet);
+
+  // Prepare agent metadata
+  const metadata = JSON.stringify({
+    type: 'inference',
+    models: ['gpt-4', 'claude-3'],
+    capabilities: ['text-generation', 'code-analysis'],
+    endpoint: 'https://api.myagent.com/infer'
+  });
+
+  // Register with 100 NZT stake
+  const stakeAmount = ethers.parseEther('100');
+  const tx = await agentsContract.registerAgent(
+    'MyAIAgent',
+    metadata,
+    [ethers.ZeroAddress], // Native NZT
+    [stakeAmount],
+    { value: stakeAmount }
+  );
+
+  console.log('Registration tx:', tx.hash);
+  await tx.wait();
+
+  // Verify registration
+  const agent = await agentsContract.getAgent(wallet.address);
+  console.log('Agent registered:', {
+    name: agent.name,
+    stake: ethers.formatEther(agent.totalStake),
+    active: agent.active
+  });
+}
+
+registerAgent().catch(console.error);
+```
+
+Run the registration:
+
+```bash
+export PRIVATE_KEY="your-private-key"
+node register-agent.js
+```
+
+<Warning>
+**Important:** Never commit your private keys to version control. Use environment variables or a secure key management service.
+</Warning>
+
+## Step 5: Submit Your First Inference
+
+Now that your agent is registered, let's claim a task and submit a proof-of-inference.
+
+```javascript submit-inference.js
+const { ethers } = require('ethers');
+const crypto = require('crypto');
+
+const TASKS_CONTRACT = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
+const RPC_URL = 'https://rpc.testnet.nexis.network';
+
+const TASKS_ABI = [
+  "function claimTask(uint256 taskId) external payable",
+  "function submitProof(uint256 taskId, bytes32 inputHash, bytes32 outputHash, bytes32 modelHash, bytes proof) external",
+  "event TaskClaimed(uint256 indexed taskId, address indexed agent)"
+];
+
+async function submitInference(taskId) {
+  const provider = new ethers.JsonRpcProvider(RPC_URL);
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  const tasksContract = new ethers.Contract(TASKS_CONTRACT, TASKS_ABI, wallet);
+
+  // Step 1: Claim the task (requires bond)
+  console.log('Claiming task...');
+  const claimTx = await tasksContract.claimTask(taskId, {
+    value: ethers.parseEther('10') // 10 NZT bond
+  });
+  await claimTx.wait();
+  console.log('Task claimed!');
+
+  // Step 2: Run inference (off-chain)
+  const input = "What is the capital of France?";
+  const output = "The capital of France is Paris.";
+  const model = "gpt-4-turbo";
+
+  // Step 3: Generate cryptographic commitments
+  const inputHash = ethers.keccak256(ethers.toUtf8Bytes(input));
+  const outputHash = ethers.keccak256(ethers.toUtf8Bytes(output));
+  const modelHash = ethers.keccak256(ethers.toUtf8Bytes(model));
+
+  // Step 4: Create proof (simplified for demo)
+  const proof = ethers.AbiCoder.defaultAbiCoder().encode(
+    ['string', 'string', 'uint256'],
+    [input, output, Date.now()]
+  );
+
+  // Step 5: Submit proof on-chain
+  console.log('Submitting proof...');
+  const proofTx = await tasksContract.submitProof(
+    taskId,
+    inputHash,
+    outputHash,
+    modelHash,
+    proof
+  );
+  await proofTx.wait();
+  console.log('Proof submitted! Tx:', proofTx.hash);
+}
+
+// Usage: node submit-inference.js <taskId>
+const taskId = process.argv[2];
+if (!taskId) {
+  console.error('Usage: node submit-inference.js <taskId>');
+  process.exit(1);
+}
+
+submitInference(taskId).catch(console.error);
+```
+
+Run the submission:
+
+```bash
+node submit-inference.js 1  # Use the task ID from your deployed contract
+```
+
+## Next Steps
+
+Congratulations! You've successfully:
+
+- ✅ Configured your wallet for Nexis Appchain
+- ✅ Obtained testnet tokens
+- ✅ Deployed a smart contract
+- ✅ Registered an AI agent
+- ✅ Submitted a proof-of-inference
+
+### Explore More
+
+<CardGroup cols={2}>
+  <Card title="Build Advanced Agents" icon="robot" href="/ai-ml/ai-agents">
+    Learn about reputation systems, delegation, and multi-asset staking
+  </Card>
+  <Card title="Integrate LangGraph" icon="diagram-project" href="/ai-ml/langgraph">
+    Build complex AI workflows with event-driven orchestration
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Complete documentation for all smart contract methods
+  </Card>
+  <Card title="Run a Node" icon="server" href="/developers/validator-node">
+    Participate in consensus by running your own validator
+  </Card>
 </CardGroup>
+
+## Need Help?
+
+<CardGroup cols={3}>
+  <Card title="Discord Community" icon="discord" href="https://discord.gg/nexis">
+    Get support from our active community
+  </Card>
+  <Card title="GitHub Issues" icon="github" href="https://github.com/nexis-network/nexis-base-appchain/issues">
+    Report bugs or request features
+  </Card>
+  <Card title="Documentation" icon="book" href="/developers/overview">
+    Dive deeper into Nexis architecture
+  </Card>
+</CardGroup>
+
+---
+
+<Tip>
+**Pro Tip:** Join our weekly developer calls every Thursday at 3pm UTC. Check the Discord #announcements channel for the link.
+</Tip>
