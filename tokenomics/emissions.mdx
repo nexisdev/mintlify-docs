@@ -3,6 +3,8 @@ title: 'Token Emission Schedule'
 description: 'NZT token emission model, MintManager mechanics, governance-controlled minting, and long-term supply schedule'
 ---
 
+import { TokenEmissionsChart } from '/components/charts';
+
 # Token Emission Schedule
 
 This document details the token emission model for Nexis Token (NZT), including the MintManager contract, governance controls, inflation rates, and long-term sustainability mechanisms.
@@ -193,6 +195,8 @@ contract MintManager is AccessControl, ReentrancyGuard {
 | **Year 6+** | 0 (max supply) | 1,000M | 100% | 0% |
 
 ### Visual Emission Curve
+
+<TokenEmissionsChart />
 
 ```mermaid
 graph LR

@@ -3,6 +3,8 @@ title: 'Fee Structure & Economics'
 description: 'Comprehensive guide to Nexis gas fees, EIP-1559 parameters, fee vaults, L1 costs, and cost comparisons'
 ---
 
+import { FeeDistributionChart, PerformanceBenchmarkChart } from '/components/charts';
+
 # Fee Structure & Economics
 
 Nexis Appchain implements a sophisticated fee structure based on EIP-1559, optimized for low-cost AI agent operations while maintaining economic sustainability and security.
@@ -166,6 +168,8 @@ curl -X POST https://rpc.nexis.network \
 ## Fee Vault System
 
 Nexis implements a three-vault system for fee distribution:
+
+<FeeDistributionChart />
 
 ```mermaid
 graph TB
@@ -478,6 +482,8 @@ console.table(costs);
 ## Cost Comparison with Other Chains
 
 ### Transaction Cost Comparison
+
+<PerformanceBenchmarkChart />
 
 | Chain | Block Time | Base Fee | ETH Transfer Cost | Swap Cost | Relative Cost |
 |-------|-----------|----------|-------------------|-----------|---------------|
