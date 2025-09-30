@@ -123,6 +123,13 @@
       "group": "Tutorials",
       "pages": [
         "tutorials/deploy-contract",
+        "tutorials/deploy-erc20",
+        "tutorials/deploy-memecoin",
+        "tutorials/deploy-nft",
+        "tutorials/deploy-nft-collection",
+        "tutorials/deploy-onchain-agent",
+        "tutorials/deploy-dex",
+        "tutorials/integrate-dapp",
         "tutorials/register-agent",
         "tutorials/create-task",
         "tutorials/use-faucet",

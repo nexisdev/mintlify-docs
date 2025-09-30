@@ -1,0 +1,169 @@
+---
+title: 'Integrate Your dApp'
+description: 'Connect your decentralized application to Nexis Appchain with wallet integration, contract calls, and user experience'
+---
+
+# Integrate Your dApp
+
+Build a full-featured dApp with React, ethers.js, and Nexis Appchain integration.
+
+## Setup Project
+
+```bash
+npx create-react-app my-dapp
+cd my-dapp
+npm install ethers wagmi viem@2.x @tanstack/react-query
+```
+
+## Wallet Connection
+
+```javascript components/WalletConnect.jsx
+import { useConnect, useAccount, useDisconnect } from 'wagmi';
+import { MetaMaskConnector } from 'wagmi/connectors/metaMask';
+
+export function WalletConnect() {
+  const { address, isConnected } = useAccount();
+  const { connect } = useConnect({
+    connector: new MetaMaskConnector({
+      chains: [{
+        id: 84532,
+        name: 'Nexis Testnet',
+        network: 'nexis-testnet',
+        rpcUrls: {
+          default: { http: ['https://testnet-rpc.nex-t1.ai'] },
+          public: { http: ['https://testnet-rpc.nex-t1.ai'] }
+        }
+      }]
+    })
+  });
+  const { disconnect } = useDisconnect();
+
+  return (
+    <div>
+      {isConnected ? (
+        <div>
+          <p>Connected: {address?.slice(0, 6)}...{address?.slice(-4)}</p>
+          <button onClick={() => disconnect()}>Disconnect</button>
+        </div>
+      ) : (
+        <button onClick={() => connect()}>Connect Wallet</button>
+      )}
+    </div>
+  );
+}
+```
+
+## Contract Interaction
+
+```javascript hooks/useContract.js
+import { useContractRead, useContractWrite } from 'wagmi';
+
+const contractConfig = {
+  address: '0xYourContract',
+  abi: [...],
+};
+
+export function useTokenBalance(address) {
+  const { data, isError, isLoading } = useContractRead({
+    ...contractConfig,
+    functionName: 'balanceOf',
+    args: [address],
+  });
+
+  return { balance: data, isError, isLoading };
+}
+
+export function useTransferToken() {
+  const { write, isLoading, isSuccess } = useContractWrite({
+    ...contractConfig,
+    functionName: 'transfer',
+  });
+
+  return { transfer: write, isLoading, isSuccess };
+}
+```
+
+## Full dApp Example
+
+```javascript App.js
+import { WagmiConfig, createConfig, configureChains } from 'wagmi';
+import { publicProvider } from 'wagmi/providers/public';
+import { WalletConnect } from './components/WalletConnect';
+import { useTokenBalance, useTransferToken } from './hooks/useContract';
+
+const { chains, publicClient } = configureChains(
+  [{
+    id: 84532,
+    name: 'Nexis Testnet',
+    network: 'nexis-testnet',
+    rpcUrls: {
+      default: { http: ['https://testnet-rpc.nex-t1.ai'] }
+    }
+  }],
+  [publicProvider()]
+);
+
+const config = createConfig({
+  autoConnect: true,
+  publicClient,
+});
+
+function TokenApp() {
+  const { address } = useAccount();
+  const { balance } = useTokenBalance(address);
+  const { transfer } = useTransferToken();
+
+  const handleTransfer = async () => {
+    await transfer({
+      args: ['0xRecipient', ethers.parseEther('10')]
+    });
+  };
+
+  return (
+    <div>
+      <h1>My dApp on Nexis</h1>
+      <WalletConnect />
+      {address && (
+        <>
+          <p>Balance: {ethers.formatEther(balance || 0)} tokens</p>
+          <button onClick={handleTransfer}>Send 10 Tokens</button>
+        </>
+      )}
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <WagmiConfig config={config}>
+      <TokenApp />
+    </WagmiConfig>
+  );
+}
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Error Handling">
+    Always handle transaction failures and network errors gracefully
+  </Accordion>
+  <Accordion title="Loading States">
+    Show loading indicators during transactions
+  </Accordion>
+  <Accordion title="Gas Estimation">
+    Estimate gas before transactions to avoid failures
+  </Accordion>
+  <Accordion title="Network Detection">
+    Prompt users to switch to Nexis if on wrong network
+  </Accordion>
+</AccordionGroup>
+
+<CardGroup cols={2}>
+  <Card title="RPC Endpoints" icon="server" href="/developers/rpc-calls">
+    Complete RPC documentation
+  </Card>
+  <Card title="Smart Contracts" icon="file-contract" href="/contracts/agents">
+    Contract integration guides
+  </Card>
+</CardGroup>

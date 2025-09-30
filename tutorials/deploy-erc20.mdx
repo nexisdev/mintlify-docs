@@ -1,0 +1,866 @@
+---
+title: 'Deploy an ERC20 Token'
+description: 'Complete guide to creating and deploying your own ERC20 token on Nexis Appchain with features like minting, burning, and access control'
+---
+
+# Deploy an ERC20 Token
+
+Learn how to create, deploy, and interact with your own ERC20 token on Nexis Appchain. This tutorial covers token creation with OpenZeppelin, deployment strategies, and best practices.
+
+## Prerequisites
+
+<CardGroup cols={2}>
+  <Card title="Wallet Setup" icon="wallet">
+    MetaMask or compatible wallet connected to Nexis Testnet
+  </Card>
+  <Card title="Testnet Tokens" icon="coins">
+    Get testnet NZT from the [faucet](https://faucet.nex-t1.ai)
+  </Card>
+  <Card title="Development Tools" icon="code">
+    Hardhat or Foundry installed locally
+  </Card>
+  <Card title="Basic Solidity" icon="file-code">
+    Understanding of Solidity and smart contracts
+  </Card>
+</CardGroup>
+
+## Network Configuration
+
+Add Nexis Testnet to your development environment:
+
+<CodeGroup>
+
+```javascript hardhat.config.js
+require("@nomicfoundation/hardhat-toolbox");
+require("dotenv").config();
+
+module.exports = {
+  solidity: {
+    version: "0.8.20",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200
+      }
+    }
+  },
+  networks: {
+    nexisTestnet: {
+      url: "https://testnet-rpc.nex-t1.ai",
+      chainId: 84532,
+      accounts: [process.env.PRIVATE_KEY],
+      gasPrice: 1000000000, // 1 gwei
+    },
+    nexisMainnet: {
+      url: "https://rpc.nex-t1.ai",
+      chainId: 84532,
+      accounts: [process.env.PRIVATE_KEY],
+    }
+  },
+  etherscan: {
+    apiKey: {
+      nexisTestnet: "your-api-key"
+    }
+  }
+};
+```
+
+```toml foundry.toml
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.20"
+optimizer = true
+optimizer_runs = 200
+
+[rpc_endpoints]
+nexis_testnet = "https://testnet-rpc.nex-t1.ai"
+nexis_mainnet = "https://rpc.nex-t1.ai"
+
+[etherscan]
+nexis_testnet = { key = "${ETHERSCAN_API_KEY}" }
+```
+
+</CodeGroup>
+
+## Token Contract
+
+Create a feature-rich ERC20 token using OpenZeppelin:
+
+<Steps>
+  <Step title="Install Dependencies">
+    Install OpenZeppelin contracts library
+
+    ```bash
+    # For Hardhat
+    npm install @openzeppelin/contracts
+
+    # For Foundry
+    forge install OpenZeppelin/openzeppelin-contracts
+    ```
+  </Step>
+
+  <Step title="Create Token Contract">
+    Create your token contract with essential features
+  </Step>
+
+  <Step title="Add Extensions">
+    Implement minting, burning, pausing, and access control
+  </Step>
+
+  <Step title="Test & Deploy">
+    Write comprehensive tests before mainnet deployment
+  </Step>
+</Steps>
+
+### Basic ERC20 Token
+
+```solidity contracts/MyToken.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+/**
+ * @title MyToken
+ * @dev Basic ERC20 token with fixed supply
+ */
+contract MyToken is ERC20, Ownable {
+    uint256 public constant INITIAL_SUPPLY = 1_000_000 * 10**18; // 1 million tokens
+
+    constructor() ERC20("My Token", "MTK") Ownable(msg.sender) {
+        _mint(msg.sender, INITIAL_SUPPLY);
+    }
+}
+```
+
+### Advanced Token with Features
+
+```solidity contracts/AdvancedToken.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+
+/**
+ * @title AdvancedToken
+ * @dev Feature-rich ERC20 token with:
+ * - Minting (controlled)
+ * - Burning
+ * - Pausing
+ * - Role-based access control
+ * - EIP-2612 Permit (gasless approvals)
+ */
+contract AdvancedToken is
+    ERC20,
+    ERC20Burnable,
+    ERC20Pausable,
+    AccessControl,
+    ERC20Permit
+{
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+
+    uint256 public constant MAX_SUPPLY = 10_000_000 * 10**18; // 10 million cap
+
+    event TokensMinted(address indexed to, uint256 amount);
+    event TokensBurned(address indexed from, uint256 amount);
+
+    constructor(
+        string memory name,
+        string memory symbol,
+        uint256 initialSupply
+    ) ERC20(name, symbol) ERC20Permit(name) {
+        require(initialSupply <= MAX_SUPPLY, "Initial supply exceeds max");
+
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, msg.sender);
+        _grantRole(PAUSER_ROLE, msg.sender);
+
+        if (initialSupply > 0) {
+            _mint(msg.sender, initialSupply);
+        }
+    }
+
+    /**
+     * @dev Mint new tokens (only MINTER_ROLE)
+     */
+    function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {
+        require(totalSupply() + amount <= MAX_SUPPLY, "Exceeds max supply");
+        _mint(to, amount);
+        emit TokensMinted(to, amount);
+    }
+
+    /**
+     * @dev Pause all token transfers (only PAUSER_ROLE)
+     */
+    function pause() public onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+
+    /**
+     * @dev Unpause token transfers (only PAUSER_ROLE)
+     */
+    function unpause() public onlyRole(PAUSER_ROLE) {
+        _unpause();
+    }
+
+    /**
+     * @dev Burn tokens from caller
+     */
+    function burn(uint256 amount) public override {
+        super.burn(amount);
+        emit TokensBurned(msg.sender, amount);
+    }
+
+    // Required overrides
+    function _update(
+        address from,
+        address to,
+        uint256 value
+    ) internal override(ERC20, ERC20Pausable) {
+        super._update(from, to, value);
+    }
+}
+```
+
+### Token with Tax Mechanism
+
+```solidity contracts/TaxToken.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+/**
+ * @title TaxToken
+ * @dev ERC20 token with configurable buy/sell tax
+ */
+contract TaxToken is ERC20, Ownable {
+    uint256 public buyTaxPercent = 5;   // 5% buy tax
+    uint256 public sellTaxPercent = 5;  // 5% sell tax
+    address public taxReceiver;
+
+    mapping(address => bool) public isExcludedFromTax;
+    mapping(address => bool) public isPair; // DEX pairs
+
+    event TaxCollected(address indexed from, uint256 amount);
+    event TaxRatesUpdated(uint256 buyTax, uint256 sellTax);
+
+    constructor(
+        string memory name,
+        string memory symbol,
+        uint256 initialSupply,
+        address _taxReceiver
+    ) ERC20(name, symbol) Ownable(msg.sender) {
+        require(_taxReceiver != address(0), "Invalid tax receiver");
+
+        taxReceiver = _taxReceiver;
+        isExcludedFromTax[msg.sender] = true;
+        isExcludedFromTax[_taxReceiver] = true;
+
+        _mint(msg.sender, initialSupply);
+    }
+
+    function _update(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override {
+        // Skip tax if sender or receiver is excluded
+        if (isExcludedFromTax[from] || isExcludedFromTax[to]) {
+            super._update(from, to, amount);
+            return;
+        }
+
+        uint256 taxAmount = 0;
+
+        // Buy tax (from pair to user)
+        if (isPair[from] && buyTaxPercent > 0) {
+            taxAmount = (amount * buyTaxPercent) / 100;
+        }
+        // Sell tax (from user to pair)
+        else if (isPair[to] && sellTaxPercent > 0) {
+            taxAmount = (amount * sellTaxPercent) / 100;
+        }
+
+        if (taxAmount > 0) {
+            super._update(from, taxReceiver, taxAmount);
+            emit TaxCollected(from, taxAmount);
+            amount -= taxAmount;
+        }
+
+        super._update(from, to, amount);
+    }
+
+    function setTaxRates(uint256 _buyTax, uint256 _sellTax) external onlyOwner {
+        require(_buyTax <= 25 && _sellTax <= 25, "Tax too high");
+        buyTaxPercent = _buyTax;
+        sellTaxPercent = _sellTax;
+        emit TaxRatesUpdated(_buyTax, _sellTax);
+    }
+
+    function setTaxReceiver(address _taxReceiver) external onlyOwner {
+        require(_taxReceiver != address(0), "Invalid address");
+        taxReceiver = _taxReceiver;
+    }
+
+    function excludeFromTax(address account, bool excluded) external onlyOwner {
+        isExcludedFromTax[account] = excluded;
+    }
+
+    function setPair(address pairAddress, bool value) external onlyOwner {
+        isPair[pairAddress] = value;
+    }
+}
+```
+
+## Deployment Scripts
+
+<CodeGroup>
+
+```javascript scripts/deploy-token.js
+const hre = require("hardhat");
+
+async function main() {
+  const [deployer] = await ethers.getSigners();
+
+  console.log("Deploying token with account:", deployer.address);
+  console.log("Account balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)));
+
+  // Deploy AdvancedToken
+  const AdvancedToken = await ethers.getContractFactory("AdvancedToken");
+  const token = await AdvancedToken.deploy(
+    "Nexis Token",           // name
+    "NXT",                   // symbol
+    ethers.parseEther("1000000") // initial supply (1M tokens)
+  );
+
+  await token.waitForDeployment();
+  const tokenAddress = await token.getAddress();
+
+  console.log("Token deployed to:", tokenAddress);
+  console.log("Token name:", await token.name());
+  console.log("Token symbol:", await token.symbol());
+  console.log("Total supply:", ethers.formatEther(await token.totalSupply()));
+
+  // Verify contract (optional)
+  if (network.name !== "hardhat" && network.name !== "localhost") {
+    console.log("Waiting for block confirmations...");
+    await token.deploymentTransaction().wait(5);
+
+    console.log("Verifying contract...");
+    try {
+      await hre.run("verify:verify", {
+        address: tokenAddress,
+        constructorArguments: [
+          "Nexis Token",
+          "NXT",
+          ethers.parseEther("1000000")
+        ],
+      });
+    } catch (error) {
+      console.log("Verification error:", error.message);
+    }
+  }
+
+  // Save deployment info
+  const fs = require('fs');
+  const deploymentInfo = {
+    network: network.name,
+    token: tokenAddress,
+    deployer: deployer.address,
+    timestamp: new Date().toISOString(),
+    blockNumber: await ethers.provider.getBlockNumber()
+  };
+
+  fs.writeFileSync(
+    `deployments/${network.name}-token.json`,
+    JSON.stringify(deploymentInfo, null, 2)
+  );
+
+  console.log("Deployment info saved to deployments/");
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+```
+
+```bash Foundry Deploy
+#!/bin/bash
+
+# Load environment variables
+source .env
+
+# Deploy to Nexis Testnet
+forge create src/AdvancedToken.sol:AdvancedToken \
+  --rpc-url https://testnet-rpc.nex-t1.ai \
+  --private-key $PRIVATE_KEY \
+  --constructor-args "Nexis Token" "NXT" 1000000000000000000000000 \
+  --verify \
+  --etherscan-api-key $ETHERSCAN_API_KEY
+
+# Save deployment address
+echo "Token deployed successfully!"
+```
+
+```typescript scripts/deploy-token.ts
+import { ethers } from "hardhat";
+
+async function main() {
+  const [deployer] = await ethers.getSigners();
+
+  console.log("Deploying contracts with account:", deployer.address);
+
+  // Token parameters
+  const NAME = "Nexis Token";
+  const SYMBOL = "NXT";
+  const INITIAL_SUPPLY = ethers.parseEther("1000000"); // 1M tokens
+
+  // Deploy
+  const Token = await ethers.getContractFactory("AdvancedToken");
+  const token = await Token.deploy(NAME, SYMBOL, INITIAL_SUPPLY);
+
+  await token.waitForDeployment();
+  const address = await token.getAddress();
+
+  console.log(`Token deployed to: ${address}`);
+
+  // Verify configuration
+  console.log("\nToken Configuration:");
+  console.log("Name:", await token.name());
+  console.log("Symbol:", await token.symbol());
+  console.log("Decimals:", await token.decimals());
+  console.log("Total Supply:", ethers.formatEther(await token.totalSupply()));
+  console.log("Max Supply:", ethers.formatEther(await token.MAX_SUPPLY()));
+
+  // Grant roles (optional)
+  const MINTER_ROLE = await token.MINTER_ROLE();
+  console.log("\nMINTER_ROLE hash:", MINTER_ROLE);
+
+  return address;
+}
+
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+```
+
+</CodeGroup>
+
+## Deploy Your Token
+
+<Tabs>
+  <Tab title="Hardhat">
+    ```bash
+    # Deploy to testnet
+    npx hardhat run scripts/deploy-token.js --network nexisTestnet
+
+    # Deploy to mainnet
+    npx hardhat run scripts/deploy-token.js --network nexisMainnet
+    ```
+  </Tab>
+
+  <Tab title="Foundry">
+    ```bash
+    # Deploy to testnet
+    forge script scripts/DeployToken.s.sol --rpc-url https://testnet-rpc.nex-t1.ai --broadcast
+
+    # Verify contract
+    forge verify-contract <TOKEN_ADDRESS> src/AdvancedToken.sol:AdvancedToken \
+      --chain-id 84532 \
+      --constructor-args $(cast abi-encode "constructor(string,string,uint256)" "Nexis Token" "NXT" 1000000000000000000000000)
+    ```
+  </Tab>
+</Tabs>
+
+## Interact with Your Token
+
+<CodeGroup>
+
+```javascript JavaScript (ethers.js)
+const { ethers } = require("ethers");
+
+const provider = new ethers.JsonRpcProvider("https://testnet-rpc.nex-t1.ai");
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+
+const tokenAddress = "0x..."; // Your deployed token
+const tokenABI = [...]; // Your token ABI
+
+const token = new ethers.Contract(tokenAddress, tokenABI, wallet);
+
+// Check balance
+const balance = await token.balanceOf(wallet.address);
+console.log("Balance:", ethers.formatEther(balance));
+
+// Transfer tokens
+const transferTx = await token.transfer(
+  "0xRecipientAddress",
+  ethers.parseEther("100")
+);
+await transferTx.wait();
+console.log("Transfer complete:", transferTx.hash);
+
+// Approve spending
+const approveTx = await token.approve(
+  "0xSpenderAddress",
+  ethers.parseEther("1000")
+);
+await approveTx.wait();
+
+// Mint new tokens (if you have MINTER_ROLE)
+const mintTx = await token.mint(
+  wallet.address,
+  ethers.parseEther("10000")
+);
+await mintTx.wait();
+console.log("Minted 10,000 tokens");
+
+// Burn tokens
+const burnTx = await token.burn(ethers.parseEther("100"));
+await burnTx.wait();
+console.log("Burned 100 tokens");
+```
+
+```python Python (Web3.py)
+from web3 import Web3
+
+w3 = Web3(Web3.HTTPProvider('https://testnet-rpc.nex-t1.ai'))
+account = w3.eth.account.from_key(private_key)
+
+token_address = '0x...'
+token_abi = [...]  # Your token ABI
+
+token = w3.eth.contract(address=token_address, abi=token_abi)
+
+# Check balance
+balance = token.functions.balanceOf(account.address).call()
+print(f"Balance: {w3.from_wei(balance, 'ether')} tokens")
+
+# Transfer tokens
+transfer_tx = token.functions.transfer(
+    '0xRecipientAddress',
+    w3.to_wei(100, 'ether')
+).build_transaction({
+    'from': account.address,
+    'nonce': w3.eth.get_transaction_count(account.address),
+    'gas': 100000,
+    'gasPrice': w3.to_wei(1, 'gwei')
+})
+
+signed_tx = account.sign_transaction(transfer_tx)
+tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+tx_receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+
+print(f"Transfer complete: {tx_hash.hex()}")
+```
+
+```bash cURL (JSON-RPC)
+# Get token balance
+curl -X POST https://testnet-rpc.nex-t1.ai \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_call",
+    "params": [{
+      "to": "0xTOKEN_ADDRESS",
+      "data": "0x70a08231000000000000000000000000YOUR_ADDRESS"
+    }, "latest"],
+    "id": 1
+  }'
+
+# Transfer tokens
+curl -X POST https://testnet-rpc.nex-t1.ai \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "eth_sendRawTransaction",
+    "params": ["0xSIGNED_TRANSACTION"],
+    "id": 1
+  }'
+```
+
+</CodeGroup>
+
+## Testing Your Token
+
+Write comprehensive tests before deployment:
+
+```javascript test/Token.test.js
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
+
+describe("AdvancedToken", function () {
+  let token;
+  let owner;
+  let addr1;
+  let addr2;
+
+  beforeEach(async function () {
+    [owner, addr1, addr2] = await ethers.getSigners();
+
+    const Token = await ethers.getContractFactory("AdvancedToken");
+    token = await Token.deploy(
+      "Test Token",
+      "TST",
+      ethers.parseEther("1000000")
+    );
+  });
+
+  describe("Deployment", function () {
+    it("Should set the correct name and symbol", async function () {
+      expect(await token.name()).to.equal("Test Token");
+      expect(await token.symbol()).to.equal("TST");
+    });
+
+    it("Should mint initial supply to owner", async function () {
+      const balance = await token.balanceOf(owner.address);
+      expect(balance).to.equal(ethers.parseEther("1000000"));
+    });
+
+    it("Should grant roles to deployer", async function () {
+      const DEFAULT_ADMIN_ROLE = await token.DEFAULT_ADMIN_ROLE();
+      const MINTER_ROLE = await token.MINTER_ROLE();
+
+      expect(await token.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be.true;
+      expect(await token.hasRole(MINTER_ROLE, owner.address)).to.be.true;
+    });
+  });
+
+  describe("Transfers", function () {
+    it("Should transfer tokens between accounts", async function () {
+      await token.transfer(addr1.address, ethers.parseEther("100"));
+      expect(await token.balanceOf(addr1.address)).to.equal(ethers.parseEther("100"));
+
+      await token.connect(addr1).transfer(addr2.address, ethers.parseEther("50"));
+      expect(await token.balanceOf(addr2.address)).to.equal(ethers.parseEther("50"));
+    });
+
+    it("Should fail when sender has insufficient balance", async function () {
+      await expect(
+        token.connect(addr1).transfer(addr2.address, ethers.parseEther("1"))
+      ).to.be.reverted;
+    });
+  });
+
+  describe("Minting", function () {
+    it("Should mint tokens with MINTER_ROLE", async function () {
+      await token.mint(addr1.address, ethers.parseEther("1000"));
+      expect(await token.balanceOf(addr1.address)).to.equal(ethers.parseEther("1000"));
+    });
+
+    it("Should not exceed max supply", async function () {
+      const maxSupply = await token.MAX_SUPPLY();
+      const currentSupply = await token.totalSupply();
+      const mintAmount = maxSupply - currentSupply + ethers.parseEther("1");
+
+      await expect(
+        token.mint(addr1.address, mintAmount)
+      ).to.be.revertedWith("Exceeds max supply");
+    });
+
+    it("Should fail without MINTER_ROLE", async function () {
+      await expect(
+        token.connect(addr1).mint(addr2.address, ethers.parseEther("100"))
+      ).to.be.reverted;
+    });
+  });
+
+  describe("Burning", function () {
+    it("Should burn tokens", async function () {
+      await token.transfer(addr1.address, ethers.parseEther("1000"));
+      await token.connect(addr1).burn(ethers.parseEther("500"));
+
+      expect(await token.balanceOf(addr1.address)).to.equal(ethers.parseEther("500"));
+    });
+  });
+
+  describe("Pausing", function () {
+    it("Should pause and unpause transfers", async function () {
+      await token.pause();
+
+      await expect(
+        token.transfer(addr1.address, ethers.parseEther("100"))
+      ).to.be.reverted;
+
+      await token.unpause();
+
+      await token.transfer(addr1.address, ethers.parseEther("100"));
+      expect(await token.balanceOf(addr1.address)).to.equal(ethers.parseEther("100"));
+    });
+  });
+});
+```
+
+Run tests:
+
+```bash
+# Hardhat
+npx hardhat test
+
+# Foundry
+forge test -vvv
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Security Considerations">
+    - Use OpenZeppelin audited contracts
+    - Implement access control for privileged functions
+    - Set reasonable max supply caps
+    - Add reentrancy guards for complex transfers
+    - Test thoroughly before mainnet deployment
+    - Consider getting a professional audit for tokens with tax mechanisms
+  </Accordion>
+
+  <Accordion title="Gas Optimization">
+    - Use `uint256` instead of smaller uints (counter-intuitive but cheaper)
+    - Cache storage variables in memory
+    - Use events instead of storing data on-chain when possible
+    - Minimize storage writes
+    - Batch operations when possible
+  </Accordion>
+
+  <Accordion title="Token Economics">
+    - Choose appropriate initial supply and max cap
+    - Consider vesting schedules for team/investors
+    - Plan liquidity provision strategy
+    - Set reasonable tax rates (if applicable)
+    - Implement anti-whale mechanisms if needed
+  </Accordion>
+
+  <Accordion title="Contract Upgradeability">
+    - Consider using proxy patterns for upgradeability
+    - Document all state variables for upgrade compatibility
+    - Test upgrade paths thoroughly
+    - Have emergency pause mechanisms
+    - Plan for governance if upgrades are community-controlled
+  </Accordion>
+</AccordionGroup>
+
+## Common Use Cases
+
+### Governance Token
+
+```solidity
+// Add voting power tracking
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+
+contract GovernanceToken is ERC20, ERC20Votes, Ownable {
+    constructor()
+        ERC20("Governance Token", "GOV")
+        ERC20Permit("Governance Token")
+        Ownable(msg.sender)
+    {
+        _mint(msg.sender, 10_000_000 * 10**18);
+    }
+
+    function _update(address from, address to, uint256 value)
+        internal
+        override(ERC20, ERC20Votes)
+    {
+        super._update(from, to, value);
+    }
+
+    function nonces(address owner)
+        public
+        view
+        override(ERC20Permit, Nonces)
+        returns (uint256)
+    {
+        return super.nonces(owner);
+    }
+}
+```
+
+### Wrapped Token
+
+```solidity
+// Wrap native NZT to ERC20
+contract WrappedNZT is ERC20 {
+    event Deposit(address indexed account, uint256 amount);
+    event Withdrawal(address indexed account, uint256 amount);
+
+    constructor() ERC20("Wrapped NZT", "wNZT") {}
+
+    function deposit() public payable {
+        _mint(msg.sender, msg.value);
+        emit Deposit(msg.sender, msg.value);
+    }
+
+    function withdraw(uint256 amount) public {
+        _burn(msg.sender, amount);
+        payable(msg.sender).transfer(amount);
+        emit Withdrawal(msg.sender, amount);
+    }
+
+    receive() external payable {
+        deposit();
+    }
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Deploy Memecoin" icon="rocket" href="/tutorials/deploy-memecoin">
+    Create a viral memecoin with special tokenomics
+  </Card>
+  <Card title="Create NFT Collection" icon="image" href="/tutorials/deploy-nft-collection">
+    Launch your own NFT collection
+  </Card>
+  <Card title="Build DEX" icon="arrow-right-arrow-left" href="/tutorials/deploy-dex">
+    Create a decentralized exchange
+  </Card>
+  <Card title="Token Economics" icon="chart-line" href="/tokenomics/overview">
+    Learn about Nexis tokenomics
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Deployment fails with 'insufficient funds'">
+    Make sure you have enough testnet NZT. Get more from the [faucet](https://faucet.nex-t1.ai).
+  </Accordion>
+
+  <Accordion title="Contract verification fails">
+    Ensure constructor arguments match exactly. Use `--constructor-args` flag with Foundry or provide them in Hardhat verify config.
+  </Accordion>
+
+  <Accordion title="Transfers fail after deployment">
+    Check if token is paused, if recipient is blacklisted, or if there are any transfer restrictions in your contract.
+  </Accordion>
+
+  <Accordion title="Gas estimation errors">
+    Increase gas limit or check for revert conditions. Use `eth_estimateGas` to debug.
+  </Accordion>
+</AccordionGroup>
+
+## Additional Resources
+
+- [OpenZeppelin Contracts Documentation](https://docs.openzeppelin.com/contracts)
+- [ERC20 Standard Specification](https://eips.ethereum.org/EIPS/eip-20)
+- [Solidity Security Best Practices](https://consensys.github.io/smart-contract-best-practices/)
+- [Nexis RPC Endpoints](/developers/rpc-calls)
+
+---
+
+<Note>
+**Ready for Production?** Always conduct thorough testing and consider a professional audit before deploying to mainnet, especially for tokens with complex mechanics or large value.
+</Note>

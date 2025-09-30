@@ -1,0 +1,253 @@
+---
+title: 'Deploy DEX Smart Contracts'
+description: 'Build and deploy your own decentralized exchange with AMM, liquidity pools, and swap functionality'
+---
+
+# Deploy DEX Smart Contracts
+
+Create a Uniswap V2-style decentralized exchange on Nexis Appchain.
+
+## Core Contracts
+
+### Factory Contract
+
+```solidity contracts/DEXFactory.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "./DEXPair.sol";
+
+contract DEXFactory {
+    mapping(address => mapping(address => address)) public getPair;
+    address[] public allPairs;
+
+    event PairCreated(address indexed token0, address indexed token1, address pair, uint);
+
+    function createPair(address tokenA, address tokenB) external returns (address pair) {
+        require(tokenA != tokenB, "Identical addresses");
+        (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
+        require(token0 != address(0), "Zero address");
+        require(getPair[token0][token1] == address(0), "Pair exists");
+
+        bytes32 salt = keccak256(abi.encodePacked(token0, token1));
+        pair = address(new DEXPair{salt: salt}());
+        
+        DEXPair(pair).initialize(token0, token1);
+        
+        getPair[token0][token1] = pair;
+        getPair[token1][token0] = pair;
+        allPairs.push(pair);
+        
+        emit PairCreated(token0, token1, pair, allPairs.length);
+    }
+}
+```
+
+### Pair Contract (AMM)
+
+```solidity contracts/DEXPair.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+contract DEXPair is ERC20 {
+    address public token0;
+    address public token1;
+    
+    uint112 private reserve0;
+    uint112 private reserve1;
+    uint32 private blockTimestampLast;
+
+    event Swap(address indexed sender, uint amount0In, uint amount1In, uint amount0Out, uint amount1Out, address indexed to);
+    event Sync(uint112 reserve0, uint112 reserve1);
+
+    constructor() ERC20("DEX LP Token", "DEX-LP") {}
+
+    function initialize(address _token0, address _token1) external {
+        token0 = _token0;
+        token1 = _token1;
+    }
+
+    function addLiquidity(uint amount0, uint amount1) external returns (uint liquidity) {
+        IERC20(token0).transferFrom(msg.sender, address(this), amount0);
+        IERC20(token1).transferFrom(msg.sender, address(this), amount1);
+
+        uint _totalSupply = totalSupply();
+        if (_totalSupply == 0) {
+            liquidity = sqrt(amount0 * amount1);
+        } else {
+            liquidity = min(
+                (amount0 * _totalSupply) / reserve0,
+                (amount1 * _totalSupply) / reserve1
+            );
+        }
+
+        _mint(msg.sender, liquidity);
+        _update(
+            IERC20(token0).balanceOf(address(this)),
+            IERC20(token1).balanceOf(address(this))
+        );
+    }
+
+    function swap(uint amount0Out, uint amount1Out, address to) external {
+        require(amount0Out > 0 || amount1Out > 0, "Insufficient output");
+        require(amount0Out < reserve0 && amount1Out < reserve1, "Insufficient liquidity");
+
+        if (amount0Out > 0) IERC20(token0).transfer(to, amount0Out);
+        if (amount1Out > 0) IERC20(token1).transfer(to, amount1Out);
+
+        uint balance0 = IERC20(token0).balanceOf(address(this));
+        uint balance1 = IERC20(token1).balanceOf(address(this));
+
+        uint amount0In = balance0 > reserve0 - amount0Out ? balance0 - (reserve0 - amount0Out) : 0;
+        uint amount1In = balance1 > reserve1 - amount1Out ? balance1 - (reserve1 - amount1Out) : 0;
+
+        require(amount0In > 0 || amount1In > 0, "Insufficient input");
+
+        // 0.3% fee
+        uint balance0Adjusted = (balance0 * 1000) - (amount0In * 3);
+        uint balance1Adjusted = (balance1 * 1000) - (amount1In * 3);
+        require(balance0Adjusted * balance1Adjusted >= uint(reserve0) * reserve1 * (1000**2), "K");
+
+        _update(balance0, balance1);
+        emit Swap(msg.sender, amount0In, amount1In, amount0Out, amount1Out, to);
+    }
+
+    function _update(uint balance0, uint balance1) private {
+        reserve0 = uint112(balance0);
+        reserve1 = uint112(balance1);
+        blockTimestampLast = uint32(block.timestamp);
+        emit Sync(reserve0, reserve1);
+    }
+
+    function getReserves() external view returns (uint112, uint112, uint32) {
+        return (reserve0, reserve1, blockTimestampLast);
+    }
+
+    function sqrt(uint y) internal pure returns (uint z) {
+        if (y > 3) {
+            z = y;
+            uint x = y / 2 + 1;
+            while (x < z) {
+                z = x;
+                x = (y / x + x) / 2;
+            }
+        } else if (y != 0) {
+            z = 1;
+        }
+    }
+
+    function min(uint x, uint y) internal pure returns (uint) {
+        return x < y ? x : y;
+    }
+}
+```
+
+### Router Contract
+
+```solidity contracts/DEXRouter.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "./DEXFactory.sol";
+import "./DEXPair.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+contract DEXRouter {
+    DEXFactory public factory;
+
+    constructor(address _factory) {
+        factory = DEXFactory(_factory);
+    }
+
+    function swapExactTokensForTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts) {
+        require(deadline >= block.timestamp, "Expired");
+        amounts = getAmountsOut(amountIn, path);
+        require(amounts[amounts.length - 1] >= amountOutMin, "Insufficient output");
+        
+        IERC20(path[0]).transferFrom(msg.sender, factory.getPair(path[0], path[1]), amounts[0]);
+        _swap(amounts, path, to);
+    }
+
+    function _swap(uint[] memory amounts, address[] memory path, address to) internal {
+        for (uint i; i < path.length - 1; i++) {
+            (address input, address output) = (path[i], path[i + 1]);
+            (address token0,) = input < output ? (input, output) : (output, input);
+            uint amountOut = amounts[i + 1];
+            (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
+            address _to = i < path.length - 2 ? factory.getPair(output, path[i + 2]) : to;
+            DEXPair(factory.getPair(input, output)).swap(amount0Out, amount1Out, _to);
+        }
+    }
+
+    function getAmountsOut(uint amountIn, address[] memory path) public view returns (uint[] memory amounts) {
+        amounts = new uint[](path.length);
+        amounts[0] = amountIn;
+        for (uint i; i < path.length - 1; i++) {
+            (uint reserveIn, uint reserveOut) = getReserves(path[i], path[i + 1]);
+            amounts[i + 1] = getAmountOut(amounts[i], reserveIn, reserveOut);
+        }
+    }
+
+    function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) public pure returns (uint) {
+        uint amountInWithFee = amountIn * 997;
+        uint numerator = amountInWithFee * reserveOut;
+        uint denominator = (reserveIn * 1000) + amountInWithFee;
+        return numerator / denominator;
+    }
+
+    function getReserves(address tokenA, address tokenB) public view returns (uint reserveA, uint reserveB) {
+        address pair = factory.getPair(tokenA, tokenB);
+        (uint reserve0, uint reserve1,) = DEXPair(pair).getReserves();
+        (reserveA, reserveB) = tokenA < tokenB ? (reserve0, reserve1) : (reserve1, reserve0);
+    }
+}
+```
+
+## Frontend Integration
+
+```javascript dex-interface.js
+const factory = new ethers.Contract(factoryAddress, factoryABI, signer);
+const router = new ethers.Contract(routerAddress, routerABI, signer);
+
+// Create pair
+const createPairTx = await factory.createPair(tokenA, tokenB);
+await createPairTx.wait();
+
+// Add liquidity
+const token = new ethers.Contract(tokenAddress, erc20ABI, signer);
+await token.approve(routerAddress, amountIn);
+
+const pair = await factory.getPair(tokenA, tokenB);
+const pairContract = new ethers.Contract(pair, pairABI, provider);
+await pairContract.addLiquidity(amount0, amount1);
+
+// Swap tokens
+const path = [tokenA, tokenB];
+const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20 mins
+
+await router.swapExactTokensForTokens(
+  amountIn,
+  amountOutMin,
+  path,
+  recipient,
+  deadline
+);
+```
+
+<CardGroup cols={2}>
+  <Card title="Integrate dApp" icon="plug" href="/tutorials/integrate-dapp">
+    Connect your frontend
+  </Card>
+  <Card title="Deploy ERC20" icon="coins" href="/tutorials/deploy-erc20">
+    Create tokens for your DEX
+  </Card>
+</CardGroup>

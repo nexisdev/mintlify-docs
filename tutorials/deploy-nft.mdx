@@ -1,0 +1,279 @@
+---
+title: 'Deploy an NFT'
+description: 'Create and deploy your own NFT smart contract on Nexis Appchain with metadata, royalties, and minting functionality'
+---
+
+# Deploy an NFT
+
+Learn how to create, deploy, and mint NFTs on Nexis Appchain using ERC721 standards.
+
+## Simple NFT Contract
+
+```solidity contracts/SimpleNFT.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract SimpleNFT is ERC721, ERC721URIStorage, Ownable {
+    uint256 private _tokenIdCounter;
+
+    constructor() ERC721("My NFT", "MNFT") Ownable(msg.sender) {}
+
+    function safeMint(address to, string memory uri) public onlyOwner {
+        uint256 tokenId = _tokenIdCounter++;
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, uri);
+    }
+
+    // Required overrides
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        override(ERC721, ERC721URIStorage)
+        returns (string memory)
+    {
+        return super.tokenURI(tokenId);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721, ERC721URIStorage)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
+    }
+}
+```
+
+## Advanced NFT with Features
+
+```solidity contracts/AdvancedNFT.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Royalty.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
+
+contract AdvancedNFT is
+    ERC721,
+    ERC721URIStorage,
+    ERC721Burnable,
+    ERC721Royalty,
+    AccessControl
+{
+    using Counters for Counters.Counter;
+
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    Counters.Counter private _tokenIdCounter;
+
+    uint256 public constant MAX_SUPPLY = 10000;
+    uint256 public mintPrice = 0.01 ether;
+    bool public publicMintEnabled = false;
+
+    event Minted(address indexed to, uint256 indexed tokenId);
+
+    constructor() ERC721("Advanced NFT", "ANFT") {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, msg.sender);
+        
+        // Set default royalty: 5% to creator
+        _setDefaultRoyalty(msg.sender, 500); // 500 = 5%
+    }
+
+    function mint(address to, string memory uri) public payable {
+        require(publicMintEnabled || hasRole(MINTER_ROLE, msg.sender), "Minting disabled");
+        require(_tokenIdCounter.current() < MAX_SUPPLY, "Max supply reached");
+        
+        if (!hasRole(MINTER_ROLE, msg.sender)) {
+            require(msg.value >= mintPrice, "Insufficient payment");
+        }
+
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+        
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, uri);
+        
+        emit Minted(to, tokenId);
+    }
+
+    function setMintPrice(uint256 _price) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        mintPrice = _price;
+    }
+
+    function togglePublicMint() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        publicMintEnabled = !publicMintEnabled;
+    }
+
+    function setRoyalty(uint256 tokenId, address receiver, uint96 feeNumerator)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _setTokenRoyalty(tokenId, receiver, feeNumerator);
+    }
+
+    function withdraw() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        uint256 balance = address(this).balance;
+        payable(msg.sender).transfer(balance);
+    }
+
+    function totalSupply() public view returns (uint256) {
+        return _tokenIdCounter.current();
+    }
+
+    // Required overrides
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        override(ERC721, ERC721URIStorage)
+        returns (string memory)
+    {
+        return super.tokenURI(tokenId);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721, ERC721URIStorage, ERC721Royalty, AccessControl)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
+    }
+
+    function _burn(uint256 tokenId)
+        internal
+        override(ERC721, ERC721URIStorage, ERC721Royalty)
+    {
+        super._burn(tokenId);
+    }
+}
+```
+
+## Metadata Structure
+
+```json metadata.json
+{
+  "name": "NFT #1",
+  "description": "An amazing NFT on Nexis Appchain",
+  "image": "ipfs://QmXxxx.../image.png",
+  "attributes": [
+    {
+      "trait_type": "Background",
+      "value": "Blue"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Legendary"
+    }
+  ]
+}
+```
+
+## Deploy and Mint
+
+```javascript scripts/deploy-nft.js
+const hre = require("hardhat");
+const { ethers } = require("hardhat");
+
+async function main() {
+  const [deployer] = await ethers.getSigners();
+
+  console.log("Deploying NFT with:", deployer.address);
+
+  // Deploy NFT
+  const NFT = await ethers.getContractFactory("AdvancedNFT");
+  const nft = await NFT.deploy();
+  await nft.waitForDeployment();
+
+  const address = await nft.getAddress();
+  console.log("NFT deployed:", address);
+
+  // Mint first NFT
+  const tokenURI = "ipfs://QmXxxx.../metadata.json";
+  const mintTx = await nft.mint(deployer.address, tokenURI);
+  await mintTx.wait();
+
+  console.log("Minted NFT #0 to:", deployer.address);
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+## Upload to IPFS
+
+```javascript scripts/upload-to-ipfs.js
+const { create } = require('ipfs-http-client');
+const fs = require('fs');
+
+const ipfs = create({ url: 'https://ipfs.infura.io:5001/api/v0' });
+
+async function uploadToIPFS() {
+  // Upload image
+  const image = fs.readFileSync('./assets/image.png');
+  const imageResult = await ipfs.add(image);
+  console.log('Image CID:', imageResult.path);
+
+  // Upload metadata
+  const metadata = {
+    name: "My NFT #1",
+    description: "A cool NFT",
+    image: `ipfs://${imageResult.path}`,
+    attributes: [
+      { trait_type: "Rarity", value: "Rare" }
+    ]
+  };
+
+  const metadataResult = await ipfs.add(JSON.stringify(metadata));
+  console.log('Metadata CID:', metadataResult.path);
+  console.log('Full URI:', `ipfs://${metadataResult.path}`);
+
+  return `ipfs://${metadataResult.path}`;
+}
+
+uploadToIPFS().catch(console.error);
+```
+
+## Interact with NFT
+
+```javascript
+const nft = new ethers.Contract(nftAddress, nftABI, signer);
+
+// Mint NFT
+const tx = await nft.mint(recipientAddress, "ipfs://Qm.../metadata.json");
+await tx.wait();
+
+// Get token URI
+const uri = await nft.tokenURI(0);
+console.log("Token URI:", uri);
+
+// Transfer NFT
+const transferTx = await nft.transferFrom(fromAddress, toAddress, tokenId);
+await transferTx.wait();
+
+// Check royalty info
+const salePrice = ethers.parseEther("1");
+const [receiver, royaltyAmount] = await nft.royaltyInfo(tokenId, salePrice);
+console.log("Royalty:", ethers.formatEther(royaltyAmount), "to", receiver);
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Deploy NFT Collection" icon="images" href="/tutorials/deploy-nft-collection">
+    Create a full NFT collection
+  </Card>
+  <Card title="Build NFT Marketplace" icon="store" href="/tutorials/build-nft-marketplace">
+    Build marketplace for your NFTs
+  </Card>
+</CardGroup>

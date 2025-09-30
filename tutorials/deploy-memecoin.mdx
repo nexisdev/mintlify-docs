@@ -1,0 +1,333 @@
+---
+title: 'Deploy a Memecoin'
+description: 'Launch your viral memecoin on Nexis Appchain with anti-bot protection, liquidity locking, and marketing wallets'
+---
+
+# Deploy a Memecoin
+
+Create the next viral memecoin with built-in features for fair launches, anti-bot mechanisms, and community rewards.
+
+## Memecoin Contract
+
+```solidity contracts/Memecoin.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract Memecoin is ERC20, Ownable {
+    // Trading controls
+    bool public tradingEnabled = false;
+    uint256 public tradingEnabledAt;
+
+    // Anti-bot
+    mapping(address => bool) public isBot;
+    uint256 public constant ANTI_BOT_DURATION = 30 seconds;
+    uint256 public maxTxAmount;
+    uint256 public maxWalletAmount;
+
+    // Tax system
+    uint256 public buyTax = 5;
+    uint256 public sellTax = 5;
+    address public marketingWallet;
+    address public devWallet;
+
+    // Exclusions
+    mapping(address => bool) public isExcludedFromTax;
+    mapping(address => bool) public isExcludedFromLimits;
+    mapping(address => bool) public isAMM;
+
+    event TradingEnabled(uint256 timestamp);
+    event BotBanned(address indexed account);
+    event TaxDistributed(uint256 marketingAmount, uint256 devAmount);
+
+    constructor(
+        string memory name,
+        string memory symbol,
+        uint256 totalSupply_,
+        address _marketingWallet,
+        address _devWallet
+    ) ERC20(name, symbol) Ownable(msg.sender) {
+        require(_marketingWallet != address(0), "Invalid marketing wallet");
+        require(_devWallet != address(0), "Invalid dev wallet");
+
+        marketingWallet = _marketingWallet;
+        devWallet = _devWallet;
+
+        maxTxAmount = totalSupply_ * 2 / 100;      // 2% max tx
+        maxWalletAmount = totalSupply_ * 2 / 100;  // 2% max wallet
+
+        // Exclude from limits and tax
+        isExcludedFromTax[msg.sender] = true;
+        isExcludedFromTax[address(this)] = true;
+        isExcludedFromTax[marketingWallet] = true;
+        isExcludedFromTax[devWallet] = true;
+
+        isExcludedFromLimits[msg.sender] = true;
+        isExcludedFromLimits[address(this)] = true;
+        isExcludedFromLimits[marketingWallet] = true;
+        isExcludedFromLimits[devWallet] = true;
+
+        _mint(msg.sender, totalSupply_);
+    }
+
+    function enableTrading() external onlyOwner {
+        require(!tradingEnabled, "Trading already enabled");
+        tradingEnabled = true;
+        tradingEnabledAt = block.timestamp;
+        emit TradingEnabled(block.timestamp);
+    }
+
+    function setBots(address[] calldata accounts, bool banned) external onlyOwner {
+        for (uint256 i = 0; i < accounts.length; i++) {
+            isBot[accounts[i]] = banned;
+            if (banned) emit BotBanned(accounts[i]);
+        }
+    }
+
+    function setAMM(address pair, bool value) external onlyOwner {
+        isAMM[pair] = value;
+    }
+
+    function setTaxes(uint256 _buyTax, uint256 _sellTax) external onlyOwner {
+        require(_buyTax <= 25 && _sellTax <= 25, "Tax too high");
+        buyTax = _buyTax;
+        sellTax = _sellTax;
+    }
+
+    function setLimits(uint256 _maxTx, uint256 _maxWallet) external onlyOwner {
+        maxTxAmount = _maxTx;
+        maxWalletAmount = _maxWallet;
+    }
+
+    function removeLimits() external onlyOwner {
+        maxTxAmount = totalSupply();
+        maxWalletAmount = totalSupply();
+    }
+
+    function _update(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override {
+        require(!isBot[from] && !isBot[to], "Bot detected");
+
+        // Trading check
+        if (!tradingEnabled) {
+            require(
+                isExcludedFromLimits[from] || isExcludedFromLimits[to],
+                "Trading not enabled"
+            );
+        }
+
+        // Anti-bot during launch
+        if (
+            tradingEnabled &&
+            block.timestamp < tradingEnabledAt + ANTI_BOT_DURATION &&
+            isAMM[from]
+        ) {
+            isBot[to] = true;
+            emit BotBanned(to);
+        }
+
+        // Limits check
+        if (!isExcludedFromLimits[from] && !isExcludedFromLimits[to]) {
+            require(amount <= maxTxAmount, "Exceeds max tx");
+
+            if (!isAMM[to]) {
+                require(
+                    balanceOf(to) + amount <= maxWalletAmount,
+                    "Exceeds max wallet"
+                );
+            }
+        }
+
+        // Tax calculation
+        uint256 taxAmount = 0;
+
+        if (!isExcludedFromTax[from] && !isExcludedFromTax[to]) {
+            if (isAMM[from]) {
+                // Buy
+                taxAmount = (amount * buyTax) / 100;
+            } else if (isAMM[to]) {
+                // Sell
+                taxAmount = (amount * sellTax) / 100;
+            }
+        }
+
+        if (taxAmount > 0) {
+            super._update(from, address(this), taxAmount);
+
+            // Distribute tax: 50% marketing, 50% dev
+            uint256 half = taxAmount / 2;
+            super._update(address(this), marketingWallet, half);
+            super._update(address(this), devWallet, taxAmount - half);
+
+            emit TaxDistributed(half, taxAmount - half);
+
+            amount -= taxAmount;
+        }
+
+        super._update(from, to, amount);
+    }
+
+    // Recover stuck tokens
+    function rescueTokens(address token, uint256 amount) external onlyOwner {
+        require(token != address(this), "Cannot rescue own token");
+        IERC20(token).transfer(owner(), amount);
+    }
+
+    receive() external payable {}
+}
+```
+
+## Deployment Script
+
+```javascript scripts/deploy-memecoin.js
+const hre = require("hardhat");
+
+async function main() {
+  const [deployer] = await ethers.getSigners();
+
+  console.log("Deploying memecoin with:", deployer.address);
+
+  // Configuration
+  const NAME = "Doge Coin 2.0";
+  const SYMBOL = "DOGE2";
+  const TOTAL_SUPPLY = ethers.parseEther("1000000000000"); // 1 trillion
+  const MARKETING_WALLET = "0xYourMarketingWallet";
+  const DEV_WALLET = "0xYourDevWallet";
+
+  const Memecoin = await ethers.getContractFactory("Memecoin");
+  const memecoin = await Memecoin.deploy(
+    NAME,
+    SYMBOL,
+    TOTAL_SUPPLY,
+    MARKETING_WALLET,
+    DEV_WALLET
+  );
+
+  await memecoin.waitForDeployment();
+  const address = await memecoin.getAddress();
+
+  console.log("Memecoin deployed:", address);
+  console.log("Total supply:", ethers.formatEther(TOTAL_SUPPLY));
+
+  return address;
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+```
+
+## Launch Checklist
+
+<Steps>
+  <Step title="Deploy Token">
+    Deploy memecoin contract with proper wallet addresses
+  </Step>
+
+  <Step title="Add Liquidity">
+    Add initial liquidity to DEX (Uniswap, etc.)
+  </Step>
+
+  <Step title="Set AMM Pair">
+    ```javascript
+    await memecoin.setAMM(pairAddress, true);
+    ```
+  </Step>
+
+  <Step title="Enable Trading">
+    ```javascript
+    await memecoin.enableTrading();
+    ```
+  </Step>
+
+  <Step title="Renounce or Lock">
+    Transfer ownership to timelock or renounce completely
+  </Step>
+</Steps>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Fair Launch Strategy">
+    - No presale or team tokens
+    - Add liquidity and lock LP tokens immediately
+    - Enable trading for everyone at same time
+    - Set reasonable initial limits (2% max tx/wallet)
+    - Remove limits after successful launch (24-48hrs)
+  </Accordion>
+
+  <Accordion title="Anti-Bot Protection">
+    - 30-second anti-bot period after launch
+    - Blacklist suspicious buyers during launch
+    - Implement max transaction limits
+    - Consider adding cooldown between transactions
+  </Accordion>
+
+  <Accordion title="Tax Mechanism">
+    - Keep taxes reasonable (5-10% max)
+    - Split between marketing and development
+    - Allow owner to adjust taxes
+    - Consider tax-free transfers between wallets
+  </Accordion>
+
+  <Accordion title="Liquidity">
+    - Lock LP tokens for extended period (6-12 months)
+    - Use trusted locking services
+    - Consider permanent liquidity lock for max trust
+    - Provide proof of locked liquidity
+  </Accordion>
+</AccordionGroup>
+
+## Marketing Integration
+
+```javascript
+// Telegram bot announcement
+const telegramAnnounce = async (tokenAddress) => {
+  const message = `
+🚀 $DOGE2 IS LIVE! 🚀
+
+Contract: ${tokenAddress}
+Buy on DEX: https://dex.nex-t1.ai/swap?token=${tokenAddress}
+
+✅ LP Locked
+✅ Ownership Renounced
+✅ No Team Tokens
+
+TO THE MOON! 🌙
+  `;
+
+  // Send to Telegram
+  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: CHAT_ID,
+      text: message,
+      parse_mode: 'HTML'
+    })
+  });
+};
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Deploy NFT Collection" icon="image" href="/tutorials/deploy-nft-collection">
+    Create your NFT collection
+  </Card>
+  <Card title="Build DEX" icon="arrow-right-arrow-left" href="/tutorials/deploy-dex">
+    Launch your own DEX
+  </Card>
+</CardGroup>
+
+---
+
+<Warning>
+**Disclaimer**: Memecoins are highly speculative. This tutorial is for educational purposes. Always conduct due diligence and consider legal implications in your jurisdiction.
+</Warning>

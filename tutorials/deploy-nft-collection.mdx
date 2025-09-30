@@ -1,0 +1,202 @@
+---
+title: 'Deploy NFT Collection'
+description: 'Launch a complete NFT collection with whitelist, reveal mechanics, and batch minting'
+---
+
+# Deploy NFT Collection
+
+Create a professional NFT collection with 10,000 unique items, whitelist, and reveal mechanics.
+
+## Collection Contract
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+
+contract NFTCollection is ERC721, Ownable {
+    using Strings for uint256;
+
+    uint256 public constant MAX_SUPPLY = 10000;
+    uint256 public constant MAX_PER_WALLET = 5;
+    uint256 public constant WHITELIST_PRICE = 0.05 ether;
+    uint256 public constant PUBLIC_PRICE = 0.08 ether;
+
+    uint256 private _tokenIdCounter;
+    string private _baseTokenURI;
+    string private _unrevealedURI;
+    bytes32 public merkleRoot;
+    
+    bool public whitelistActive = false;
+    bool public publicActive = false;
+    bool public revealed = false;
+
+    mapping(address => uint256) public mintedPerWallet;
+
+    constructor(string memory unrevealedURI) ERC721("My Collection", "COLL") Ownable(msg.sender) {
+        _unrevealedURI = unrevealedURI;
+    }
+
+    function whitelistMint(uint256 quantity, bytes32[] calldata proof) external payable {
+        require(whitelistActive, "Whitelist not active");
+        require(_tokenIdCounter + quantity <= MAX_SUPPLY, "Exceeds max supply");
+        require(mintedPerWallet[msg.sender] + quantity <= MAX_PER_WALLET, "Exceeds max per wallet");
+        require(msg.value >= WHITELIST_PRICE * quantity, "Insufficient payment");
+        require(_verifyWhitelist(msg.sender, proof), "Not whitelisted");
+
+        mintedPerWallet[msg.sender] += quantity;
+        for (uint256 i = 0; i < quantity; i++) {
+            _safeMint(msg.sender, _tokenIdCounter++);
+        }
+    }
+
+    function publicMint(uint256 quantity) external payable {
+        require(publicActive, "Public mint not active");
+        require(_tokenIdCounter + quantity <= MAX_SUPPLY, "Exceeds max supply");
+        require(mintedPerWallet[msg.sender] + quantity <= MAX_PER_WALLET, "Exceeds max per wallet");
+        require(msg.value >= PUBLIC_PRICE * quantity, "Insufficient payment");
+
+        mintedPerWallet[msg.sender] += quantity;
+        for (uint256 i = 0; i < quantity; i++) {
+            _safeMint(msg.sender, _tokenIdCounter++);
+        }
+    }
+
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        require(_ownerOf(tokenId) != address(0), "Token does not exist");
+        if (!revealed) return _unrevealedURI;
+        return string(abi.encodePacked(_baseTokenURI, tokenId.toString(), ".json"));
+    }
+
+    function _verifyWhitelist(address account, bytes32[] calldata proof) private view returns (bool) {
+        bytes32 leaf = keccak256(abi.encodePacked(account));
+        return MerkleProof.verify(proof, merkleRoot, leaf);
+    }
+
+    function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
+        merkleRoot = _merkleRoot;
+    }
+
+    function toggleWhitelist() external onlyOwner {
+        whitelistActive = !whitelistActive;
+    }
+
+    function togglePublic() external onlyOwner {
+        publicActive = !publicActive;
+    }
+
+    function reveal(string calldata baseURI) external onlyOwner {
+        _baseTokenURI = baseURI;
+        revealed = true;
+    }
+
+    function withdraw() external onlyOwner {
+        payable(owner()).transfer(address(this).balance);
+    }
+
+    function totalSupply() public view returns (uint256) {
+        return _tokenIdCounter;
+    }
+}
+```
+
+## Generate Merkle Tree
+
+```javascript scripts/generate-whitelist.js
+const { MerkleTree } = require('merkletreejs');
+const keccak256 = require('keccak256');
+const fs = require('fs');
+
+const whitelist = [
+  "0xAddress1",
+  "0xAddress2",
+  "0xAddress3",
+  // Add all whitelisted addresses
+];
+
+const leaves = whitelist.map(addr => keccak256(addr));
+const tree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+const root = tree.getHexRoot();
+
+console.log("Merkle Root:", root);
+
+// Generate proofs for each address
+const proofs = {};
+whitelist.forEach(addr => {
+  const leaf = keccak256(addr);
+  const proof = tree.getHexProof(leaf);
+  proofs[addr] = proof;
+});
+
+fs.writeFileSync('whitelist-proofs.json', JSON.stringify({ root, proofs }, null, 2));
+console.log("Proofs saved to whitelist-proofs.json");
+```
+
+## Batch Metadata Generation
+
+```python scripts/generate-metadata.py
+import json
+import os
+
+BASE_URI = "ipfs://QmYourBaseURI/"
+TOTAL_SUPPLY = 10000
+
+traits = {
+    "background": ["Blue", "Red", "Green", "Yellow"],
+    "body": ["Robot", "Alien", "Human"],
+    "accessory": ["Hat", "Glasses", "None"]
+}
+
+for i in range(TOTAL_SUPPLY):
+    metadata = {
+        "name": f"Collection #{i}",
+        "description": "A unique NFT from the collection",
+        "image": f"{BASE_URI}{i}.png",
+        "attributes": [
+            {"trait_type": "Background", "value": traits["background"][i % 4]},
+            {"trait_type": "Body", "value": traits["body"][i % 3]},
+            {"trait_type": "Accessory", "value": traits["accessory"][i % 3]}
+        ]
+    }
+    
+    with open(f"metadata/{i}.json", "w") as f:
+        json.dump(metadata, f, indent=2)
+
+print(f"Generated {TOTAL_SUPPLY} metadata files")
+```
+
+## Launch Workflow
+
+<Steps>
+  <Step title="Generate Assets">
+    Create 10,000 unique images and metadata files
+  </Step>
+  <Step title="Upload to IPFS">
+    Upload images and metadata to IPFS, get base URI
+  </Step>
+  <Step title="Deploy Contract">
+    Deploy with unrevealed URI
+  </Step>
+  <Step title="Set Whitelist">
+    Generate and set Merkle root for whitelist
+  </Step>
+  <Step title="Enable Minting">
+    Activate whitelist mint, then public mint
+  </Step>
+  <Step title="Reveal Collection">
+    Call reveal() with real base URI after sellout
+  </Step>
+</Steps>
+
+<CardGroup cols={2}>
+  <Card title="Deploy DEX" icon="arrow-right-arrow-left" href="/tutorials/deploy-dex">
+    Build decentralized exchange
+  </Card>
+  <Card title="AI Agents" icon="robot" href="/tutorials/deploy-onchain-agent">
+    Deploy AI agents on-chain
+  </Card>
+</CardGroup>

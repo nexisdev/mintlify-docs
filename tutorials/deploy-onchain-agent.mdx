@@ -1,0 +1,82 @@
+---
+title: 'Deploy On-Chain AI Agent'
+description: 'Deploy and register autonomous AI agents on Nexis Appchain with proof-of-inference and task execution'
+---
+
+# Deploy On-Chain AI Agent
+
+Create autonomous AI agents that execute tasks on-chain with verifiable proof-of-inference.
+
+## Agent Registration
+
+```javascript
+import { NexisAgents } from "@nexis-network/sdk";
+import { ethers } from "ethers";
+
+const provider = new ethers.JsonRpcProvider("https://testnet-rpc.nex-t1.ai");
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+
+const agents = new NexisAgents(wallet);
+
+// Register agent
+const agentId = "my-ai-agent";
+const metadata = {
+  name: "GPT-4 Assistant",
+  description: "AI agent powered by GPT-4",
+  capabilities: ["text-generation", "analysis"],
+  endpoint: "https://api.myagent.com"
+};
+
+const tx = await agents.register(agentId, JSON.stringify(metadata), "https://api.myagent.com");
+await tx.wait();
+console.log("Agent registered:", agentId);
+
+// Stake tokens
+const stakeTx = await agents.stakeETH(agentId, { value: ethers.parseEther("1") });
+await stakeTx.wait();
+```
+
+## Agent Server
+
+```javascript server.js
+const express = require('express');
+const { OpenAI } = require('openai');
+const crypto = require('crypto');
+
+const app = express();
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+app.use(express.json());
+
+app.post('/execute', async (req, res) => {
+  const { input, taskId } = req.body;
+  
+  // Hash input for proof
+  const inputHash = crypto.createHash('sha256').update(input).digest('hex');
+  
+  // Execute AI task
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4",
+    messages: [{ role: "user", content: input }]
+  });
+  
+  const output = completion.choices[0].message.content;
+  const outputHash = crypto.createHash('sha256').update(output).digest('hex');
+  
+  // Record on-chain
+  await recordInference(inputHash, outputHash, taskId);
+  
+  res.json({ output, inputHash, outputHash });
+});
+
+app.listen(3000, () => console.log('Agent server running on port 3000'));
+```
+
+<CardGroup cols={2}>
+  <Card title="AI Agent Guide" icon="robot" href="/ai-ml/ai-agents">
+    Complete AI agent documentation
+  </Card>
+  <Card title="Register Agent Tutorial" icon="circle-plus" href="/tutorials/register-agent">
+    Step-by-step registration
+  </Card>
+</CardGroup>
