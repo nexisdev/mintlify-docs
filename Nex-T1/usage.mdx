@@ -1,49 +1,863 @@
 ---
-title: 'Usage'
-description: 'How users call the APIs and how developers work with the agent graph and tools.'
+title: 'API Usage'
+description: 'Complete API reference, authentication, endpoints, SDKs, and developer integration guide.'
 icon: 'terminal'
 ---
 
-# Usage
+# API Usage
 
-## User — Chat Endpoints
+<Info>
+Nex‑T1 provides a comprehensive REST API with WebSocket support for real-time operations. All endpoints are documented with OpenAPI/Swagger specifications and include SDKs for Python and TypeScript.
+</Info>
+
+## Quick Start
+
+<Steps>
+  <Step title="Get API Key">
+    Register at [app.nex-t1.ai](https://app.nex-t1.ai) to obtain your API key
+  </Step>
+  <Step title="Authenticate">
+    Include your API key in the Authorization header: `Bearer YOUR_API_KEY`
+  </Step>
+  <Step title="Make Your First Call">
+    ```bash
+    curl -X POST https://api.nex-t1.ai/v1/chat \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"message": "What is the current ETH price?"}'
+    ```
+  </Step>
+</Steps>
+
+## Authentication
+
+### JWT Authentication
+
+Nex‑T1 uses JWT (JSON Web Tokens) for secure API authentication.
+
+<Tabs>
+  <Tab title="Login">
+    ```bash
+    # Login to get tokens
+    curl -X POST https://api.nex-t1.ai/auth/login \
+      -H "Content-Type: application/json" \
+      -d '{
+        "email": "user@example.com",
+        "password": "your-password"
+      }'
+    ```
+
+    **Response**:
+    ```json
+    {
+      "access_token": "eyJhbGciOiJIUzI1NiIs...",
+      "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+      "token_type": "bearer",
+      "expires_in": 3600
+    }
+    ```
+  </Tab>
+  <Tab title="Refresh">
+    ```bash
+    # Refresh expired token
+    curl -X POST https://api.nex-t1.ai/auth/refresh \
+      -H "Content-Type: application/json" \
+      -d '{
+        "refresh_token": "your-refresh-token"
+      }'
+    ```
+  </Tab>
+  <Tab title="API Key">
+    ```bash
+    # Alternative: Use persistent API key
+    curl -X GET https://api.nex-t1.ai/v1/chat \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+### Session Management
+
+```python
+# Python SDK handles sessions automatically
+from next1 import Client
+
+client = Client(api_key="YOUR_API_KEY")
+
+# Session persists across requests
+response1 = await client.chat("Hello")
+response2 = await client.chat("Continue our conversation")
+```
+
+## Core Endpoints
+
+### Chat API
+
+The main conversational interface for natural language interactions.
 
 <CodeGroup>
-```bash Chat
-curl -X POST http://localhost:8000/api/v1/chatbot/chat \
-  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
-  -d '{"messages":[{"role":"user","content":"hello"}]}'
+```python Python
+from next1 import Client
+
+client = Client(api_key="YOUR_API_KEY")
+
+# Simple chat
+response = await client.chat(
+    message="Find the best yield for 10,000 USDC",
+    context={
+        "chain": "ethereum",
+        "risk_tolerance": "medium"
+    }
+)
+
+# Streaming response
+async for chunk in client.chat_stream(
+    message="Explain Uniswap V3 concentrated liquidity"
+):
+    print(chunk.content, end="")
 ```
-```bash Stream
-curl -X POST http://localhost:8000/api/v1/chatbot/chat/stream \
-  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
-  -N -d '{"messages":[{"role":"user","content":"hello"}]}'
+
+```typescript TypeScript
+import { NexT1Client } from '@next1/sdk';
+
+const client = new NexT1Client({ apiKey: 'YOUR_API_KEY' });
+
+// Simple chat
+const response = await client.chat({
+    message: "Find the best yield for 10,000 USDC",
+    context: {
+        chain: "ethereum",
+        riskTolerance: "medium"
+    }
+});
+
+// Streaming response
+const stream = await client.chatStream({
+    message: "Explain Uniswap V3 concentrated liquidity"
+});
+
+for await (const chunk of stream) {
+    process.stdout.write(chunk.content);
+}
+```
+
+```bash cURL
+# Simple chat
+curl -X POST https://api.nex-t1.ai/v1/chat \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Find the best yield for 10,000 USDC",
+    "context": {
+      "chain": "ethereum",
+      "risk_tolerance": "medium"
+    }
+  }'
+
+# Streaming chat
+curl -X POST https://api.nex-t1.ai/v1/chat/stream \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -N \
+  -d '{
+    "message": "Explain Uniswap V3 concentrated liquidity"
+  }'
 ```
 </CodeGroup>
 
-## User — Multi‑Agent Preview
+**Request Schema**:
+```json
+{
+  "message": "string",
+  "context": {
+    "chain": "ethereum | polygon | arbitrum | ...",
+    "wallet_address": "0x...",
+    "risk_tolerance": "low | medium | high",
+    "max_gas_price": "number",
+    "slippage_tolerance": "number"
+  },
+  "session_id": "string (optional)",
+  "tools": ["array of tool names to enable"],
+  "temperature": "number (0-1)"
+}
+```
+
+### Multi-Agent APIs
+
+#### Intent Router
+
+Routes user requests to appropriate specialized agents.
+
+```python
+# Python
+response = await client.multi_agent.preview(
+    text="Quote 10 ETH to USDC on Arbitrum with best rates"
+)
+
+print(response.intent)  # "trading"
+print(response.suggested_action)
+print(response.preview)
+```
+
+**Endpoint**: `POST /api/v1/multi-agent/preview`
+
+#### Research Agent
+
+Aggregates data from multiple sources for comprehensive analysis.
 
 <CodeGroup>
-```bash Intent
-curl -X POST http://localhost:8000/api/v1/multi-agent/preview \
-  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
-  -d '{"text":"quote 10 USDC to WETH on Base"}'
+```python Python
+# Complex research query
+research = await client.multi_agent.research(
+    query="Compare Aave vs Compound yields for WETH",
+    sources=["thegraph", "dune", "defillama"],
+    include_historical=True,
+    time_range="30d"
+)
+
+print(research.summary)
+print(research.data_points)
+print(research.recommendations)
 ```
-```bash Research
-curl -X POST http://localhost:8000/api/v1/multi-agent/research/preview \
-  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
-  -d '{"subgraph":"https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3","gql":"query{ bundles(first:1){ethPrice} }"}'
+
+```javascript JavaScript
+// GraphQL subgraph query
+const result = await client.multiAgent.research({
+    subgraph: "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3",
+    query: `
+        query TopPools {
+            pools(first: 10, orderBy: totalValueLockedUSD, orderDirection: desc) {
+                id
+                token0 { symbol }
+                token1 { symbol }
+                totalValueLockedUSD
+                volumeUSD
+                feeTier
+            }
+        }
+    `
+});
 ```
-```bash Risk
-curl -X POST http://localhost:8000/api/v1/multi-agent/risk/preview \
-  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
-  -d '{"quote":{...},"input":{"chain":"base"}}'
+
+```bash cURL
+# DeFiLlama integration
+curl -X POST https://api.nex-t1.ai/v1/multi-agent/research/preview \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "Top 10 protocols by TVL change this week",
+    "sources": ["defillama"],
+    "format": "table"
+  }'
 ```
 </CodeGroup>
 
-## Developer — Graph & Tools
+**Endpoint**: `POST /api/v1/multi-agent/research/preview`
 
-- Agent defined in `app/core/langgraph/graph.py`.
-- Tools bound via `app/core/langgraph/tools` (default: DuckDuckGo). Add more BaseTool implementations and include in `tools` list.
-- MCP tools are exercised primarily through `/api/v1/multi-agent/*` endpoints and can be bound to the single‑agent graph if desired.
+#### Trading Agent
 
+Handles quotes, execution, and trade optimization.
+
+<Accordion title="Quote Generation">
+```python
+# Get best quote across all DEXs
+quote = await client.multi_agent.quote(
+    token_in="ETH",
+    token_out="USDC",
+    amount_in="10.0",
+    chain="ethereum",
+    slippage=0.5  # 0.5%
+)
+
+print(f"Best rate: {quote.rate}")
+print(f"Output: {quote.amount_out} USDC")
+print(f"Route: {quote.route}")
+print(f"Gas estimate: ${quote.gas_usd}")
+```
+
+**Response**:
+```json
+{
+  "quote_id": "q_123456",
+  "token_in": "ETH",
+  "token_out": "USDC",
+  "amount_in": "10.0",
+  "amount_out": "35420.50",
+  "rate": "3542.05",
+  "price_impact": "0.12",
+  "route": [
+    {
+      "protocol": "Uniswap V3",
+      "pool": "ETH/USDC 0.05%",
+      "portion": 0.7
+    },
+    {
+      "protocol": "Curve",
+      "pool": "TriCrypto",
+      "portion": 0.3
+    }
+  ],
+  "gas_estimate": "120000",
+  "gas_usd": "45.20",
+  "expires_at": "2024-01-20T10:30:00Z"
+}
+```
+</Accordion>
+
+<Accordion title="Trade Execution">
+```python
+# Execute trade with quote ID
+execution = await client.multi_agent.execute(
+    quote_id="q_123456",
+    wallet_address="0x...",
+    private_key=None,  # Use MPC wallet
+    confirmation_blocks=2
+)
+
+print(f"Transaction: {execution.tx_hash}")
+print(f"Status: {execution.status}")
+```
+
+**Safety Features**:
+- Transaction simulation before execution
+- MEV protection via private pools
+- Automatic gas price optimization
+- Revert protection
+</Accordion>
+
+**Endpoints**:
+- Quote: `POST /api/v1/multi-agent/quote`
+- Execute: `POST /api/v1/multi-agent/execute`
+- Status: `GET /api/v1/multi-agent/transaction/{tx_hash}`
+
+#### Risk Agent
+
+Evaluates and manages transaction risks.
+
+```python
+# Risk assessment
+risk = await client.multi_agent.assess_risk(
+    action="swap",
+    quote=quote_object,
+    thresholds={
+        "max_slippage": 1.0,
+        "min_liquidity": 100000,
+        "max_price_impact": 2.0
+    }
+)
+
+if risk.score > 7:
+    print("✅ Low risk - safe to proceed")
+elif risk.score > 4:
+    print("⚠️ Medium risk - review warnings")
+    for warning in risk.warnings:
+        print(f"  - {warning}")
+else:
+    print("❌ High risk - not recommended")
+    for issue in risk.critical_issues:
+        print(f"  - {issue}")
+```
+
+**Endpoint**: `POST /api/v1/multi-agent/risk/preview`
+
+### Tool Management APIs
+
+#### List Available Tools
+
+```bash
+curl -X GET https://api.nex-t1.ai/v1/tools \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Response**:
+```json
+{
+  "tools": [
+    {
+      "name": "duckduckgo_search",
+      "description": "Search the web",
+      "category": "search",
+      "enabled": true
+    },
+    {
+      "name": "uniswap_quote",
+      "description": "Get Uniswap swap quotes",
+      "category": "trading",
+      "enabled": true,
+      "mcp_server": "uniswap-mcp"
+    }
+  ]
+}
+```
+
+#### Invoke Specific Tool
+
+```python
+# Direct tool invocation
+result = await client.tools.invoke(
+    name="defillama_tvl",
+    params={
+        "protocol": "aave",
+        "chain": "all"
+    }
+)
+```
+
+### MCP Server APIs
+
+#### List MCP Servers
+
+```bash
+curl -X GET https://api.nex-t1.ai/v1/mcp/servers \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+#### MCP Tool Discovery
+
+```python
+# Discover tools from MCP server
+tools = await client.mcp.discover_tools("binance-mcp")
+
+for tool in tools:
+    print(f"{tool.name}: {tool.description}")
+    print(f"  Parameters: {tool.parameters}")
+```
+
+#### Dynamic MCP Invocation
+
+```python
+# Invoke MCP method dynamically
+result = await client.mcp.invoke(
+    server="chainlink-mcp",
+    method="get_price_feed",
+    params={
+        "pair": "ETH/USD",
+        "aggregator": "0x..."
+    }
+)
+```
+
+## WebSocket APIs
+
+### Real-time Market Data
+
+```javascript
+const ws = new WebSocket('wss://api.nex-t1.ai/v1/ws');
+
+ws.onopen = () => {
+    // Authenticate
+    ws.send(JSON.stringify({
+        type: 'auth',
+        token: 'YOUR_API_KEY'
+    }));
+
+    // Subscribe to price updates
+    ws.send(JSON.stringify({
+        type: 'subscribe',
+        channels: ['prices'],
+        symbols: ['ETH/USD', 'BTC/USD']
+    }));
+};
+
+ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    console.log(`${data.symbol}: $${data.price}`);
+};
+```
+
+### Streaming Chat
+
+```python
+import websockets
+import json
+
+async with websockets.connect('wss://api.nex-t1.ai/v1/ws/chat') as ws:
+    # Send message
+    await ws.send(json.dumps({
+        'token': 'YOUR_API_KEY',
+        'message': 'Stream me the latest DeFi yields'
+    }))
+
+    # Receive streaming response
+    async for message in ws:
+        data = json.loads(message)
+        print(data['chunk'], end='', flush=True)
+```
+
+## SDKs and Libraries
+
+### Official SDKs
+
+<CardGroup cols={2}>
+  <Card title="Python SDK" icon="python">
+    ```bash
+    pip install next1
+    ```
+
+    [GitHub](https://github.com/next1/python-sdk) | [PyPI](https://pypi.org/project/next1)
+  </Card>
+  <Card title="TypeScript SDK" icon="js">
+    ```bash
+    npm install @next1/sdk
+    ```
+
+    [GitHub](https://github.com/next1/typescript-sdk) | [npm](https://npmjs.com/@next1/sdk)
+  </Card>
+  <Card title="Go SDK" icon="golang">
+    ```bash
+    go get github.com/next1/go-sdk
+    ```
+
+    [GitHub](https://github.com/next1/go-sdk)
+  </Card>
+  <Card title="Rust SDK" icon="rust">
+    ```toml
+    next1 = "0.1.0"
+    ```
+
+    [GitHub](https://github.com/next1/rust-sdk) | [crates.io](https://crates.io/crates/next1)
+  </Card>
+</CardGroup>
+
+### SDK Features
+
+<Tabs>
+  <Tab title="Async Support">
+    ```python
+    import asyncio
+    from next1 import AsyncClient
+
+    async def main():
+        async with AsyncClient(api_key="KEY") as client:
+            tasks = [
+                client.chat("Query 1"),
+                client.research("Query 2"),
+                client.quote("ETH", "USDC", 1.0)
+            ]
+            results = await asyncio.gather(*tasks)
+    ```
+  </Tab>
+  <Tab title="Retry Logic">
+    ```typescript
+    const client = new NexT1Client({
+        apiKey: 'KEY',
+        maxRetries: 3,
+        retryDelay: 1000,
+        timeout: 30000
+    });
+
+    // Automatic retry on failure
+    const response = await client.chat({
+        message: "Your query",
+        retryOn: [429, 503] // Rate limit and service unavailable
+    });
+    ```
+  </Tab>
+  <Tab title="Caching">
+    ```python
+    from next1 import Client, Cache
+
+    # Enable response caching
+    client = Client(
+        api_key="KEY",
+        cache=Cache(
+            ttl=300,  # 5 minutes
+            max_size=100  # 100 entries
+        )
+    )
+
+    # Subsequent identical requests use cache
+    response1 = await client.research("ETH TVL")
+    response2 = await client.research("ETH TVL")  # Cached
+    ```
+  </Tab>
+</Tabs>
+
+## Error Handling
+
+### Error Response Format
+
+```json
+{
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Too many requests. Please retry after 60 seconds.",
+    "details": {
+      "limit": 100,
+      "window": "1m",
+      "retry_after": 60
+    }
+  },
+  "request_id": "req_abc123"
+}
+```
+
+### Common Error Codes
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `UNAUTHORIZED` | 401 | Invalid or expired token |
+| `FORBIDDEN` | 403 | Insufficient permissions |
+| `NOT_FOUND` | 404 | Resource not found |
+| `VALIDATION_ERROR` | 400 | Invalid request parameters |
+| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
+| `INTERNAL_ERROR` | 500 | Server error |
+| `SERVICE_UNAVAILABLE` | 503 | Temporary outage |
+
+### Error Handling Examples
+
+<CodeGroup>
+```python Python
+from next1 import Client, NexT1Error
+
+client = Client(api_key="KEY")
+
+try:
+    response = await client.chat("Your query")
+except NexT1Error as e:
+    if e.code == "RATE_LIMIT_EXCEEDED":
+        await asyncio.sleep(e.retry_after)
+        response = await client.chat("Your query")  # Retry
+    else:
+        print(f"Error: {e.message}")
+```
+
+```typescript TypeScript
+try {
+    const response = await client.chat({ message: "Query" });
+} catch (error) {
+    if (error instanceof NexT1Error) {
+        switch (error.code) {
+            case 'RATE_LIMIT_EXCEEDED':
+                await sleep(error.retryAfter * 1000);
+                // Retry
+                break;
+            case 'VALIDATION_ERROR':
+                console.error('Invalid parameters:', error.details);
+                break;
+            default:
+                console.error('API Error:', error.message);
+        }
+    }
+}
+```
+</CodeGroup>
+
+## Rate Limiting
+
+### Default Limits
+
+| Tier | Requests/Min | Requests/Hour | Concurrent |
+|------|--------------|---------------|------------|
+| Free | 20 | 100 | 2 |
+| Pro | 100 | 3,000 | 10 |
+| Business | 500 | 20,000 | 50 |
+| Enterprise | Custom | Custom | Custom |
+
+### Rate Limit Headers
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1609459200
+X-RateLimit-Reset-After: 45
+```
+
+### Handling Rate Limits
+
+```python
+import time
+from next1 import Client
+
+client = Client(api_key="KEY")
+
+def with_rate_limit(func):
+    def wrapper(*args, **kwargs):
+        response = func(*args, **kwargs)
+
+        # Check rate limit headers
+        if response.headers.get('X-RateLimit-Remaining') == '0':
+            reset_after = int(response.headers.get('X-RateLimit-Reset-After', 60))
+            print(f"Rate limit reached. Waiting {reset_after}s...")
+            time.sleep(reset_after)
+
+        return response
+    return wrapper
+```
+
+## Pagination
+
+### Cursor-based Pagination
+
+```python
+# Get paginated results
+page1 = await client.research.list_protocols(
+    limit=50,
+    cursor=None
+)
+
+# Get next page
+page2 = await client.research.list_protocols(
+    limit=50,
+    cursor=page1.next_cursor
+)
+```
+
+### Offset Pagination
+
+```bash
+# Page 1
+curl "https://api.nex-t1.ai/v1/transactions?limit=20&offset=0"
+
+# Page 2
+curl "https://api.nex-t1.ai/v1/transactions?limit=20&offset=20"
+```
+
+## Webhooks
+
+### Setting Up Webhooks
+
+```python
+# Register webhook endpoint
+webhook = await client.webhooks.create(
+    url="https://your-app.com/webhook",
+    events=["transaction.completed", "alert.triggered"],
+    secret="your-webhook-secret"
+)
+
+print(f"Webhook ID: {webhook.id}")
+print(f"Secret: {webhook.secret}")
+```
+
+### Webhook Events
+
+| Event | Description |
+|-------|-------------|
+| `transaction.completed` | Trade execution completed |
+| `transaction.failed` | Trade execution failed |
+| `alert.triggered` | Price/condition alert triggered |
+| `research.completed` | Research query completed |
+| `risk.warning` | Risk threshold exceeded |
+
+### Verifying Webhooks
+
+```python
+import hmac
+import hashlib
+
+def verify_webhook(payload: bytes, signature: str, secret: str) -> bool:
+    expected = hmac.new(
+        secret.encode(),
+        payload,
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(expected, signature)
+
+# In your webhook handler
+@app.post("/webhook")
+async def handle_webhook(request: Request):
+    payload = await request.body()
+    signature = request.headers.get("X-NexT1-Signature")
+
+    if not verify_webhook(payload, signature, WEBHOOK_SECRET):
+        raise HTTPException(400, "Invalid signature")
+
+    # Process webhook
+    data = json.loads(payload)
+    print(f"Event: {data['event']}")
+```
+
+## Testing
+
+### Sandbox Environment
+
+```python
+# Use sandbox for testing
+client = Client(
+    api_key="SANDBOX_KEY",
+    base_url="https://sandbox.api.nex-t1.ai"
+)
+
+# Test with fake money
+quote = await client.quote(
+    token_in="ETH",
+    token_out="USDC",
+    amount=1000,  # $1000 fake money
+    testnet=True
+)
+```
+
+### Mock Responses
+
+```bash
+# Request mock response
+curl -X POST https://sandbox.api.nex-t1.ai/v1/chat \
+  -H "Authorization: Bearer SANDBOX_KEY" \
+  -H "X-Mock-Response: success" \
+  -d '{"message": "test query"}'
+```
+
+## API Limits and Quotas
+
+### Request Size Limits
+
+- Maximum request size: 10MB
+- Maximum response size: 50MB
+- Maximum websocket message: 1MB
+- Maximum file upload: 100MB
+
+### Timeout Limits
+
+- Standard endpoints: 30 seconds
+- Research endpoints: 120 seconds
+- Execution endpoints: 60 seconds
+- WebSocket idle: 5 minutes
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Use Appropriate Endpoints" icon="route">
+    Choose the right endpoint for your use case. Use `/chat` for general queries, `/multi-agent/*` for specific tasks.
+  </Card>
+  <Card title="Implement Retry Logic" icon="rotate">
+    Always implement exponential backoff for retries. Our SDKs handle this automatically.
+  </Card>
+  <Card title="Cache Responses" icon="database">
+    Cache frequently accessed data like prices and TVL to reduce API calls.
+  </Card>
+  <Card title="Use Webhooks" icon="webhook">
+    For long-running operations, use webhooks instead of polling.
+  </Card>
+  <Card title="Batch Requests" icon="layer-group">
+    Combine multiple operations in a single request when possible.
+  </Card>
+  <Card title="Monitor Usage" icon="chart-bar">
+    Track your API usage to optimize costs and avoid rate limits.
+  </Card>
+</CardGroup>
+
+## OpenAPI Documentation
+
+Interactive API documentation is available at:
+- Production: [https://api.nex-t1.ai/docs](https://api.nex-t1.ai/docs)
+- Sandbox: [https://sandbox.api.nex-t1.ai/docs](https://sandbox.api.nex-t1.ai/docs)
+
+Download OpenAPI spec:
+```bash
+curl https://api.nex-t1.ai/openapi.json > nex-t1-openapi.json
+```
+
+## Support
+
+<CardGroup cols={3}>
+  <Card title="API Status" icon="signal">
+    Check [status.nex-t1.ai](https://status.nex-t1.ai) for current API status
+  </Card>
+  <Card title="Developer Discord" icon="discord">
+    Join our [Discord](https://discord.gg/next1) for real-time support
+  </Card>
+  <Card title="GitHub Issues" icon="github">
+    Report issues on [GitHub](https://github.com/next1/api-issues)
+  </Card>
+</CardGroup>
