@@ -7,7 +7,7 @@ icon: 'sparkles'
 # Overview
 
 <Info>
-Nex‑T1 is a production‑ready platform for building and operating AI agents. It combines a high‑performance FastAPI service with LangGraph‑based orchestration, Postgres‑backed state, and first‑class Model Context Protocol (MCP) integrations for on‑chain, market, and research workflows.
+Nex‑T1 is a production‑grade AI agent platform for Web3 that unifies research, trading, and on‑chain execution behind one reliable API. It solves fragmented multi‑tool workflows by consolidating data sources (The Graph, Dune, DeFiLlama), market infrastructure (Chainlink, Binance), and execution adapters (Uniswap/0x, Thirdweb) with built‑in risk checks and guardrails. Power users, DeFi teams, and crypto traders get multi‑agent orchestration, MCP integrations across EVM/Solana/Bitcoin, and preview‑to‑execute flows to move from insight to action safely and fast.
 </Info>
 
 <CardGroup cols={3}>
@@ -46,16 +46,35 @@ Key modules:
 
 ## Use Cases
 
-- Research assistants: The Graph queries, Dune jobs/results, DeFiLlama TVL/prices, sentiment lookups.
-- Trading previews (EVM/Solana): Uniswap/0x quotes; execute via Thirdweb or EVM Wallet MCP.
-- Risk evaluation: Expected price checks, allowlists, Chainlink references before execution.
-- Exchange data: Binance subscribe/unsubscribe with typed helpers.
-- General chat: Single‑agent chat with tool binding (DuckDuckGo by default).
+- Research assistants
+  - Run subgraph queries (The Graph), Dune jobs/results, DeFiLlama TVL/prices, and sentiment lookups in a single request.
+  - Endpoint: `/api/v1/multi-agent/research/preview`.
+
+- Trading previews (EVM/Solana)
+  - Fetch quotes and simulate trades using Uniswap/0x and Jupiter adapters; execute via Thirdweb/EVM Wallet MCP.
+  - Endpoints: `/api/v1/multi-agent/preview`, `/api/v1/multi-agent/quote/evm/pseudo` (dev only), `/api/v1/multi-agent/execute/evm`.
+
+- Risk evaluation
+  - Compute configurable risk thresholds (e.g., allowed tokens, expected price vs Chainlink reference) before execution.
+  - Endpoint: `/api/v1/multi-agent/risk/preview`.
+
+- Exchange market data
+  - Subscribe to Binance spot data via MCP, list/invoke tools; unsubscribe when done.
+  - Endpoints: `/api/v1/multi-agent/binance/*`.
+
+- General chat
+  - Single‑agent chat with a default DuckDuckGo search tool bound; extendable with more tools.
+  - Endpoints: `/api/v1/chatbot/chat`, `/api/v1/chatbot/chat/stream`.
+
+Developer extensions
+- Add new tools in `app/core/langgraph/tools` and bind to the agent.
+- Add/replace MCP adapters in `app/core/langgraph/tools/mcp` and `app/core/integrations/mcp`.
+- Expand multi‑agent teams in `app/core/langgraph/multi/teams/*`.
 
 <CardGroup cols={3}>
-  <Card title="Research" icon="book-open" href="/nex-t1/use-cases#use-cases">Combine Graph, Dune, and DeFiLlama data in one call.</Card>
-  <Card title="Trade Preview" icon="activity" href="/nex-t1/use-cases#use-cases">Quote, risk‑check, then execute with wallet adapters.</Card>
-  <Card title="Operations" icon="server" href="/nex-t1/integration-guide">Metrics, health, and tracing for production ops.</Card>
+  <Card title="Research" icon="book-open" href="#use-cases">Combine Graph, Dune, and DeFiLlama data in one call.</Card>
+  <Card title="Trade Preview" icon="activity" href="#use-cases">Quote, risk‑check, then execute with wallet adapters.</Card>
+  <Card title="Operations" icon="server" href="#integration-guide">Metrics, health, and tracing for production ops.</Card>
 </CardGroup>
 
 ---
@@ -63,6 +82,11 @@ Key modules:
 ## Get Started
 
 <Steps>
+  <Step title="Prerequisites">
+    - Python 3.13+
+    - PostgreSQL (local or managed)
+    - Docker & Docker Compose (optional)
+  </Step>
   <Step title="Install dependencies">
     Uses `uv` and a `pyproject.toml`.
     <CodeGroup>
@@ -91,21 +115,22 @@ Key modules:
 
 ---
 
-## Technology Advancements
+## Features
 
-- LangGraph orchestration with stateful Postgres checkpointer (`AsyncPostgresSaver`) for resumable workflows.
-- Model Context Protocol (MCP) adapters across research and execution, plus runtime tool discovery and typed helper layers.
-- Environment‑aware LLM configuration and retries; observability via Langfuse.
-- Feature flags to gate preview/dev endpoints safely.
+- FastAPI backend with async performance, CORS, security headers, and validation handlers.
+- Prometheus metrics and Grafana dashboards; health endpoints.
+- LangGraph agent with OpenAI chat model binding and Postgres checkpointer (`AsyncPostgresSaver`).
+- Langfuse tracing for LLM/tool observability.
+- JWT authentication, user + session tokens.
+- Multi‑agent preview router for intent routing, quotes/execute, research, and risk.
+- MCP adapters and direct HTTP fallbacks (The Graph, Dune, CoinGecko, DeFiLlama, Chainlink, Uniswap/0x, Thirdweb Wallet, Binance, Jupiter, Bitcoin).
+- Config via `.env.*` and dynamic environment detection (`development`, `staging`, `production`, `test`).
 
-See full feature list in [/nex-t1/features](/nex-t1/features).
-
-- FastAPI + async stack, CORS, structured logging, rate limiting (SlowAPI), and Prometheus metrics.
-- LangGraph agent orchestration with Postgres checkpointing and OpenAI chat model.
-- Langfuse tracing for LLM calls and tool usage.
-- JWT auth, session creation, and per‑endpoint rate limits.
-- Multi‑agent preview router with intent classification and team routing.
-- MCP integrations with typed adapters and direct HTTP fallbacks (feature‑flagged).
+Developer ergonomics
+- Clear module boundaries: `api`, `core`, `models`, `schemas`, `services`, `utils`.
+- Typed Pydantic models for requests and responses.
+- Feature flags in `app/core/feature_flags.py` (e.g., `MULTI_AGENT_ENABLED`).
+- Makefile targets for common workflows; Docker Compose for full stack.
 
 ---
 
@@ -163,6 +188,7 @@ curl -X POST http://localhost:8000/api/v1/multi-agent/research/preview \
 ## Tools
 
 - Built‑in: DuckDuckGo search tool bound to the main chat agent (`app/core/langgraph/tools`).
+- Built‑in location: `app/core/langgraph/tools/duckduckgo_search.py`; register in `app/core/langgraph/tools/__init__.py` (edit the `tools` list).
 - MCP Adapters (select examples):
   - Research: The Graph, Dune, CoinGecko, DeFiLlama, Sentiment.
   - EVM: Chainlink price feeds, Uniswap quote/execute (via 0x APIs), Thirdweb wallet (balance, sign/send, get tx).
@@ -171,6 +197,12 @@ curl -X POST http://localhost:8000/api/v1/multi-agent/research/preview \
   - Bitcoin: MCP adapter with runtime tool discovery.
 
 Note: By default, only DuckDuckGo is bound to the single‑agent chat toolset. MCP adapters are exercised via the `multi-agent` endpoints and can be bound as tools if desired.
+
+## Add a New Tool
+
+1) Create a `BaseTool` subclass in `app/core/langgraph/tools/`.
+2) Export it from `app/core/langgraph/tools/__init__.py` and add to the `tools` list.
+3) Optionally expose a dedicated endpoint that uses the tool for easier user access.
 
 ---
 
@@ -199,6 +231,51 @@ BITCOIN_MCP_BASE=https://bitcoin.nex-t1.ai
 
 Direct HTTP fallbacks exist for certain tools (e.g., The Graph, Dune, Jupiter) when MCP bases are not configured.
 
+### Example: DeFiLlama
+
+List tools and invoke via REST endpoints backed by MCP adapters:
+
+<CodeGroup>
+```bash List Tools
+curl -H 'Authorization: Bearer <session_token>' \
+  http://localhost:8000/api/v1/multi-agent/defillama/tools
+```
+```bash Invoke
+curl -X POST http://localhost:8000/api/v1/multi-agent/defillama/invoke \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"tool_name":"tvl_get","arguments":{"chain":"ethereum"}}'
+```
+</CodeGroup>
+
+### Example: Thirdweb Wallet MCP
+
+- Balance: `evm.thirdweb_get_balance`
+- Sign + send: `evm.thirdweb_sign_and_send`
+- Get tx: `evm.thirdweb_get_tx`
+
+See `app/core/langgraph/tools/mcp/evm_thirdweb.py` for argument schemas and internal HTTP helpers.
+
+### Example: Binance MCP
+
+- Runtime tool discovery, subscribe/unsubscribe helpers with typed endpoints:
+
+<CodeGroup>
+```bash Subscribe
+curl -X POST http://localhost:8000/api/v1/multi-agent/binance/subscribe \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"symbol":"BTCUSDT","market":"spot","streams":["trade"],"interval":"1m"}'
+```
+```bash Unsubscribe
+curl -X POST http://localhost:8000/api/v1/multi-agent/binance/unsubscribe \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"subscription_id":"sub-123"}'
+```
+</CodeGroup>
+
+<Warning>
+Gate live‑market integrations behind feature flags and strict rate limits in production. Validate inputs and sanitize symbols to prevent abuse.
+</Warning>
+
 ---
 
 ## Supported Chains
@@ -209,6 +286,274 @@ Direct HTTP fallbacks exist for certain tools (e.g., The Graph, Dune, Jupiter) w
 
 Token metadata and decimals for EVM quoting are read from `configs/evm_tokens.json`; token allowlists and Chainlink feed mappings are supported via `configs/token_allowlist.json` and `configs/chainlink_feeds.json`.
 
+Adapters
+- Chainlink price: `evm_chainlink.py`
+- Uniswap/0x quote/execute: `evm_uniswap.py`
+- Wallet (Thirdweb or EVM Wallet MCP): `evm_thirdweb.py` and `integrations/mcp/evm_wallet.py`
+
+---
+
+## Supported Protocols
+
+Explore commonly used integrations and tools with quick highlights. The cards adapt to 2–3 columns based on viewport.
+
+<CardGroup cols={3}>
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/1inch.svg" alt="1inch" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>1inch</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>DEX aggregation for best execution</li>
+      <li>Pathfinding and gas optimization</li>
+      <li>Limit orders and RFQ</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/ENS.svg" alt="ENS" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>ENS (Ethereum Name Service)</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: Ethereum</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>.eth human‑readable names</li>
+      <li>Reverse resolution</li>
+      <li>DNS‑style records and subdomains</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/aave.svg" alt="Aave" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Aave</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Lending/borrowing markets</li>
+      <li>Stable/variable rates</li>
+      <li>Flash loans and aTokens</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/alchemy.svg" alt="Alchemy" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Alchemy</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM (multi‑chain)</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Managed RPC and WebSocket nodes</li>
+      <li>Enhanced APIs (NFT, Transfers)</li>
+      <li>Monitoring and analytics</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/chainlink.svg" alt="Chainlink" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Chainlink</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM (multi‑chain)</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Decentralized data feeds</li>
+      <li>VRF and Automation</li>
+      <li>Cross‑chain messaging (CCIP)</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/coinbase-wallet.svg" alt="Coinbase Wallet" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Coinbase Wallet</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Self‑custody wallet</li>
+      <li>dApp browser + WalletConnect</li>
+      <li>Multi‑chain asset management</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/curve.svg" alt="Curve" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Curve</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>AMM optimized for stable/swappable assets</li>
+      <li>Low slippage, deep liquidity</li>
+      <li>Pool gauges and incentives</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/debank.svg" alt="DeBank" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>DeBank</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: Multi‑chain</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>DeFi portfolio tracking</li>
+      <li>Token approvals insights</li>
+      <li>Multi‑chain wallet analytics</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/defillama.svg" alt="DeFiLlama" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>DeFiLlama</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: Multi‑chain</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Protocol and chain TVL data</li>
+      <li>Yield and price aggregations</li>
+      <li>Ecosystem analytics</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/dune.svg" alt="Dune" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Dune</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: Multi‑chain</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>On‑chain analytics via SQL</li>
+      <li>Dashboards and datasets</li>
+      <li>API access to query results</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/etherscan.svg" alt="Etherscan" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Etherscan</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: Ethereum</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Ethereum block explorer</li>
+      <li>Contract verification and ABIs</li>
+      <li>APIs for tx/logs</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/hardhat.svg" alt="Hardhat" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Hardhat</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM (dev/test)</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Developer tooling and task runner</li>
+      <li>Network forking and testing</li>
+      <li>Rich plugin ecosystem</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/infura.svg" alt="Infura" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Infura</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM (multi‑chain)</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Scalable RPC endpoints</li>
+      <li>WebSocket + archival access</li>
+      <li>IPFS and multi‑chain support</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/metamask.svg" alt="MetaMask" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>MetaMask</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Browser/mobile crypto wallet</li>
+      <li>dApp connection and signatures</li>
+      <li>Multiple networks support</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/opensea.svg" alt="OpenSea" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>OpenSea</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: Multi‑chain (NFT)</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>NFT marketplace</li>
+      <li>Listings, bids, and offers</li>
+      <li>Collection metadata and APIs</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/uniswap.svg" alt="Uniswap" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Uniswap</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>AMM DEX (V2/V3)</li>
+      <li>Concentrated liquidity and pools</li>
+      <li>On‑chain swaps and quotes</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/yearn.svg" alt="Yearn" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Yearn</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Yield‑aggregating vaults</li>
+      <li>Automated strategies</li>
+      <li>DeFi composability</li>
+    </ul>
+  </Card>
+</CardGroup>
+
 ---
 
 ## Prompting Guide
@@ -218,6 +563,17 @@ System prompt lives in `app/core/prompts.py` and the chat flow binds tools via `
 - Be explicit about intent, chain, and tokens: “quote 10 USDC to WETH on Base”.
 - For research, specify data sources and limits: “get TVL by chain (ethereum) and top 5 pools”.
 - For execution, include wallet context when required by adapters (e.g., Thirdweb wallet reference).
+
+Tips
+- Be explicit about intent and chain context. Example: “quote 10 USDC to WETH on Base (8453)”.
+- For research, specify sources and limits. Example: “Graph query: top 5 pools by TVL; Dune query 12345 with params …”.
+- For execution, include wallet context when adapters require it. Example: “use Thirdweb wallet_ref=…; chain_id=8453”.
+- Keep long‑running operations staged: preview intent → preview quote → risk → execute.
+
+Example Prompts
+- Research: “Get ETH price from Chainlink (Base), TVL for ethereum from DeFiLlama, and latest 10 trending words in sentiment.”
+- Trade preview: “Quote 0.01 ETH to USDC on Base; include Chainlink reference; compute risk report.”
+- Data check: “Run The Graph query for Uniswap V3 pools(first:2) id + TVL.”
 
 ---
 
@@ -241,6 +597,10 @@ Monitoring & Health
 
 - Metrics at `/metrics`, health at `/health` and `/api/v1/health`, and Langfuse tracing via env keys.
 
+Security & reliability
+- Rate limits apply; handle HTTP 429 with backoff.
+- Validate responses and timeouts; endpoints return structured JSON per Pydantic schemas.
+
 ---
 
 ## Example Usage
@@ -262,24 +622,42 @@ curl -X POST http://localhost:8000/api/v1/multi-agent/risk/preview \
 
 Research (Graph + Dune + DeFiLlama helpers): see README examples for `research/preview` and `defillama` tool invocations.
 
+### Research: The Graph + Dune + DeFiLlama
+
+<CodeGroup>
+```bash Research
+curl -X POST http://localhost:8000/api/v1/multi-agent/research/preview \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{
+    "subgraph": "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3",
+    "gql": "query($first:Int!){ pools(first:$first){ id totalValueLockedUSD } }",
+    "variables": { "first": 2 },
+    "dune_query_id": 12345,
+    "dune_params": {"example":"value"},
+    "defi_calls": [
+      {"tool_name":"tvl_get","arguments":{"chain":"ethereum"}},
+      {"tool_name":"token_price","arguments":{"token":"ethereum"}}
+    ]
+  }'
+```
+</CodeGroup>
+
+### Binance Subscribe/Unsubscribe
+
+<CodeGroup>
+```bash Subscribe
+curl -X POST http://localhost:8000/api/v1/multi-agent/binance/subscribe \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"symbol":"BTCUSDT","market":"spot","streams":["trade"],"interval":"1m"}'
+```
+```bash Unsubscribe
+curl -X POST http://localhost:8000/api/v1/multi-agent/binance/unsubscribe \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"subscription_id":"sub-123"}'
+```
+</CodeGroup>
+
 ---
-
-## Nex‑T1 Documentation
-
-Explore the full Nex‑T1 docs:
-
-- Overview (this page)
-- Use Cases — [/nex-t1/use-cases](/nex-t1/use-cases)
-- Get Started — [/nex-t1/get-started](/nex-t1/get-started)
-- Features — [/nex-t1/features](/nex-t1/features)
-- Usage — [/nex-t1/usage](/nex-t1/usage)
-- Tools — [/nex-t1/tools](/nex-t1/tools)
-- MCP — [/nex-t1/mcp](/nex-t1/mcp)
-- Supported Chains — [/nex-t1/supported-chains](/nex-t1/supported-chains)
-- Prompting Guide — [/nex-t1/prompting-guide](/nex-t1/prompting-guide)
-- Integration Guide — [/nex-t1/integration-guide](/nex-t1/integration-guide)
-- Examples — [/nex-t1/examples](/nex-t1/examples)
-- Legal — [/nex-t1/legal](/nex-t1/legal)
 
 ## Disclaimers/Legal
 

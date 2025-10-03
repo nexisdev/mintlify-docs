@@ -1,34 +1,270 @@
 ---
 title: 'Supported Protocols'
-description: 'Logos, names, and key features of integrations commonly used with Nex‑T1.'
+description: 'Logos, names, supported chains, and key features.'
 icon: 'grid'
 ---
 
 # Supported Protocols
 
-Below is a quick-reference list of popular protocols and tooling frequently used alongside Nex‑T1. Each entry includes its logo, name, and a short set of highlights.
+Cards below show each protocol’s logo, name, supported chains (general), and features. Layout adapts to 2–3 columns depending on viewport.
 
-| Logo | Name | Features |
-| --- | --- | --- |
-| <img src="/images/protocols/1inch.svg" alt="1inch" width="28" height="28" /> | 1inch | <ul><li>DEX aggregation for best execution</li><li>Pathfinding and gas optimization</li><li>Limit orders and RFQ</li></ul> |
-| <img src="/images/protocols/ENS.svg" alt="ENS" width="28" height="28" /> | ENS (Ethereum Name Service) | <ul><li>.eth human-readable names</li><li>Reverse resolution</li><li>DNS-style records and subdomains</li></ul> |
-| <img src="/images/protocols/aave.svg" alt="Aave" width="28" height="28" /> | Aave | <ul><li>Lending/borrowing markets</li><li>Stable/variable rates</li><li>Flash loans and aTokens</li></ul> |
-| <img src="/images/protocols/alchemy.svg" alt="Alchemy" width="28" height="28" /> | Alchemy | <ul><li>Managed RPC and WebSocket nodes</li><li>Enhanced APIs (NFT, Transfers)</li><li>Monitoring and analytics</li></ul> |
-| <img src="/images/protocols/chainlink.svg" alt="Chainlink" width="28" height="28" /> | Chainlink | <ul><li>Decentralized data feeds</li><li>VRF and Automation</li><li>Cross‑chain messaging (CCIP)</li></ul> |
-| <img src="/images/protocols/coinbase-wallet.svg" alt="Coinbase Wallet" width="28" height="28" /> | Coinbase Wallet | <ul><li>Self‑custody wallet</li><li>dApp browser + WalletConnect</li><li>Multi‑chain asset management</li></ul> |
-| <img src="/images/protocols/curve.svg" alt="Curve" width="28" height="28" /> | Curve | <ul><li>AMM optimized for stable/swappable assets</li><li>Low slippage, deep liquidity</li><li>Pool gauges and incentives</li></ul> |
-| <img src="/images/protocols/debank.svg" alt="DeBank" width="28" height="28" /> | DeBank | <ul><li>DeFi portfolio tracking</li><li>Token approvals insights</li><li>Multi‑chain wallet analytics</li></ul> |
-| <img src="/images/protocols/defillama.svg" alt="DeFiLlama" width="28" height="28" /> | DeFiLlama | <ul><li>Protocol and chain TVL data</li><li>Yield and price aggregations</li><li>Ecosystem analytics</li></ul> |
-| <img src="/images/protocols/dune.svg" alt="Dune" width="28" height="28" /> | Dune | <ul><li>On‑chain analytics via SQL</li><li>Dashboards and datasets</li><li>API access to query results</li></ul> |
-| <img src="/images/protocols/etherscan.svg" alt="Etherscan" width="28" height="28" /> | Etherscan | <ul><li>Ethereum block explorer</li><li>Contract verification and ABIs</li><li>APIs for tx/logs</li></ul> |
-| <img src="/images/protocols/hardhat.svg" alt="Hardhat" width="28" height="28" /> | Hardhat | <ul><li>Developer tooling and task runner</li><li>Network forking and testing</li><li>Rich plugin ecosystem</li></ul> |
-| <img src="/images/protocols/infura.svg" alt="Infura" width="28" height="28" /> | Infura | <ul><li>Scalable RPC endpoints</li><li>WebSocket + archival access</li><li>IPFS and multi‑chain support</li></ul> |
-| <img src="/images/protocols/metamask.svg" alt="MetaMask" width="28" height="28" /> | MetaMask | <ul><li>Browser/mobile crypto wallet</li><li>dApp connection and signatures</li><li>Multiple networks support</li></ul> |
-| <img src="/images/protocols/opensea.svg" alt="OpenSea" width="28" height="28" /> | OpenSea | <ul><li>NFT marketplace</li><li>Listings, bids, and offers</li><li>Collection metadata and APIs</li></ul> |
-| <img src="/images/protocols/uniswap.svg" alt="Uniswap" width="28" height="28" /> | Uniswap | <ul><li>AMM DEX (V2/V3)</li><li>Concentrated liquidity and pools</li><li>On‑chain swaps and quotes</li></ul> |
-| <img src="/images/protocols/yearn.svg" alt="Yearn" width="28" height="28" /> | Yearn | <ul><li>Yield‑aggregating vaults</li><li>Automated strategies</li><li>DeFi composability</li></ul> |
+<CardGroup cols={3}>
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/1inch.svg" alt="1inch" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>1inch</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>DEX aggregation for best execution</li>
+      <li>Pathfinding and gas optimization</li>
+      <li>Limit orders and RFQ</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/ENS.svg" alt="ENS" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>ENS (Ethereum Name Service)</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: Ethereum</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>.eth human‑readable names</li>
+      <li>Reverse resolution</li>
+      <li>DNS‑style records and subdomains</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/aave.svg" alt="Aave" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Aave</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Lending/borrowing markets</li>
+      <li>Stable/variable rates</li>
+      <li>Flash loans and aTokens</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/alchemy.svg" alt="Alchemy" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Alchemy</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM (multi‑chain)</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Managed RPC and WebSocket nodes</li>
+      <li>Enhanced APIs (NFT, Transfers)</li>
+      <li>Monitoring and analytics</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/chainlink.svg" alt="Chainlink" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Chainlink</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM (multi‑chain)</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Decentralized data feeds</li>
+      <li>VRF and Automation</li>
+      <li>Cross‑chain messaging (CCIP)</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/coinbase-wallet.svg" alt="Coinbase Wallet" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Coinbase Wallet</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Self‑custody wallet</li>
+      <li>dApp browser + WalletConnect</li>
+      <li>Multi‑chain asset management</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/curve.svg" alt="Curve" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Curve</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>AMM optimized for stable/swappable assets</li>
+      <li>Low slippage, deep liquidity</li>
+      <li>Pool gauges and incentives</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/debank.svg" alt="DeBank" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>DeBank</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: Multi‑chain</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>DeFi portfolio tracking</li>
+      <li>Token approvals insights</li>
+      <li>Multi‑chain wallet analytics</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/defillama.svg" alt="DeFiLlama" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>DeFiLlama</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: Multi‑chain</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Protocol and chain TVL data</li>
+      <li>Yield and price aggregations</li>
+      <li>Ecosystem analytics</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/dune.svg" alt="Dune" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Dune</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: Multi‑chain</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>On‑chain analytics via SQL</li>
+      <li>Dashboards and datasets</li>
+      <li>API access to query results</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/etherscan.svg" alt="Etherscan" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Etherscan</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: Ethereum</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Ethereum block explorer</li>
+      <li>Contract verification and ABIs</li>
+      <li>APIs for tx/logs</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/hardhat.svg" alt="Hardhat" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Hardhat</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM (dev/test)</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Developer tooling and task runner</li>
+      <li>Network forking and testing</li>
+      <li>Rich plugin ecosystem</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/infura.svg" alt="Infura" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Infura</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM (multi‑chain)</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Scalable RPC endpoints</li>
+      <li>WebSocket + archival access</li>
+      <li>IPFS and multi‑chain support</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/metamask.svg" alt="MetaMask" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>MetaMask</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Browser/mobile crypto wallet</li>
+      <li>dApp connection and signatures</li>
+      <li>Multiple networks support</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/opensea.svg" alt="OpenSea" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>OpenSea</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: Multi‑chain (NFT)</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>NFT marketplace</li>
+      <li>Listings, bids, and offers</li>
+      <li>Collection metadata and APIs</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/uniswap.svg" alt="Uniswap" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Uniswap</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>AMM DEX (V2/V3)</li>
+      <li>Concentrated liquidity and pools</li>
+      <li>On‑chain swaps and quotes</li>
+    </ul>
+  </Card>
+
+  <Card>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <img src="/images/protocols/yearn.svg" alt="Yearn" width="28" height="28" />
+      <div>
+        <div style={{ fontWeight: 600 }}>Yearn</div>
+        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>Chains: EVM</div>
+      </div>
+    </div>
+    <ul style={{ marginTop: '10px' }}>
+      <li>Yield‑aggregating vaults</li>
+      <li>Automated strategies</li>
+      <li>DeFi composability</li>
+    </ul>
+  </Card>
+</CardGroup>
 
 <Note>
-Logos above are for reference only and belong to their respective owners. Features listed are high‑level summaries to help orient integration decisions.
+Logos belong to their respective owners. Chains listed are high‑level/general to avoid inaccuracies; check official docs for precise deployments.
 </Note>
-
