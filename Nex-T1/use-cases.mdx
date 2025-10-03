@@ -14,32 +14,33 @@ Nex‑T1 transforms complex blockchain interactions into simple, intelligent wor
 
 ### 1. DeFi Research & Analytics
 
-<CardGroup cols={2}>
-  <Card title="Yield Optimization" icon="percentage">
-    **Challenge**: Finding the best yields across hundreds of DeFi protocols is time-consuming and complex.
+**Yield Optimization**
 
-    **Solution**: Nex‑T1 aggregates yield data from all major protocols, analyzes risk factors, and presents optimized strategies.
+**Challenge**: Finding the best yields across hundreds of DeFi protocols is time-consuming and complex.
 
-    **Example Query**:
-    ```
-    "Find the top 5 stablecoin yields above 10% APY with low risk"
-    ```
+**Solution**: Nex‑T1 aggregates yield data from all major protocols, analyzes risk factors, and presents optimized strategies.
 
-    **Result**: Comprehensive report with TVL, audit status, historical performance, and entry strategies.
-  </Card>
-  <Card title="Protocol Comparison" icon="scale-balanced">
-    **Challenge**: Comparing protocols requires accessing multiple data sources and understanding complex metrics.
+**Example Query**:
+```
+"Find the top 5 stablecoin yields above 10% APY with low risk"
+```
 
-    **Solution**: AI agents compile data from The Graph, Dune, and DeFiLlama for instant comparisons.
+**Result**: Comprehensive report with TVL, audit status, historical performance, and entry strategies.
 
-    **Example Query**:
-    ```
-    "Compare Aave vs Compound for USDC lending rates and safety"
-    ```
+---
 
-    **Result**: Side-by-side comparison with rates, TVL, liquidation risks, and recommendations.
-  </Card>
-</CardGroup>
+**Protocol Comparison**
+
+**Challenge**: Comparing protocols requires accessing multiple data sources and understanding complex metrics.
+
+**Solution**: AI agents compile data from The Graph, Dune, and DeFiLlama for instant comparisons.
+
+**Example Query**:
+```
+"Compare Aave vs Compound for USDC lending rates and safety"
+```
+
+**Result**: Side-by-side comparison with rates, TVL, liquidation risks, and recommendations.
 
 #### Research Assistant Workflow
 
@@ -165,54 +166,55 @@ const researchData = await response.json();
 
 ### 3. Risk Management
 
-<CardGroup cols={2}>
-  <Card title="Transaction Validation" icon="shield-check">
-    **Pre-execution Checks**:
-    - Token contract verification
-    - Liquidity depth analysis
-    - Price impact calculation
-    - Slippage protection
-    - Gas price optimization
+**Transaction Validation**
 
-    **Example**:
-    ```json
-    {
-      "action": "swap",
-      "token_in": "ETH",
-      "token_out": "UNKNOWN_TOKEN",
-      "risk_assessment": {
-        "status": "HIGH_RISK",
-        "issues": [
-          "Unverified contract",
-          "Low liquidity ($50k)",
-          "High price impact (15%)"
-        ],
-        "recommendation": "DO_NOT_PROCEED"
-      }
-    }
-    ```
-  </Card>
-  <Card title="Portfolio Monitoring" icon="chart-pie">
-    **Real-time Alerts**:
-    - Large price movements
-    - Liquidity changes
-    - Protocol exploits
-    - Governance proposals
+**Pre-execution Checks**:
+- Token contract verification
+- Liquidity depth analysis
+- Price impact calculation
+- Slippage protection
+- Gas price optimization
 
-    **Configuration**:
-    ```python
-    monitoring_rules = {
-        "price_alerts": [
-            {"token": "ETH", "threshold": -10, "type": "percent"},
-            {"token": "AAVE", "threshold": 250, "type": "absolute"}
-        ],
-        "defi_positions": [
-            {"protocol": "compound", "alert_on": "liquidation_risk"}
-        ]
-    }
-    ```
-  </Card>
-</CardGroup>
+**Example**:
+```json
+{
+  "action": "swap",
+  "token_in": "ETH",
+  "token_out": "UNKNOWN_TOKEN",
+  "risk_assessment": {
+    "status": "HIGH_RISK",
+    "issues": [
+      "Unverified contract",
+      "Low liquidity ($50k)",
+      "High price impact (15%)"
+    ],
+    "recommendation": "DO_NOT_PROCEED"
+  }
+}
+```
+
+---
+
+**Portfolio Monitoring**
+
+**Real-time Alerts**:
+- Large price movements
+- Liquidity changes
+- Protocol exploits
+- Governance proposals
+
+**Configuration**:
+```python
+monitoring_rules = {
+    "price_alerts": [
+        {"token": "ETH", "threshold": -10, "type": "percent"},
+        {"token": "AAVE", "threshold": 250, "type": "absolute"}
+    ],
+    "defi_positions": [
+        {"protocol": "compound", "alert_on": "liquidation_risk"}
+    ]
+}
+```
 
 **Risk Endpoint**: `/api/v1/multi-agent/risk/preview`
 
@@ -271,36 +273,37 @@ const researchData = await response.json();
 
 ### 5. Cross-Chain Operations
 
-<CardGroup cols={2}>
-  <Card title="Bridge Aggregation" icon="bridge">
-    Find the best bridge for cross-chain transfers:
+**Bridge Aggregation**
 
-    ```
-    "Bridge 1000 USDC from Ethereum to Arbitrum"
-    ```
+Find the best bridge for cross-chain transfers:
 
-    **Comparison Factors**:
-    - Bridge fees
-    - Transfer time
-    - Security model
-    - Liquidity available
-    - Historical reliability
-  </Card>
-  <Card title="Multi-Chain Portfolio" icon="layer-group">
-    Unified view across all chains:
+```
+"Bridge 1000 USDC from Ethereum to Arbitrum"
+```
 
-    ```
-    "Show my total portfolio value across all chains"
-    ```
+**Comparison Factors**:
+- Bridge fees
+- Transfer time
+- Security model
+- Liquidity available
+- Historical reliability
 
-    **Aggregates**:
-    - EVM chains (Ethereum, BSC, Polygon, etc.)
-    - Solana positions
-    - Bitcoin holdings
-    - DeFi positions
-    - NFT valuations
-  </Card>
-</CardGroup>
+---
+
+**Multi-Chain Portfolio**
+
+Unified view across all chains:
+
+```
+"Show my total portfolio value across all chains"
+```
+
+**Aggregates**:
+- EVM chains (Ethereum, BSC, Polygon, etc.)
+- Solana positions
+- Bitcoin holdings
+- DeFi positions
+- NFT valuations
 
 ## Industry-Specific Applications
 
@@ -435,50 +438,6 @@ const researchData = await response.json();
   }
   ```
 </Accordion>
-
-## Success Stories
-
-### Case Study 1: DeFi Fund
-
-<Card title="40% Efficiency Gain" icon="rocket">
-**Challenge**: Manual research across 50+ protocols taking 6 hours daily
-
-**Solution**: Automated research pipeline with Nex‑T1
-
-**Results**:
-- Research time: 6 hours → 1 hour
-- Opportunities identified: 3x increase
-- Execution speed: 10x faster
-- ROI improvement: 25%
-</Card>
-
-### Case Study 2: Trading Desk
-
-<Card title="$2M Additional Profit" icon="dollar-sign">
-**Challenge**: Missed arbitrage opportunities due to manual monitoring
-
-**Solution**: Real-time arbitrage detection and execution
-
-**Results**:
-- Opportunities captured: 95% vs 30%
-- Average profit per trade: $500
-- Failed transactions: < 1%
-- Annual additional profit: $2M+
-</Card>
-
-### Case Study 3: Protocol Integration
-
-<Card title="90% Faster Integration" icon="plug">
-**Challenge**: 3-month timeline to integrate multiple DeFi protocols
-
-**Solution**: Used Nex‑T1's unified API and MCP adapters
-
-**Results**:
-- Integration time: 3 months → 1 week
-- Protocols supported: 30+ instantly
-- Maintenance overhead: 80% reduction
-- Time to market: 10x faster
-</Card>
 
 ## Implementation Patterns
 
