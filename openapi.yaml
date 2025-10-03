@@ -1,0 +1,26 @@
+openapi: 3.1.0
+info:
+  title: Nex-T1-DefAI-Agents
+  description: >-
+    Nex-T1-DefAI-Agents — created by Nexis Labs. A production-ready FastAPI
+    application with LangGraph multi-agent orchestration, trading capabilities,
+    research tools, and risk management. Features include: JWT authentication,
+    session management, real-time chat with streaming, EVM/Solana trading,
+    Chainlink price feeds, DefiLlama integration, sentiment analysis, and
+    comprehensive risk assessment.
+  version: "1.0.0"
+  contact:
+    name: API Support
+    url: https://github.com/Nexis-AI/Nex-T1-DefAI-Agents
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: https://api.nex-t1.ai/
+    description: Production server
+paths:
+  $ref: 'https://api.nex-t1.ai/api/v1/openapi.json#/paths'
+components:
+  $ref: 'https://api.nex-t1.ai/api/v1/openapi.json#/components'
+tags: []
+security: []
