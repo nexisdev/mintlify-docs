@@ -1,0 +1,104 @@
+name: Sync OpenAPI Spec
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Source mode: 'url' or 'repo'"
+        required: true
+        default: url
+        type: choice
+        options: [url, repo]
+      openapi_url:
+        description: "When mode=url, the URL to openapi.json"
+        required: false
+        type: string
+      spec_repo:
+        description: "When mode=repo, repo to checkout (owner/name)"
+        required: false
+        type: string
+      spec_ref:
+        description: "When mode=repo, branch or tag (default: main)"
+        required: false
+        default: main
+        type: string
+      spec_path:
+        description: "When mode=repo, path to openapi.json in the repo"
+        required: false
+        type: string
+      copy_to_api_ref:
+        description: "Also update api-reference/openapi.json if present"
+        required: false
+        default: false
+        type: boolean
+      commit_message:
+        description: "Commit message for the sync"
+        required: false
+        default: "chore: sync openapi"
+        type: string
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout docs repo
+        uses: actions/checkout@v4
+
+      - name: Ensure jq available
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update -y
+            sudo apt-get install -y jq
+          fi
+
+      - name: Download OpenAPI from URL
+        if: inputs.mode == 'url'
+        run: |
+          if [ -z "${{ inputs.openapi_url }}" ]; then
+            echo "::error::openapi_url input is required when mode=url" && exit 1
+          fi
+          curl -fsSL "${{ inputs.openapi_url }}" -o openapi.json
+          if ! jq -e . openapi.json >/dev/null 2>&1; then
+            echo "::error::Downloaded file is not valid JSON" && exit 1
+          fi
+          if [ "${{ inputs.copy_to_api_ref }}" = "true" ] && [ -f api-reference/openapi.json ]; then
+            cp -f openapi.json api-reference/openapi.json
+          fi
+
+      - name: Checkout source repo (spec)
+        if: inputs.mode == 'repo'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.spec_repo }}
+          ref: ${{ inputs.spec_ref }}
+          path: _spec
+          token: ${{ secrets.GH_PAT || github.token }}
+
+      - name: Copy from repo path
+        if: inputs.mode == 'repo'
+        run: |
+          if [ -z "${{ inputs.spec_repo }}" ] || [ -z "${{ inputs.spec_path }}" ]; then
+            echo "::error::spec_repo and spec_path are required when mode=repo" && exit 1
+          fi
+          if [ ! -f "_spec/${{ inputs.spec_path }}" ]; then
+            echo "::error::Path not found in source repo: _spec/${{ inputs.spec_path }}" && ls -la _spec || true && exit 1
+          fi
+          cp -f "_spec/${{ inputs.spec_path }}" openapi.json
+          if ! jq -e . openapi.json >/dev/null 2>&1; then
+            echo "::error::Copied file is not valid JSON" && exit 1
+          fi
+          if [ "${{ inputs.copy_to_api_ref }}" = "true" ] && [ -f api-reference/openapi.json ]; then
+            cp -f openapi.json api-reference/openapi.json
+          fi
+
+      - name: Commit and push changes
+        run: |
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add openapi.json api-reference/openapi.json || true
+          git commit -m "${{ inputs.commit_message }}"
+          git push

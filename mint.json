@@ -71,14 +71,14 @@
   "openapi": "/openapi.json",
   "anchors": [
     {
-      "name": "Community",
-      "icon": "discord",
-      "url": "https://discord.gg/nexis"
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/Nexis-AI"
     },
     {
       "name": "Blog",
       "icon": "newspaper",
-      "url": "https://nex-t1.ai/blog"
+      "url": "https://blog.nexis.network/"
     }
   ],
   "navigation": [

@@ -15,11 +15,18 @@ Use the inline playground below to call a couple of common endpoints. For the fu
 
 <a href="/api">Open Full API Playground →</a>
 
+<Note>
+Most endpoints require JWT bearer auth. First, call the login endpoint to obtain a token, then click “Set Authentication” in the playground and paste `Bearer <your_token>`.
+</Note>
+
 #### Health Check
 
 <ApiPlayground method="GET" path="/api/v1/health" />
 
+#### Auth Login (get a JWT)
+
+<ApiPlayground method="POST" path="/api/v1/auth/login" />
+
 #### Chat (non-streaming)
 
 <ApiPlayground method="POST" path="/api/v1/chatbot/chat" />
-
