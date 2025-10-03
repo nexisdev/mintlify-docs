@@ -77,7 +77,7 @@
       "mode": "show"
     }
   },
-  "openapi": "/openapi.yaml",
+  "openapi": "/openapi.json",
   "anchors": [
     {
       "name": "GitHub",
