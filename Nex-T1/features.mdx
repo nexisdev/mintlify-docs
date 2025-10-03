@@ -1,0 +1,457 @@
+---
+title: 'Features'
+description: 'Complete breakdown of Nex‑T1 capabilities, architecture, and technical features.'
+icon: 'layers'
+---
+
+# Features
+
+<Info>
+Nex‑T1 combines enterprise-grade infrastructure with cutting-edge AI orchestration to deliver a comprehensive Web3 automation platform. Every feature is designed for production use with reliability, security, and scalability at its core.
+</Info>
+
+## Core Platform Features
+
+### High-Performance Backend
+- **FastAPI Framework**: Async Python for maximum throughput and minimal latency
+- **Concurrent Request Handling**: Process thousands of requests simultaneously
+- **CORS Support**: Secure cross-origin resource sharing for web integrations
+- **Security Headers**: XSS protection, content-type validation, frame options
+- **Request Validation**: Pydantic models ensure data integrity
+- **Error Handlers**: Graceful error recovery with detailed logging
+
+### Observability & Monitoring
+- **Prometheus Metrics**: Real-time performance tracking
+  - Request latency histograms
+  - Error rate monitoring
+  - Resource utilization metrics
+  - Custom business metrics
+- **Grafana Dashboards**: Visual monitoring with pre-built templates
+  - API performance dashboard
+  - Agent execution tracking
+  - Tool usage analytics
+  - Cost monitoring dashboard
+- **Health Endpoints**: Liveness and readiness probes for orchestrators
+- **Distributed Tracing**: Request flow visualization across services
+
+### AI Agent Orchestration
+- **LangGraph Integration**: Stateful multi-agent workflows
+  - Conversation memory management
+  - Context preservation across sessions
+  - Parallel agent execution
+  - Conditional routing based on intent
+- **OpenAI/Claude Integration**: Multiple LLM provider support
+  - Automatic fallback on failures
+  - Model-specific optimization
+  - Token usage tracking
+  - Cost optimization strategies
+- **Postgres Checkpointing**: Reliable state persistence
+  - AsyncPostgresSaver for high throughput
+  - Transaction-safe state updates
+  - Point-in-time recovery
+  - State replay capabilities
+
+### LLM Observability
+- **Langfuse Tracing**: Complete visibility into AI operations
+  - Token usage analytics
+  - Response time tracking
+  - Quality scoring
+  - Cost attribution
+  - Prompt effectiveness metrics
+- **Conversation Analytics**: Understanding user interactions
+  - Intent classification accuracy
+  - Tool usage patterns
+  - Success rate tracking
+  - User satisfaction metrics
+
+## Security Features
+
+### Authentication & Authorization
+- **JWT-Based Auth**: Stateless, scalable authentication
+  - Access and refresh token support
+  - Configurable expiration times
+  - Secure token storage
+  - Multi-factor authentication ready
+- **Session Management**: User session tracking
+  - Concurrent session limits
+  - Session invalidation
+  - Activity tracking
+  - Audit logging
+
+### API Security
+- **Rate Limiting**: Protect against abuse
+  - Per-user limits
+  - Per-endpoint configuration
+  - Burst allowance
+  - Sliding window algorithm
+- **Input Sanitization**: Prevent injection attacks
+  - SQL injection protection
+  - XSS prevention
+  - Command injection blocking
+  - Path traversal prevention
+
+## Multi-Agent System
+
+### Agent Teams & Specialization
+
+<CardGroup cols={2}>
+  <Card title="Intent Router" icon="route">
+    **Capabilities**:
+    - Natural language understanding
+    - Intent classification
+    - Context extraction
+    - Team delegation
+
+    **Supported Intents**:
+    - Research queries
+    - Trading operations
+    - Risk assessments
+    - Market data requests
+  </Card>
+  <Card title="Research Team" icon="magnifying-glass">
+    **Data Sources**:
+    - The Graph Protocol subgraphs
+    - Dune Analytics queries
+    - DeFiLlama TVL/yields
+    - CoinGecko market data
+
+    **Analysis Types**:
+    - Protocol comparisons
+    - Yield optimization
+    - Historical trends
+    - Cross-chain analytics
+  </Card>
+  <Card title="Trading Team" icon="arrow-right-arrow-left">
+    **Supported Operations**:
+    - Quote generation
+    - Route optimization
+    - Slippage calculation
+    - Gas estimation
+
+    **Integrations**:
+    - Uniswap V2/V3
+    - 0x Protocol
+    - Jupiter (Solana)
+    - 1inch aggregator
+  </Card>
+  <Card title="Risk Team" icon="shield-halved">
+    **Risk Checks**:
+    - Token verification
+    - Liquidity analysis
+    - Price impact assessment
+    - Smart contract audits
+
+    **Thresholds**:
+    - Configurable limits
+    - Custom rule engine
+    - Whitelist/blacklist
+    - Alert mechanisms
+  </Card>
+</CardGroup>
+
+### Preview-to-Execute Flow
+1. **Intent Analysis**: AI understands user request
+2. **Preview Generation**: Shows exactly what will happen
+3. **Risk Assessment**: Automated safety checks
+4. **User Approval**: Explicit confirmation required
+5. **Execution**: Transaction submission
+6. **Monitoring**: Real-time status updates
+
+## Integrated Tools & Adapters
+
+### Research & Analytics Tools
+
+<Tabs>
+  <Tab title="The Graph">
+    - **Subgraph Queries**: Direct access to indexed blockchain data
+    - **Multi-Protocol Support**: Uniswap, Compound, Aave, etc.
+    - **Custom Queries**: GraphQL interface for complex analytics
+    - **Real-Time Updates**: WebSocket subscriptions
+  </Tab>
+  <Tab title="Dune Analytics">
+    - **SQL Queries**: Complex on-chain analysis
+    - **Pre-Built Dashboards**: Instant insights
+    - **Custom Metrics**: Build your own KPIs
+    - **Export Capabilities**: CSV, JSON, API
+  </Tab>
+  <Tab title="DeFiLlama">
+    - **TVL Tracking**: Total value locked across protocols
+    - **Yield Farming**: APY comparisons
+    - **Chain Analytics**: Cross-chain metrics
+    - **Historical Data**: Trend analysis
+  </Tab>
+  <Tab title="CoinGecko">
+    - **Price Data**: Real-time and historical
+    - **Market Metrics**: Volume, market cap, dominance
+    - **Token Information**: Metadata and links
+    - **Trending Analysis**: Hot tokens and gainers
+  </Tab>
+</Tabs>
+
+### Trading & Execution Tools
+
+<Tabs>
+  <Tab title="EVM Chains">
+    **Uniswap Integration**:
+    - V2 and V3 support
+    - Optimal route finding
+    - Liquidity aggregation
+    - MEV protection
+
+    **0x Protocol**:
+    - Best price discovery
+    - Aggregated liquidity
+    - Gas optimization
+    - RFQ system
+
+    **Chainlink**:
+    - Price feeds
+    - Proof of reserves
+    - VRF for randomness
+    - Automation triggers
+  </Tab>
+  <Tab title="Solana">
+    **Jupiter**:
+    - Token swaps
+    - Route optimization
+    - Limit orders
+    - DCA strategies
+
+    **Serum**:
+    - Order book DEX
+    - Advanced orders
+    - Cross-chain bridge
+    - Margin trading
+  </Tab>
+  <Tab title="Bitcoin">
+    **Bitcoin MCP**:
+    - Address generation
+    - Transaction creation
+    - UTXO management
+    - Lightning Network
+
+    **Block Explorers**:
+    - Transaction tracking
+    - Address monitoring
+    - Fee estimation
+    - Mempool analysis
+  </Tab>
+</Tabs>
+
+### Market Data & Exchange Integration
+
+**Binance Integration**:
+- Spot market data
+- Futures information
+- Order book depth
+- Trade history
+- WebSocket streams for real-time updates
+
+**Additional Exchanges** (via MCP):
+- Coinbase Pro
+- Kraken
+- Bybit
+- OKX
+- Bitfinex
+
+## MCP (Model Context Protocol) Support
+
+### What is MCP?
+MCP standardizes how AI models interact with external tools and data sources, similar to how USB-C standardizes device connections.
+
+### Supported MCP Servers
+
+<CardGroup cols={2}>
+  <Card title="DeFi Protocols" icon="coins">
+    - Aave lending/borrowing
+    - Compound markets
+    - MakerDAO vaults
+    - Curve pools
+    - Yearn vaults
+    - Convex staking
+  </Card>
+  <Card title="Infrastructure" icon="server">
+    - Alchemy node services
+    - Infura endpoints
+    - QuickNode RPC
+    - Moralis Web3 APIs
+    - Covalent unified API
+    - Bitquery GraphQL
+  </Card>
+  <Card title="Analytics" icon="chart-bar">
+    - Nansen wallet labels
+    - Glassnode metrics
+    - Messari research
+    - Token Terminal
+    - DeBank portfolios
+    - Zapper bundles
+  </Card>
+  <Card title="Security" icon="shield">
+    - Etherscan verification
+    - Tenderly simulations
+    - Forta threat detection
+    - CertiK audits
+    - PeckShield alerts
+    - Immunefi bounties
+  </Card>
+</CardGroup>
+
+### MCP Configuration
+```env
+# Core MCP Servers
+THIRDWEB_MCP_BASE=https://thirdweb-mcp.nex-t1.ai
+THIRDWEB_MCP_TOKEN=your-token-here
+
+# Analytics MCPs
+CHAINLINK_MCP_BASE=https://chainlink.nex-t1.ai
+DEFILLAMA_MCP_BASE=https://defillama.nex-t1.ai
+DUNE_MCP_BASE=https://dune.nex-t1.ai
+
+# Trading MCPs
+UNISWAP_MCP_BASE=https://uniswap.nex-t1.ai
+JUPITER_MCP_BASE=https://jupiter.nex-t1.ai
+BINANCE_MCP_BASE=https://binance.nex-t1.ai
+
+# Infrastructure MCPs
+ALCHEMY_MCP_BASE=https://alchemy.nex-t1.ai
+HELIUS_MCP_BASE=https://helius.nex-t1.ai
+BITCOIN_MCP_BASE=https://bitcoin.nex-t1.ai
+```
+
+## Developer Features
+
+### Clean Architecture
+```
+app/
+├── api/          # HTTP endpoints
+├── core/         # Business logic
+│   ├── agents/   # AI agent definitions
+│   ├── auth/     # Authentication
+│   └── tools/    # Tool implementations
+├── models/       # Database models
+├── schemas/      # Request/response schemas
+├── services/     # External services
+└── utils/        # Helper functions
+```
+
+### Type Safety
+- **Pydantic Models**: Runtime validation
+- **Type Hints**: Full typing coverage
+- **MyPy Compatible**: Static type checking
+- **OpenAPI Schema**: Auto-generated docs
+
+### Testing Infrastructure
+- **Pytest Framework**: Comprehensive test suite
+- **Mock Integrations**: Test without external deps
+- **Coverage Reports**: Track test completeness
+- **Load Testing**: Performance validation
+
+### Deployment Options
+
+<Tabs>
+  <Tab title="Docker">
+    - Multi-stage builds for optimization
+    - Docker Compose for full stack
+    - Health checks included
+    - Volume management
+    - Network isolation
+  </Tab>
+  <Tab title="Kubernetes">
+    - Helm charts provided
+    - Horizontal pod autoscaling
+    - ConfigMaps and Secrets
+    - Ingress configuration
+    - Service mesh ready
+  </Tab>
+  <Tab title="Cloud Platforms">
+    **AWS**:
+    - ECS/Fargate deployment
+    - Lambda functions
+    - API Gateway integration
+
+    **Google Cloud**:
+    - Cloud Run support
+    - Kubernetes Engine
+    - Cloud Functions
+
+    **Railway/Vercel**:
+    - One-click deployment
+    - Automatic scaling
+    - Built-in monitoring
+  </Tab>
+</Tabs>
+
+## Performance Optimization
+
+### Caching Strategy
+- **Redis Integration**: Sub-millisecond cache
+- **Multi-Layer Caching**: Memory → Redis → Database
+- **Smart Invalidation**: Event-driven cache updates
+- **TTL Management**: Configurable expiration
+
+### Async Operations
+- **Non-Blocking I/O**: Maximum concurrency
+- **Connection Pooling**: Efficient resource usage
+- **Background Tasks**: Long-running operations
+- **Queue Management**: Priority-based processing
+
+### Database Optimization
+- **Indexed Queries**: Fast data retrieval
+- **Query Optimization**: Explain plan analysis
+- **Connection Pooling**: Resource efficiency
+- **Read Replicas**: Scale read operations
+
+## Compliance & Governance
+
+### Data Privacy
+- **GDPR Compliant**: User data controls
+- **Data Minimization**: Only store necessary data
+- **Right to Deletion**: User data removal
+- **Encryption**: At rest and in transit
+
+### Audit Trail
+- **Complete Logging**: Every action recorded
+- **Immutable Records**: Tamper-proof logs
+- **Compliance Reports**: Automated generation
+- **Data Retention**: Configurable policies
+
+### Risk Management
+- **Transaction Limits**: Configurable thresholds
+- **Approval Workflows**: Multi-sig support
+- **Monitoring Alerts**: Real-time notifications
+- **Incident Response**: Automated procedures
+
+## Feature Flags
+
+Control feature rollout with built-in flags:
+
+```python
+# app/core/feature_flags.py
+MULTI_AGENT_ENABLED = True
+RISK_CHECKS_ENABLED = True
+EXECUTION_ENABLED = False  # Preview only by default
+MAINNET_ENABLED = False    # Testnet by default
+```
+
+## Metrics & Analytics
+
+### Business Metrics
+- User engagement rates
+- Transaction success rates
+- Tool usage statistics
+- Error rates by category
+- Cost per operation
+
+### Technical Metrics
+- API latency percentiles
+- Database query times
+- Cache hit rates
+- Memory usage
+- CPU utilization
+
+### AI Metrics
+- Model response times
+- Token usage by model
+- Intent classification accuracy
+- Tool selection success
+- User satisfaction scores

@@ -1,0 +1,217 @@
+---
+title: 'Nex‑T1 Overview'
+description: 'The comprehensive AI agent platform transforming how humans interact with Web3 through intelligent automation.'
+icon: 'sparkles'
+---
+
+# Overview
+
+<Info>
+**Nex‑T1** is a production‑grade AI agent platform for Web3 that unifies research, trading, and on‑chain execution behind one reliable API. It solves fragmented multi‑tool workflows by consolidating data sources (The Graph, Dune, DeFiLlama), market infrastructure (Chainlink, Binance), and execution adapters (Uniswap/0x, Thirdweb) with built‑in risk checks and guardrails. Power users, DeFi teams, and crypto traders get multi‑agent orchestration, MCP integrations across EVM/Solana/Bitcoin, and preview‑to‑execute flows to move from insight to action safely and fast.
+</Info>
+
+## For Non-Technical Users: What Nex‑T1 Means for You
+
+<CardGroup cols={2}>
+  <Card title="Simplified Web3 Interaction" icon="hand-pointer">
+    No more juggling between 10+ different tools and websites. Nex‑T1 brings everything together in one place, accessible through simple natural language commands.
+  </Card>
+  <Card title="AI-Powered Intelligence" icon="brain">
+    Our AI agents understand your intent and execute complex blockchain operations automatically. Just describe what you want to achieve, and Nex‑T1 handles the technical complexity.
+  </Card>
+  <Card title="Risk Protection Built‑In" icon="shield-check">
+    Every transaction is pre-checked for risks. Our guardrails prevent common mistakes like sending to wrong addresses, overpaying for gas, or falling for scam tokens.
+  </Card>
+  <Card title="Real‑Time Market Insights" icon="chart-line">
+    Get instant access to on-chain data, market trends, and DeFi opportunities. Our AI analyzes millions of data points to surface what matters to you.
+  </Card>
+</CardGroup>
+
+### Common Tasks Made Simple
+
+- **"What's the best yield for my USDC?"** → Nex‑T1 scans all DeFi protocols and presents top opportunities with risk scores
+- **"Swap 1 ETH for USDC with best rates"** → Compares all DEXs, shows you the preview, and executes with one click
+- **"Alert me when ETH drops below $3000"** → Sets up automated monitoring and notifications
+- **"Show me whale movements on Bitcoin"** → Real-time tracking of large transactions with context
+- **"Research top gaming tokens this week"** → Comprehensive analysis combining price, social sentiment, and on-chain metrics
+
+## Core Capabilities
+
+<CardGroup cols={3}>
+  <Card title="What It Is" icon="sparkles">
+    A FastAPI + LangGraph service that exposes chat, research, quoting, execution, and risk‑check APIs with built‑in auth, metrics, and tracing.
+  </Card>
+  <Card title="What It Does" icon="zap">
+    Routes intents, calls tools and MCP servers, retrieves market/research data, generates LLM responses, and (optionally) executes on EVM via wallet adapters.
+  </Card>
+  <Card title="Who It's For" icon="users">
+    Crypto traders, DeFi users, blockchain developers, research analysts, and teams building Web3 applications.
+  </Card>
+</CardGroup>
+
+## What Sets Nex‑T1 Apart
+
+<CardGroup cols={2}>
+  <Card title="Unified Platform" icon="infinity">
+    **Problem Solved**: Stop switching between Etherscan, Dune, DeFiLlama, Uniswap, and countless other tools.
+
+    **Our Solution**: Single API that connects to 30+ protocols and data sources, orchestrated by intelligent agents.
+  </Card>
+  <Card title="Multi‑Chain Native" icon="network-wired">
+    **Problem Solved**: Different tools for different chains, incompatible interfaces.
+
+    **Our Solution**: Seamless support for EVM chains, Solana, and Bitcoin with unified interface.
+  </Card>
+  <Card title="Production‑Ready Security" icon="lock">
+    **Problem Solved**: Experimental tools that risk your funds with untested code.
+
+    **Our Solution**: JWT auth, rate limiting, input sanitization, transaction simulation, and comprehensive audit trails.
+  </Card>
+  <Card title="AI + Human Control" icon="sliders">
+    **Problem Solved**: Black box AI that executes without transparency.
+
+    **Our Solution**: Preview-before-execute flow, explainable decisions, and human approval for critical operations.
+  </Card>
+</CardGroup>
+
+### Competitive Advantages
+
+1. **Speed**: Sub-second response times with async architecture and optimized caching
+2. **Reliability**: 99.9% uptime SLA with failover mechanisms and redundant data sources
+3. **Extensibility**: Modular architecture allows adding new protocols in hours, not weeks
+4. **Cost Efficiency**: Smart routing finds best gas prices and optimal trade paths, saving users money
+5. **Open Source**: Transparent codebase with active community contributions and audits
+6. **Enterprise Ready**: SOC2 compliance path, dedicated support, and custom deployment options
+
+## Quick Navigation
+
+<CardGroup cols={3}>
+  <Card title="Use Cases" icon="target" href="/Nex-T1/use-cases">Real-world applications and success stories</Card>
+  <Card title="Get Started" icon="rocket" href="/Nex-T1/get-started">5-minute setup guide</Card>
+  <Card title="Features" icon="layers" href="/Nex-T1/features">Complete feature breakdown</Card>
+  <Card title="API Usage" icon="terminal" href="/Nex-T1/usage">Developer documentation</Card>
+  <Card title="Tools" icon="wrench" href="/Nex-T1/tools">50+ integrated tools</Card>
+  <Card title="MCP" icon="plug" href="/Nex-T1/mcp">Model Context Protocol</Card>
+  <Card title="Chains" icon="network" href="/Nex-T1/supported-chains">Multi-chain support</Card>
+  <Card title="Protocols" icon="grid" href="/Nex-T1/supported-protocols">DeFi integrations</Card>
+  <Card title="Prompting" icon="message-circle" href="/Nex-T1/prompting-guide">AI interaction guide</Card>
+  <Card title="Integration" icon="git-merge" href="/Nex-T1/integration-guide">Integration pathways</Card>
+  <Card title="Examples" icon="code" href="/Nex-T1/examples">Code examples</Card>
+  <Card title="Legal" icon="shield" href="/Nex-T1/legal">Terms and safety</Card>
+</CardGroup>
+
+## Technical Architecture Overview
+
+### Core Technology Stack
+
+- **Backend**: FastAPI (Python 3.13+) for high-performance async APIs
+- **AI Orchestration**: LangGraph for multi-agent workflows with state management
+- **LLM Integration**: OpenAI GPT-4, Claude, and local models via LangChain
+- **Observability**: Langfuse for LLM tracing, Prometheus + Grafana for metrics
+- **Database**: PostgreSQL with async drivers, Redis for caching
+- **Authentication**: JWT-based with session management
+- **Rate Limiting**: Configurable per-endpoint with burst protection
+- **Deployment**: Docker, Kubernetes, Railway, Vercel Edge Functions
+
+### Multi-Agent System
+
+Nex‑T1 employs specialized AI agents for different tasks:
+
+1. **Intent Router**: Classifies user requests and delegates to appropriate teams
+2. **Research Team**: Aggregates data from multiple sources for comprehensive analysis
+3. **Trading Team**: Handles quotes, execution, and trade optimization
+4. **Risk Team**: Evaluates transactions for security and financial risks
+5. **Market Data Team**: Provides real-time prices, charts, and market metrics
+
+### Security & Compliance
+
+- **Input Validation**: All inputs sanitized and validated against schemas
+- **Transaction Simulation**: Preview all on-chain operations before execution
+- **Audit Logging**: Complete trail of all operations for compliance
+- **Rate Limiting**: Protection against abuse and DDoS
+- **Secure Key Management**: Hardware security modules (HSM) compatible
+- **GDPR Compliant**: Data privacy and user control built-in
+
+## For Developers
+
+### Why Build with Nex‑T1?
+
+<CardGroup cols={2}>
+  <Card title="Rapid Development" icon="rocket">
+    Skip months of integration work. Our unified API means you can build a DeFi dashboard, trading bot, or research tool in days instead of months.
+  </Card>
+  <Card title="Battle‑Tested Infrastructure" icon="server">
+    Production-ready from day one with built-in auth, rate limiting, monitoring, and error handling. Focus on your unique value, not boilerplate.
+  </Card>
+  <Card title="Extensible Architecture" icon="puzzle-piece">
+    Add custom tools, integrate proprietary data sources, or build specialized agents. Our modular design makes extensions straightforward.
+  </Card>
+  <Card title="Community & Support" icon="users-cog">
+    Active Discord community, comprehensive docs, and dedicated support channels. Get help when you need it.
+  </Card>
+</CardGroup>
+
+### Integration Options
+
+1. **REST API**: Standard HTTP endpoints with comprehensive OpenAPI documentation
+2. **WebSocket**: Real-time streaming for market data and live updates
+3. **SDK**: Python and TypeScript SDKs for rapid integration
+4. **MCP Servers**: Connect any MCP-compatible tool or service
+5. **Custom Agents**: Build domain-specific agents using our framework
+
+### Performance Metrics
+
+- **API Response Time**: < 100ms p50, < 500ms p99
+- **Throughput**: 10,000+ requests per second
+- **Uptime**: 99.9% SLA with redundant deployments
+- **Data Freshness**: Real-time for prices, < 1 minute for on-chain data
+
+---
+
+## Getting Help
+
+<CardGroup cols={3}>
+  <Card title="Documentation" icon="book">
+    Comprehensive guides, API reference, and tutorials
+  </Card>
+  <Card title="Community" icon="discord">
+    Join our Discord for real-time support and discussions
+  </Card>
+  <Card title="Support" icon="life-ring">
+    Enterprise support available with SLA guarantees
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<Steps>
+  <Step title="Install Nex‑T1">
+    Follow our [quick start guide](/Nex-T1/get-started) to get up and running in 5 minutes
+  </Step>
+  <Step title="Try Example Prompts">
+    Check out our [prompting guide](/Nex-T1/prompting-guide) for effective interaction patterns
+  </Step>
+  <Step title="Explore Use Cases">
+    See [real-world applications](/Nex-T1/use-cases) and success stories
+  </Step>
+  <Step title="Build Your First Integration">
+    Use our [API examples](/Nex-T1/examples) to integrate Nex‑T1 into your workflow
+  </Step>
+</Steps>
+
+---
+
+## Explore the Docs
+
+- **Use Cases** — [/Nex-T1/use-cases](/Nex-T1/use-cases) - Real-world applications and success stories
+- **Get Started** — [/Nex-T1/get-started](/Nex-T1/get-started) - Installation and configuration
+- **Features** — [/Nex-T1/features](/Nex-T1/features) - Complete capability breakdown
+- **API Usage** — [/Nex-T1/usage](/Nex-T1/usage) - Developer documentation
+- **Tools** — [/Nex-T1/tools](/Nex-T1/tools) - All integrated tools and services
+- **MCP** — [/Nex-T1/mcp](/Nex-T1/mcp) - Model Context Protocol details
+- **Supported Chains** — [/Nex-T1/supported-chains](/Nex-T1/supported-chains) - Blockchain compatibility
+- **Supported Protocols** — [/Nex-T1/supported-protocols](/Nex-T1/supported-protocols) - DeFi integrations
+- **Prompting Guide** — [/Nex-T1/prompting-guide](/Nex-T1/prompting-guide) - Effective AI interaction
+- **Integration Guide** — [/Nex-T1/integration-guide](/Nex-T1/integration-guide) - Implementation pathways
+- **Examples** — [/Nex-T1/examples](/Nex-T1/examples) - Code samples and recipes
+- **Legal** — [/Nex-T1/legal](/Nex-T1/legal) - Terms, privacy, and compliance
