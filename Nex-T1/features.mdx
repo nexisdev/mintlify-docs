@@ -10,129 +10,265 @@ icon: 'layers'
 Nex‑T1 combines enterprise-grade infrastructure with cutting-edge AI orchestration to deliver a comprehensive Web3 automation platform. Every feature is designed for production use with reliability, security, and scalability at its core.
 </Info>
 
+## Architecture Overview
+
+### Multi-Agent System Architecture
+
+```mermaid
+graph TB
+    User[User Request] --> Router[Intent Router]
+    Router --> Research[Research Team]
+    Router --> Trading[Trading Team]
+    Router --> Risk[Risk Team]
+
+    Research --> Graph[The Graph]
+    Research --> Dune[Dune Analytics]
+    Research --> DeFi[DeFiLlama]
+    Research --> CG[CoinGecko]
+
+    Trading --> Uni[Uniswap]
+    Trading --> Jup[Jupiter]
+    Trading --> ZeroX[0x Protocol]
+
+    Risk --> Verify[Token Verification]
+    Risk --> Liquidity[Liquidity Analysis]
+    Risk --> Impact[Price Impact]
+
+    Research --> Preview[Preview Generation]
+    Trading --> Preview
+    Risk --> Preview
+
+    Preview --> Approval[User Approval]
+    Approval --> Execute[Execution]
+    Execute --> Monitor[Transaction Monitor]
+
+    style Router fill:#0D6B93
+    style Preview fill:#07B2C9
+    style Approval fill:#1BACCD
+```
+
+### Request Flow Architecture
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant API
+    participant Router
+    participant Teams
+    participant Preview
+    participant Execute
+
+    User->>API: Natural Language Request
+    API->>Router: Parse Intent
+    Router->>Router: Extract Entities
+    Router->>Teams: Delegate to Team
+    Teams->>Teams: Process Request
+    Teams->>Preview: Generate Preview
+    Preview->>User: Show Preview + Risk
+    User->>Preview: Approve/Reject
+    alt Approved
+        Preview->>Execute: Execute Transaction
+        Execute->>User: Transaction Hash
+    else Rejected
+        Preview->>User: Operation Cancelled
+    end
+```
+
 ## Core Platform Features
 
 ### High-Performance Backend
-- **FastAPI Framework**: Async Python for maximum throughput and minimal latency
-- **Concurrent Request Handling**: Process thousands of requests simultaneously
-- **CORS Support**: Secure cross-origin resource sharing for web integrations
-- **Security Headers**: XSS protection, content-type validation, frame options
-- **Request Validation**: Pydantic models ensure data integrity
-- **Error Handlers**: Graceful error recovery with detailed logging
+
+| Component | Technology | Capability |
+|-----------|-----------|-----------|
+| Framework | FastAPI | Async Python for maximum throughput |
+| Concurrency | ASGI Server | Handle thousands of concurrent requests |
+| CORS | Middleware | Secure cross-origin resource sharing |
+| Security | Headers | XSS, CSP, frame options protection |
+| Validation | Pydantic | Runtime type checking and validation |
+| Error Handling | Custom Handlers | Graceful recovery with structured logging |
+| API Schema | OpenAPI 3.1 | Auto-generated interactive documentation |
+
+**Performance Characteristics**:
+- Sub-100ms response time for cached queries
+- 1000+ concurrent connections supported
+- Async I/O for non-blocking operations
+- Connection pooling for efficient resource use
 
 ### Observability & Monitoring
-- **Prometheus Metrics**: Real-time performance tracking
-  - Request latency histograms
-  - Error rate monitoring
-  - Resource utilization metrics
-  - Custom business metrics
-- **Grafana Dashboards**: Visual monitoring with pre-built templates
-  - API performance dashboard
-  - Agent execution tracking
-  - Tool usage analytics
-  - Cost monitoring dashboard
-- **Health Endpoints**: Liveness and readiness probes for orchestrators
-- **Distributed Tracing**: Request flow visualization across services
+
+<Tabs>
+  <Tab title="Metrics">
+    **Prometheus Integration**:
+    - Request latency histograms (p50, p95, p99)
+    - Error rate monitoring by endpoint
+    - Active connection tracking
+    - Resource utilization (CPU, memory)
+    - Custom business metrics
+    - Token usage per model
+    - Cost tracking by operation
+  </Tab>
+  <Tab title="Dashboards">
+    **Pre-built Grafana Dashboards**:
+    - API Performance: Request/response metrics
+    - Agent Execution: AI operation tracking
+    - Tool Usage: Integration analytics
+    - Cost Monitoring: LLM and infrastructure costs
+    - Error Analysis: Failure patterns
+    - User Analytics: Engagement metrics
+  </Tab>
+  <Tab title="Health Checks">
+    **Kubernetes-Ready Probes**:
+    - `/health` - Root health endpoint
+    - `/api/v1/health` - API health check
+    - Liveness probes for crash detection
+    - Readiness probes for traffic routing
+    - Startup probes for slow initialization
+  </Tab>
+  <Tab title="Logging">
+    **Structured Logging**:
+    - JSON format for machine parsing
+    - Environment-aware formatting
+    - File and console output
+    - Request ID tracking
+    - Error stack traces
+    - Performance timing
+  </Tab>
+</Tabs>
 
 ### AI Agent Orchestration
-- **LangGraph Integration**: Stateful multi-agent workflows
-  - Conversation memory management
-  - Context preservation across sessions
-  - Parallel agent execution
-  - Conditional routing based on intent
-- **OpenAI/Claude Integration**: Multiple LLM provider support
-  - Automatic fallback on failures
-  - Model-specific optimization
-  - Token usage tracking
-  - Cost optimization strategies
-- **Postgres Checkpointing**: Reliable state persistence
-  - AsyncPostgresSaver for high throughput
-  - Transaction-safe state updates
-  - Point-in-time recovery
-  - State replay capabilities
+
+<Tabs>
+  <Tab title="LangGraph">
+    **Stateful Multi-Agent Workflows**:
+    - Conversation memory management
+    - Context preservation across sessions
+    - Parallel agent execution
+    - Conditional routing based on intent
+    - State checkpointing to PostgreSQL
+    - Transaction-safe state updates
+    - Point-in-time recovery
+    - State replay for debugging
+  </Tab>
+  <Tab title="LLM Providers">
+    **Multi-Provider Support**:
+    - OpenAI GPT-4, GPT-3.5
+    - Anthropic Claude 3 (Opus, Sonnet, Haiku)
+    - Automatic fallback on failures
+    - Model-specific optimization
+    - Token usage tracking
+    - Cost optimization strategies
+    - Response caching
+  </Tab>
+  <Tab title="State Management">
+    **PostgreSQL Checkpointing**:
+    - AsyncPostgresSaver for high throughput
+    - Transaction-safe state updates
+    - Automatic state persistence
+    - Session-scoped conversations
+    - Conversation history retrieval
+    - Message history clearing
+  </Tab>
+  <Tab title="Streaming">
+    **Real-Time Communication**:
+    - Server-Sent Events (SSE)
+    - Token-by-token streaming
+    - Progress updates during execution
+    - EventSource-compatible endpoints
+    - Fallback to non-streaming
+  </Tab>
+</Tabs>
 
 ### LLM Observability
-- **Langfuse Tracing**: Complete visibility into AI operations
-  - Token usage analytics
-  - Response time tracking
-  - Quality scoring
-  - Cost attribution
-  - Prompt effectiveness metrics
-- **Conversation Analytics**: Understanding user interactions
-  - Intent classification accuracy
-  - Tool usage patterns
-  - Success rate tracking
-  - User satisfaction metrics
+
+**Langfuse Integration**:
+- Complete trace visibility into AI operations
+- Token usage analytics per model
+- Response time tracking
+- Quality scoring and evaluation
+- Cost attribution by user/session
+- Prompt effectiveness metrics
+- A/B testing support
+- Production debugging
 
 ## Security Features
 
-### Authentication & Authorization
-- **JWT-Based Auth**: Stateless, scalable authentication
-  - Access and refresh token support
-  - Configurable expiration times
-  - Secure token storage
-  - Multi-factor authentication ready
-- **Session Management**: User session tracking
-  - Concurrent session limits
-  - Session invalidation
-  - Activity tracking
-  - Audit logging
-
-### API Security
-- **Rate Limiting**: Protect against abuse
-  - Per-user limits
-  - Per-endpoint configuration
-  - Burst allowance
-  - Sliding window algorithm
-- **Input Sanitization**: Prevent injection attacks
-  - SQL injection protection
-  - XSS prevention
-  - Command injection blocking
-  - Path traversal prevention
+| Security Layer | Feature | Implementation |
+|----------------|---------|----------------|
+| **Authentication** | JWT Tokens | Stateless bearer authentication |
+| | Session Management | User registration, login, session creation |
+| | Token Scoping | Session-scoped tokens for chat binding |
+| **Authorization** | Role-Based Access | User-level permissions |
+| | API Key Management | Secure key storage and rotation |
+| **Rate Limiting** | Request Throttling | `slowapi` with per-endpoint policies |
+| | Burst Protection | Configurable rate limits |
+| | User-Based Limits | Per-user quota enforcement |
+| **Input Validation** | Pydantic Schemas | Runtime type checking |
+| | Sanitization | Prevent injection attacks |
+| | Request Filtering | Block malicious payloads |
+| **Network Security** | CORS Configuration | Explicit allowed origins |
+| | Security Headers | XSS, CSP, frame options |
+| | TLS/SSL | Encrypted data in transit |
+| **Data Protection** | Encryption at Rest | Database encryption |
+| | Secure Storage | Environment-based secrets |
+| | Data Minimization | Only store necessary data |
 
 ## Multi-Agent System
 
-### Agent Teams & Specialization
+### Agent Capabilities Comparison
+
+| Agent Team | Primary Function | Data Sources | Output |
+|------------|------------------|--------------|--------|
+| **Intent Router** | NLU & Classification | User input | Intent + entities + team assignment |
+| **Research Team** | Data aggregation | The Graph, Dune, DeFiLlama, CoinGecko | Market insights, protocol comparisons |
+| **Trading Team** | Quote generation | Uniswap, Jupiter, 0x, Chainlink | Route quotes, gas estimates |
+| **Risk Team** | Safety validation | On-chain data, audit databases | Risk scores, warnings |
+
+### Agent Team Details
 
 <CardGroup cols={2}>
   <Card title="Intent Router" icon="route">
     **Capabilities**:
     - Natural language understanding
-    - Intent classification
-    - Context extraction
-    - Team delegation
+    - Intent classification (research/trading/risk)
+    - Entity extraction (tokens, amounts, chains)
+    - Team delegation with context
 
     **Supported Intents**:
     - Research queries
     - Trading operations
     - Risk assessments
     - Market data requests
+    - Portfolio analysis
   </Card>
   <Card title="Research Team" icon="magnifying-glass">
     **Data Sources**:
     - The Graph Protocol subgraphs
-    - Dune Analytics queries
+    - Dune Analytics SQL queries
     - DeFiLlama TVL/yields
     - CoinGecko market data
+    - Sentiment analysis APIs
 
     **Analysis Types**:
     - Protocol comparisons
     - Yield optimization
     - Historical trends
     - Cross-chain analytics
+    - Market sentiment
   </Card>
   <Card title="Trading Team" icon="arrow-right-arrow-left">
     **Supported Operations**:
-    - Quote generation
+    - Quote generation (Chainlink prices)
     - Route optimization
     - Slippage calculation
     - Gas estimation
+    - Wallet balance checks
 
     **Integrations**:
     - Uniswap V2/V3
     - 0x Protocol
     - Jupiter (Solana)
-    - 1inch aggregator
+    - Chainlink price feeds
+    - Pseudo EVM quotes
   </Card>
   <Card title="Risk Team" icon="shield-halved">
     **Risk Checks**:
@@ -140,22 +276,56 @@ Nex‑T1 combines enterprise-grade infrastructure with cutting-edge AI orchestra
     - Liquidity analysis
     - Price impact assessment
     - Smart contract audits
+    - Transaction simulation
 
     **Thresholds**:
     - Configurable limits
     - Custom rule engine
     - Whitelist/blacklist
     - Alert mechanisms
+    - Multi-sig support
   </Card>
 </CardGroup>
 
+### Tool Integration Architecture
+
+```mermaid
+graph LR
+    Agent[AI Agent] --> MCP[MCP Bridge]
+    MCP --> DeFi[DeFiLlama Tools]
+    MCP --> BTC[Bitcoin Tools]
+    MCP --> Binance[Binance Tools]
+    MCP --> Exa[Exa Search]
+
+    DeFi --> API1[DeFiLlama API]
+    BTC --> API2[Bitcoin RPC]
+    Binance --> API3[Binance WS/REST]
+    Exa --> API4[Exa Search API]
+
+    Agent --> Direct[Direct Adapters]
+    Direct --> CL[Chainlink]
+    Direct --> Graph[The Graph]
+    Direct --> Dune[Dune Analytics]
+
+    style MCP fill:#0D6B93
+    style Direct fill:#07B2C9
+```
+
 ### Preview-to-Execute Flow
-1. **Intent Analysis**: AI understands user request
-2. **Preview Generation**: Shows exactly what will happen
-3. **Risk Assessment**: Automated safety checks
-4. **User Approval**: Explicit confirmation required
-5. **Execution**: Transaction submission
-6. **Monitoring**: Real-time status updates
+
+| Step | Action | Safety Check | User Control |
+|------|--------|--------------|--------------|
+| 1. Intent Analysis | AI parses request | Input validation | Can rephrase |
+| 2. Route Preview | Generate execution plan | Entity extraction | Review plan |
+| 3. Quote Generation | Get best prices | Price validation | Compare quotes |
+| 4. Risk Assessment | Run safety checks | Threshold validation | Review risks |
+| 5. Preview Display | Show complete preview | All checks passed | Approve/reject |
+| 6. Execution | Submit transaction | Confirmation gate | Explicit approval required |
+| 7. Monitoring | Track status | Transaction validation | Real-time updates |
+
+<Note>
+**Safety First**: Execution is gated by default with `EXECUTION_ENABLED = False` in feature flags. Users must explicitly approve every transaction after reviewing the complete preview with risk assessment.
+</Note>
 
 ## Integrated Tools & Adapters
 
@@ -256,67 +426,111 @@ Nex‑T1 combines enterprise-grade infrastructure with cutting-edge AI orchestra
 
 ## MCP (Model Context Protocol) Support
 
-### What is MCP?
-MCP standardizes how AI models interact with external tools and data sources, similar to how USB-C standardizes device connections.
+<Info>
+**What is MCP?** The Model Context Protocol standardizes how AI models interact with external tools and data sources, similar to how USB-C standardizes device connections. It enables seamless integration of diverse data sources and execution capabilities.
+</Info>
 
 ### Supported MCP Servers
 
-<CardGroup cols={2}>
-  <Card title="DeFi Protocols" icon="coins">
-    - Aave lending/borrowing
-    - Compound markets
-    - MakerDAO vaults
-    - Curve pools
-    - Yearn vaults
-    - Convex staking
-  </Card>
-  <Card title="Infrastructure" icon="server">
-    - Alchemy node services
-    - Infura endpoints
-    - QuickNode RPC
-    - Moralis Web3 APIs
-    - Covalent unified API
-    - Bitquery GraphQL
-  </Card>
-  <Card title="Analytics" icon="chart-bar">
-    - Nansen wallet labels
-    - Glassnode metrics
-    - Messari research
-    - Token Terminal
-    - DeBank portfolios
-    - Zapper bundles
-  </Card>
-  <Card title="Security" icon="shield">
-    - Etherscan verification
-    - Tenderly simulations
-    - Forta threat detection
-    - CertiK audits
-    - PeckShield alerts
-    - Immunefi bounties
-  </Card>
-</CardGroup>
+| Category | MCP Server | Capabilities | Status |
+|----------|-----------|--------------|--------|
+| **DeFi** | DeFiLlama | TVL, yields, protocol data | Active |
+| | Aave | Lending/borrowing markets | Planned |
+| | Compound | Money markets | Planned |
+| | Curve | Pool analytics | Planned |
+| **Blockchain** | Bitcoin | UTXO, transactions, Lightning | Active |
+| | Ethereum | EVM operations | Active |
+| | Solana | SPL tokens, Jupiter | Active |
+| **Exchange** | Binance | Spot, futures, WebSocket | Active |
+| | Coinbase | Market data, trading | Planned |
+| | Kraken | Order book, trades | Planned |
+| **Search** | Exa | AI-powered web search | Active |
+| | Google | Traditional search | Planned |
+| **Infrastructure** | Alchemy | Node services, APIs | Planned |
+| | Helius | Solana infrastructure | Planned |
+| | Infura | RPC endpoints | Planned |
+| **Analytics** | The Graph | Subgraph queries | Direct adapter |
+| | Dune | SQL analytics | Direct adapter |
+| | Nansen | Wallet labels | Planned |
+| **Security** | Tenderly | Transaction simulation | Planned |
+| | Forta | Threat detection | Planned |
+| | CertiK | Audit verification | Planned |
 
 ### MCP Configuration
-```env
-# Core MCP Servers
-THIRDWEB_MCP_BASE=https://thirdweb-mcp.nex-t1.ai
-THIRDWEB_MCP_TOKEN=your-token-here
 
-# Analytics MCPs
-CHAINLINK_MCP_BASE=https://chainlink.nex-t1.ai
-DEFILLAMA_MCP_BASE=https://defillama.nex-t1.ai
-DUNE_MCP_BASE=https://dune.nex-t1.ai
+<Tabs>
+  <Tab title="Core MCPs">
+    ```env
+    # DeFi Data
+    DEFILLAMA_MCP_BASE=https://defillama.nex-t1.ai
+    DEFILLAMA_API_KEY=your-key-here
 
-# Trading MCPs
-UNISWAP_MCP_BASE=https://uniswap.nex-t1.ai
-JUPITER_MCP_BASE=https://jupiter.nex-t1.ai
-BINANCE_MCP_BASE=https://binance.nex-t1.ai
+    # Blockchain
+    BITCOIN_MCP_BASE=https://bitcoin.nex-t1.ai
+    THIRDWEB_MCP_BASE=https://thirdweb-mcp.nex-t1.ai
+    THIRDWEB_MCP_TOKEN=your-token-here
 
-# Infrastructure MCPs
-ALCHEMY_MCP_BASE=https://alchemy.nex-t1.ai
-HELIUS_MCP_BASE=https://helius.nex-t1.ai
-BITCOIN_MCP_BASE=https://bitcoin.nex-t1.ai
-```
+    # Exchange
+    BINANCE_MCP_BASE=https://binance.nex-t1.ai
+    BINANCE_API_KEY=your-key-here
+    BINANCE_API_SECRET=your-secret-here
+
+    # Search
+    EXA_MCP_BASE=https://exa.nex-t1.ai
+    EXA_API_KEY=your-key-here
+    ```
+  </Tab>
+  <Tab title="Trading MCPs">
+    ```env
+    # DEX Integrations
+    UNISWAP_MCP_BASE=https://uniswap.nex-t1.ai
+    JUPITER_MCP_BASE=https://jupiter.nex-t1.ai
+    ZEROX_MCP_BASE=https://0x.nex-t1.ai
+
+    # Price Feeds
+    CHAINLINK_MCP_BASE=https://chainlink.nex-t1.ai
+    PYTH_MCP_BASE=https://pyth.nex-t1.ai
+    ```
+  </Tab>
+  <Tab title="Analytics MCPs">
+    ```env
+    # Data Platforms
+    DUNE_MCP_BASE=https://dune.nex-t1.ai
+    DUNE_API_KEY=your-key-here
+
+    GRAPH_MCP_BASE=https://graph.nex-t1.ai
+    GRAPH_API_KEY=your-key-here
+
+    # Market Intelligence
+    COINGECKO_API_KEY=your-key-here
+    MESSARI_API_KEY=your-key-here
+    ```
+  </Tab>
+  <Tab title="Infrastructure MCPs">
+    ```env
+    # RPC Providers
+    ALCHEMY_MCP_BASE=https://alchemy.nex-t1.ai
+    ALCHEMY_API_KEY=your-key-here
+
+    HELIUS_MCP_BASE=https://helius.nex-t1.ai
+    HELIUS_API_KEY=your-key-here
+
+    INFURA_API_KEY=your-key-here
+    QUICKNODE_ENDPOINT=your-endpoint-here
+    ```
+  </Tab>
+</Tabs>
+
+### MCP vs Direct Adapters
+
+| Integration Type | Use Case | Examples | Performance |
+|------------------|----------|----------|-------------|
+| **MCP Servers** | Standardized, pluggable tools | Bitcoin, Binance, DeFiLlama, Exa | Slightly higher latency |
+| **Direct Adapters** | Performance-critical, custom logic | Chainlink, The Graph, Dune | Low latency, optimized |
+
+**When to use MCP**: New integrations, community tools, rapid prototyping
+
+**When to use Direct Adapters**: Core functionality, performance-critical paths, custom business logic
 
 ## Developer Features
 
@@ -401,57 +615,194 @@ app/
 - **Connection Pooling**: Resource efficiency
 - **Read Replicas**: Scale read operations
 
+## Tasks & Scheduling
+
+### Task Management System
+
+| Feature | Description | API Endpoints |
+|---------|-------------|---------------|
+| **Task Creation** | Create discrete tasks with metadata | `POST /api/v1/tasks` |
+| **Task Listing** | Retrieve all tasks with filtering | `GET /api/v1/tasks` |
+| **Task Details** | Get single task by ID | `GET /api/v1/tasks/{id}` |
+| **Progress Updates** | Update status, percent, summaries | `PUT /api/v1/tasks/{id}/progress` |
+| **Plan Creation** | Create plan from base task | `POST /api/v1/plans` |
+| **Plan Retrieval** | Fetch plan with associated tasks | `GET /api/v1/plans/{id}` |
+
+### Background Scheduler
+
+**Market Overview Service**:
+- Runs twice daily (configurable schedule)
+- Aggregates crypto market data
+- Generates summary with news, prices, sentiment
+- Stores snapshots in database
+- Accessible via API endpoints
+
+**Discrete Task Scheduler**:
+- Background service for task execution
+- Supports async job processing
+- Progress tracking and status updates
+- Error handling and retries
+- Webhook notifications (planned)
+
 ## Compliance & Governance
 
 ### Data Privacy
-- **GDPR Compliant**: User data controls
-- **Data Minimization**: Only store necessary data
-- **Right to Deletion**: User data removal
-- **Encryption**: At rest and in transit
+
+| Requirement | Implementation | Compliance |
+|-------------|----------------|------------|
+| **GDPR** | User data controls, right to deletion | Yes |
+| **Data Minimization** | Only store necessary data | Yes |
+| **Encryption** | At rest (database) and in transit (TLS) | Yes |
+| **Data Retention** | Configurable policies | Yes |
+| **User Consent** | Explicit opt-in for data collection | Yes |
 
 ### Audit Trail
-- **Complete Logging**: Every action recorded
-- **Immutable Records**: Tamper-proof logs
-- **Compliance Reports**: Automated generation
-- **Data Retention**: Configurable policies
+
+**Complete Logging**:
+- Every API request logged with structured JSON
+- User actions tracked with session IDs
+- Transaction history with immutable records
+- Error tracking with stack traces
+- Performance metrics with timing data
+
+**Compliance Reports**:
+- Automated generation from logs
+- Exportable in multiple formats
+- Customizable time ranges
+- Filter by user, action, or outcome
 
 ### Risk Management
-- **Transaction Limits**: Configurable thresholds
-- **Approval Workflows**: Multi-sig support
-- **Monitoring Alerts**: Real-time notifications
-- **Incident Response**: Automated procedures
+
+| Control | Configuration | Default |
+|---------|--------------|---------|
+| **Transaction Limits** | Per-user, per-transaction | User-configurable |
+| **Execution Gate** | Feature flag | Disabled (preview only) |
+| **Network Mode** | Mainnet/testnet | Testnet |
+| **Approval Workflow** | Required for execution | Always required |
+| **Risk Thresholds** | Configurable per-team | Medium sensitivity |
+| **Monitoring Alerts** | Real-time notifications | Slack/email integration |
+
+## Chat & Conversation Management
+
+### Chat Capabilities
+
+| Feature | Implementation | Endpoints |
+|---------|----------------|-----------|
+| **Non-Streaming Chat** | Full message history in response | `POST /api/v1/chatbot/chat` |
+| **SSE Streaming** | Token-by-token streaming | `POST /api/v1/chatbot/chat/stream` |
+| **EventSource Streaming** | Browser-compatible SSE | `GET /api/v1/chatbot/chat/stream/sse` |
+| **Message History** | Retrieve conversation history | `GET /api/v1/chatbot/messages` |
+| **History Clearing** | Clear session messages | `DELETE /api/v1/chatbot/messages` |
+| **Session Management** | Create, list, rename, delete sessions | Various endpoints |
+
+### LangGraph-Backed Chat
+
+**Architecture**:
+- Stateful conversation flow
+- PostgreSQL checkpointing for persistence
+- Context preservation across sessions
+- Multi-turn conversation support
+- Tool calling integration
+- Streaming support for real-time feedback
 
 ## Feature Flags
 
-Control feature rollout with built-in flags:
+Control feature rollout and behavior with built-in flags:
 
 ```python
 # app/core/feature_flags.py
-MULTI_AGENT_ENABLED = True
-RISK_CHECKS_ENABLED = True
-EXECUTION_ENABLED = False  # Preview only by default
-MAINNET_ENABLED = False    # Testnet by default
+MULTI_AGENT_ENABLED = True      # Enable multi-agent orchestration
+RISK_CHECKS_ENABLED = True      # Enable risk assessment
+EXECUTION_ENABLED = False       # Preview only by default
+MAINNET_ENABLED = False         # Testnet by default
+STREAMING_ENABLED = True        # Enable SSE streaming
+MARKET_OVERVIEW_ENABLED = True  # Enable market overview scheduler
 ```
+
+<Warning>
+**Production Safety**: `EXECUTION_ENABLED` and `MAINNET_ENABLED` are disabled by default. Only enable in production after thorough testing and with appropriate risk controls in place.
+</Warning>
 
 ## Metrics & Analytics
 
-### Business Metrics
-- User engagement rates
-- Transaction success rates
-- Tool usage statistics
-- Error rates by category
-- Cost per operation
+### Comprehensive Monitoring
 
-### Technical Metrics
-- API latency percentiles
-- Database query times
-- Cache hit rates
-- Memory usage
-- CPU utilization
+| Metric Category | Tracked Metrics | Storage | Visualization |
+|----------------|----------------|---------|---------------|
+| **Business** | User engagement, transaction success, tool usage | PostgreSQL + Prometheus | Grafana dashboards |
+| **Technical** | API latency (p50/p95/p99), DB query times, cache hit rates | Prometheus | Grafana dashboards |
+| **AI** | Token usage, model response times, intent accuracy | Langfuse | Langfuse UI |
+| **Cost** | LLM costs per operation, infrastructure costs | Custom metrics | Grafana dashboards |
+| **Error** | Error rates by category, failure patterns | Structured logs | Grafana + log analysis |
 
-### AI Metrics
-- Model response times
-- Token usage by model
-- Intent classification accuracy
-- Tool selection success
-- User satisfaction scores
+### Key Performance Indicators
+
+<CardGroup cols={3}>
+  <Card title="User Engagement" icon="users">
+    - Active users per day
+    - Sessions per user
+    - Average session duration
+    - Return rate
+  </Card>
+  <Card title="Transaction Success" icon="check">
+    - Preview generation success
+    - Quote generation success
+    - Risk check pass rate
+    - Execution success rate
+  </Card>
+  <Card title="System Health" icon="heart-pulse">
+    - API uptime (target: 99.9%)
+    - Response time p95 (target: <500ms)
+    - Error rate (target: <1%)
+    - Cache hit rate (target: >80%)
+  </Card>
+</CardGroup>
+
+## Supported Chains & Protocols
+
+### Blockchain Support
+
+| Chain Category | Networks | Status | Features |
+|----------------|----------|--------|----------|
+| **EVM Chains** | Ethereum, Polygon, Arbitrum, Optimism, Base, BSC | Active | Swaps, quotes, risk checks |
+| **Solana** | Mainnet, Devnet | Active | Jupiter integration |
+| **Bitcoin** | Mainnet, Testnet | Active | UTXO management, Lightning |
+| **Layer 2s** | All major EVM L2s | Active | Full support |
+
+<Note>
+See [Supported Chains](/Nex-T1/supported-chains) for the complete list of supported networks and their capabilities.
+</Note>
+
+## API & Developer Experience
+
+### OpenAPI 3.1 Schema
+
+**Interactive Documentation**:
+- Swagger UI at `/docs`
+- ReDoc at `/redoc`
+- Scalar at `/scalar` (modern UI)
+- Auto-generated from Pydantic models
+- Try-it-out functionality
+- Authentication testing
+
+### Consistent JSON Schemas
+
+All endpoints use consistent schema patterns:
+- Request validation with Pydantic
+- Response models with type hints
+- Error responses in standard format
+- Pagination with consistent parameters
+- Filtering with query parameters
+
+### Client Libraries
+
+**Supported Languages** (Community/Planned):
+- Python SDK
+- TypeScript/JavaScript SDK
+- Go SDK
+- Rust SDK
+- Example code in documentation
+
+<Tip>
+All API requests and responses follow REST principles with intuitive resource naming and HTTP verb usage.
+</Tip>

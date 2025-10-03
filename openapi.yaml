@@ -16,11 +16,13 @@ info:
     name: MIT
     url: https://opensource.org/licenses/MIT
 servers:
+  - url: http://localhost:8000/
+    description: Local server
   - url: https://api.nex-t1.ai/
     description: Production server
 paths:
-  $ref: 'https://api.nex-t1.ai/api/v1/openapi.json#/paths'
+  $ref: './openapi.json#/paths'
 components:
-  $ref: 'https://api.nex-t1.ai/api/v1/openapi.json#/components'
+  $ref: './openapi.json#/components'
 tags: []
 security: []

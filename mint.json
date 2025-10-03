@@ -205,7 +205,9 @@
         "Nex-T1/tools",
         "Nex-T1/mcp",
         "Nex-T1/prompting-guide",
-        "Nex-T1/integration-guide"
+        "Nex-T1/generative-ui",
+        "Nex-T1/integration-guide",
+        "Nex-T1/infrastructure"
       ]
     },
     {

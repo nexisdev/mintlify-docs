@@ -1,58 +1,2596 @@
 ---
 title: 'Examples'
-description: 'Copy‑paste examples for common Nex‑T1 tasks: research queries, quotes, and risk checks.'
+description: 'Comprehensive examples for Nex-T1 API: authentication, chat, research, trading, multi-agent workflows, and MCP integration.'
 icon: 'code'
 ---
 
-# Examples
+# Nex-T1 Examples
 
-## Research: The Graph + Dune + DeFiLlama
+Complete, production-ready examples for every Nex-T1 API endpoint. All examples include curl, Python, and TypeScript implementations.
+
+<Note>
+**Prerequisites:**
+- Nex-T1 server running (default: `http://localhost:8000`)
+- Valid user credentials or registration
+- Session token for authenticated requests
+</Note>
+
+---
+
+## 1. Authentication
+
+### Register a New User
+
+Create a new user account before accessing protected endpoints.
 
 <CodeGroup>
-```bash Research
-curl -X POST http://localhost:8000/api/v1/multi-agent/research/preview \
-  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+```bash curl
+curl -X POST http://localhost:8000/api/v1/auth/register \
+  -H 'Content-Type: application/json' \
   -d '{
-    "subgraph": "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3",
-    "gql": "query($first:Int!){ pools(first:$first){ id totalValueLockedUSD } }",
-    "variables": { "first": 2 },
-    "dune_query_id": 12345,
-    "dune_params": {"example":"value"},
-    "defi_calls": [
-      {"tool_name":"tvl_get","arguments":{"chain":"ethereum"}},
-      {"tool_name":"token_price","arguments":{"token":"ethereum"}}
+    "email": "user@example.com",
+    "password": "SecurePass123!"
+  }'
+```
+
+```python Python
+import requests
+
+BASE_URL = "http://localhost:8000"
+
+response = requests.post(
+    f"{BASE_URL}/api/v1/auth/register",
+    json={
+        "email": "user@example.com",
+        "password": "SecurePass123!"
+    }
+)
+
+user_data = response.json()
+print(f"User ID: {user_data['id']}")
+print(f"Access Token: {user_data['token']['access_token']}")
+```
+
+```typescript TypeScript
+const BASE_URL = "http://localhost:8000";
+
+const response = await fetch(`${BASE_URL}/api/v1/auth/register`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    email: "user@example.com",
+    password: "SecurePass123!"
+  })
+});
+
+const userData = await response.json();
+console.log(`User ID: ${userData.id}`);
+console.log(`Access Token: ${userData.token.access_token}`);
+```
+</CodeGroup>
+
+<Accordion title="Expected Response">
+```json
+{
+  "id": 1,
+  "email": "user@example.com",
+  "token": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token_type": "bearer",
+    "expires_at": "2025-10-04T12:00:00Z"
+  }
+}
+```
+</Accordion>
+
+---
+
+### Login and Create Session
+
+Login with existing credentials and create a chat session.
+
+<CodeGroup>
+```bash curl
+# Step 1: Login
+ACCESS_TOKEN=$(curl -sS -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "username=user@example.com" \
+  --data-urlencode "password=SecurePass123!" \
+  | jq -r '.access_token')
+
+# Step 2: Create session
+SESSION_TOKEN=$(curl -sS -X POST http://localhost:8000/api/v1/auth/session \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  | jq -r '.token.access_token')
+
+echo "Session Token: $SESSION_TOKEN"
+```
+
+```python Python
+import requests
+
+BASE_URL = "http://localhost:8000"
+
+# Step 1: Login
+login_response = requests.post(
+    f"{BASE_URL}/api/v1/auth/login",
+    data={
+        "username": "user@example.com",
+        "password": "SecurePass123!"
+    }
+)
+access_token = login_response.json()["access_token"]
+
+# Step 2: Create session
+session_response = requests.post(
+    f"{BASE_URL}/api/v1/auth/session",
+    headers={"Authorization": f"Bearer {access_token}"}
+)
+session_token = session_response.json()["token"]["access_token"]
+
+print(f"Session Token: {session_token}")
+```
+
+```typescript TypeScript
+const BASE_URL = "http://localhost:8000";
+
+// Step 1: Login
+const loginForm = new URLSearchParams();
+loginForm.set("username", "user@example.com");
+loginForm.set("password", "SecurePass123!");
+
+const loginResponse = await fetch(`${BASE_URL}/api/v1/auth/login`, {
+  method: "POST",
+  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  body: loginForm
+});
+const { access_token } = await loginResponse.json();
+
+// Step 2: Create session
+const sessionResponse = await fetch(`${BASE_URL}/api/v1/auth/session`, {
+  method: "POST",
+  headers: { "Authorization": `Bearer ${access_token}` }
+});
+const sessionData = await sessionResponse.json();
+const sessionToken = sessionData.token.access_token;
+
+console.log(`Session Token: ${sessionToken}`);
+```
+</CodeGroup>
+
+<Accordion title="Session Response Format">
+```json
+{
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "",
+  "token": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token_type": "bearer",
+    "expires_at": "2025-10-04T12:00:00Z"
+  }
+}
+```
+</Accordion>
+
+---
+
+### Manage Sessions
+
+List, update, and delete sessions.
+
+<CodeGroup>
+```bash curl
+# List all sessions
+curl -X GET http://localhost:8000/api/v1/auth/sessions \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+
+# Update session name
+curl -X PATCH http://localhost:8000/api/v1/auth/session/{session_id}/name \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "name=Research Session"
+
+# Delete session
+curl -X DELETE http://localhost:8000/api/v1/auth/session/{session_id} \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+```
+
+```python Python
+# List all sessions
+sessions = requests.get(
+    f"{BASE_URL}/api/v1/auth/sessions",
+    headers={"Authorization": f"Bearer {session_token}"}
+).json()
+
+# Update session name
+updated = requests.patch(
+    f"{BASE_URL}/api/v1/auth/session/{session_id}/name",
+    headers={"Authorization": f"Bearer {session_token}"},
+    data={"name": "Research Session"}
+).json()
+
+# Delete session
+requests.delete(
+    f"{BASE_URL}/api/v1/auth/session/{session_id}",
+    headers={"Authorization": f"Bearer {session_token}"}
+)
+```
+
+```typescript TypeScript
+// List all sessions
+const sessions = await fetch(`${BASE_URL}/api/v1/auth/sessions`, {
+  headers: { "Authorization": `Bearer ${sessionToken}` }
+}).then(r => r.json());
+
+// Update session name
+const nameForm = new URLSearchParams();
+nameForm.set("name", "Research Session");
+
+const updated = await fetch(
+  `${BASE_URL}/api/v1/auth/session/${sessionId}/name`,
+  {
+    method: "PATCH",
+    headers: { "Authorization": `Bearer ${sessionToken}` },
+    body: nameForm
+  }
+).then(r => r.json());
+
+// Delete session
+await fetch(`${BASE_URL}/api/v1/auth/session/${sessionId}`, {
+  method: "DELETE",
+  headers: { "Authorization": `Bearer ${sessionToken}` }
+});
+```
+</CodeGroup>
+
+---
+
+## 2. Chat & Messaging
+
+### Simple Chat Query
+
+Send a message and receive a complete response.
+
+<CodeGroup>
+```bash curl
+curl -X POST http://localhost:8000/api/v1/chatbot/chat \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [
+      {"role": "user", "content": "What is the current TVL on Ethereum?"}
     ]
   }'
 ```
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/chatbot/chat",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={
+        "messages": [
+            {"role": "user", "content": "What is the current TVL on Ethereum?"}
+        ]
+    }
+)
+
+chat_data = response.json()
+for msg in chat_data["messages"]:
+    print(f"{msg['role']}: {msg['content']}")
+```
+
+```typescript TypeScript
+const response = await fetch(`${BASE_URL}/api/v1/chatbot/chat`, {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${sessionToken}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    messages: [
+      { role: "user", content: "What is the current TVL on Ethereum?" }
+    ]
+  })
+});
+
+const chatData = await response.json();
+chatData.messages.forEach(msg => {
+  console.log(`${msg.role}: ${msg.content}`);
+});
+```
 </CodeGroup>
 
-## EVM: Quote (dev) and Risk
+---
+
+### Streaming Chat
+
+Receive real-time token-by-token responses using Server-Sent Events (SSE).
 
 <CodeGroup>
-```bash Pseudo Quote (dev)
+```bash curl
+curl -N -X POST http://localhost:8000/api/v1/chatbot/chat/stream \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages": [
+      {"role": "user", "content": "Explain how Uniswap V3 works"}
+    ]
+  }'
+```
+
+```python Python
+import json
+
+response = requests.post(
+    f"{BASE_URL}/api/v1/chatbot/chat/stream",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={
+        "messages": [
+            {"role": "user", "content": "Explain how Uniswap V3 works"}
+        ]
+    },
+    stream=True
+)
+
+for line in response.iter_lines(decode_unicode=True):
+    if not line:
+        continue
+    if line.startswith("data:"):
+        payload = line[5:].strip()
+        if payload and payload != "[DONE]":
+            data = json.loads(payload)
+            print(data.get("content", ""), end="", flush=True)
+```
+
+```typescript TypeScript
+const response = await fetch(`${BASE_URL}/api/v1/chatbot/chat/stream`, {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${sessionToken}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    messages: [
+      { role: "user", content: "Explain how Uniswap V3 works" }
+    ]
+  })
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+let buffer = "";
+
+while (true) {
+  const { value, done } = await reader.read();
+  if (done) break;
+
+  buffer += decoder.decode(value, { stream: true });
+  const parts = buffer.split("\n\n");
+  buffer = parts.pop() || "";
+
+  for (const part of parts) {
+    for (const line of part.split("\n")) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("data:")) {
+        const payload = trimmed.slice(5).trim();
+        if (payload && payload !== "[DONE]") {
+          const data = JSON.parse(payload);
+          process.stdout.write(data.content || "");
+        }
+      }
+    }
+  }
+}
+```
+</CodeGroup>
+
+<Accordion title="SSE Event Format">
+Each SSE event follows this format:
+
+```
+data: {"role": "assistant", "content": "Uniswap V3 "}
+
+data: {"role": "assistant", "content": "is a "}
+
+data: {"role": "assistant", "content": "decentralized "}
+
+data: [DONE]
+```
+</Accordion>
+
+---
+
+### Get and Clear Message History
+
+Retrieve or clear all messages in a session.
+
+<CodeGroup>
+```bash curl
+# Get all messages
+curl -X GET http://localhost:8000/api/v1/chatbot/messages \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+
+# Clear chat history
+curl -X DELETE http://localhost:8000/api/v1/chatbot/messages \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+```
+
+```python Python
+# Get all messages
+messages = requests.get(
+    f"{BASE_URL}/api/v1/chatbot/messages",
+    headers={"Authorization": f"Bearer {session_token}"}
+).json()
+
+# Clear chat history
+requests.delete(
+    f"{BASE_URL}/api/v1/chatbot/messages",
+    headers={"Authorization": f"Bearer {session_token}"}
+)
+```
+
+```typescript TypeScript
+// Get all messages
+const messages = await fetch(`${BASE_URL}/api/v1/chatbot/messages`, {
+  headers: { "Authorization": `Bearer ${sessionToken}` }
+}).then(r => r.json());
+
+// Clear chat history
+await fetch(`${BASE_URL}/api/v1/chatbot/messages`, {
+  method: "DELETE",
+  headers: { "Authorization": `Bearer ${sessionToken}` }
+});
+```
+</CodeGroup>
+
+---
+
+## 3. Research & Data
+
+### The Graph Subgraph Query
+
+Query blockchain data from The Graph subgraphs.
+
+<CodeGroup>
+```bash curl
+curl -X POST http://localhost:8000/api/v1/multi-agent/research/preview \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subgraph": "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3",
+    "gql": "query($first: Int!) { pools(first: $first, orderBy: totalValueLockedUSD, orderDirection: desc) { id token0 { symbol } token1 { symbol } totalValueLockedUSD volumeUSD } }",
+    "variables": { "first": 5 }
+  }'
+```
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/multi-agent/research/preview",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={
+        "subgraph": "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3",
+        "gql": """
+            query($first: Int!) {
+              pools(first: $first, orderBy: totalValueLockedUSD, orderDirection: desc) {
+                id
+                token0 { symbol }
+                token1 { symbol }
+                totalValueLockedUSD
+                volumeUSD
+              }
+            }
+        """,
+        "variables": {"first": 5}
+    }
+)
+
+data = response.json()
+if data.get("graph_data"):
+    for pool in data["graph_data"]["data"]["pools"]:
+        print(f"{pool['token0']['symbol']}/{pool['token1']['symbol']}: ${float(pool['totalValueLockedUSD']):,.2f}")
+```
+
+```typescript TypeScript
+const response = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/research/preview`,
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${sessionToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      subgraph: "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3",
+      gql: `
+        query($first: Int!) {
+          pools(first: $first, orderBy: totalValueLockedUSD, orderDirection: desc) {
+            id
+            token0 { symbol }
+            token1 { symbol }
+            totalValueLockedUSD
+            volumeUSD
+          }
+        }
+      `,
+      variables: { first: 5 }
+    })
+  }
+);
+
+const data = await response.json();
+if (data.graph_data) {
+  data.graph_data.data.pools.forEach(pool => {
+    console.log(`${pool.token0.symbol}/${pool.token1.symbol}: $${parseFloat(pool.totalValueLockedUSD).toLocaleString()}`);
+  });
+}
+```
+</CodeGroup>
+
+---
+
+### Dune Analytics Query
+
+Execute parametrized SQL queries on Dune Analytics.
+
+<CodeGroup>
+```bash curl
+curl -X POST http://localhost:8000/api/v1/multi-agent/research/preview \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dune_query_id": 3238237,
+    "dune_params": {
+      "blockchain": "ethereum",
+      "days": 7
+    }
+  }'
+```
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/multi-agent/research/preview",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={
+        "dune_query_id": 3238237,
+        "dune_params": {
+            "blockchain": "ethereum",
+            "days": 7
+        }
+    }
+)
+
+data = response.json()
+print(f"Query State: {data.get('dune_state')}")
+if data.get("dune_rows"):
+    print(f"Rows returned: {len(data['dune_rows'])}")
+    for row in data["dune_rows"][:5]:
+        print(row)
+```
+
+```typescript TypeScript
+const response = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/research/preview`,
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${sessionToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      dune_query_id: 3238237,
+      dune_params: {
+        blockchain: "ethereum",
+        days: 7
+      }
+    })
+  }
+);
+
+const data = await response.json();
+console.log(`Query State: ${data.dune_state}`);
+if (data.dune_rows) {
+  console.log(`Rows returned: ${data.dune_rows.length}`);
+  data.dune_rows.slice(0, 5).forEach(row => console.log(row));
+}
+```
+</CodeGroup>
+
+---
+
+### DeFiLlama Multi-Source Research
+
+Combine The Graph, Dune, and DeFiLlama data in a single request.
+
+<CodeGroup>
+```bash curl
+curl -X POST http://localhost:8000/api/v1/multi-agent/research/preview \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subgraph": "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3",
+    "gql": "query($first: Int!) { pools(first: $first) { id totalValueLockedUSD } }",
+    "variables": { "first": 3 },
+    "dune_query_id": 3238237,
+    "dune_params": { "blockchain": "ethereum" },
+    "defi_calls": [
+      {
+        "tool_name": "tvl_get",
+        "arguments": { "chain": "ethereum" }
+      },
+      {
+        "tool_name": "token_price",
+        "arguments": { "token": "ethereum" }
+      }
+    ],
+    "tvl_chain": "ethereum",
+    "price_symbol": "ETH",
+    "pools_chain": "ethereum",
+    "pools_limit": 10
+  }'
+```
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/multi-agent/research/preview",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={
+        "subgraph": "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3",
+        "gql": "query($first: Int!) { pools(first: $first) { id totalValueLockedUSD } }",
+        "variables": {"first": 3},
+        "dune_query_id": 3238237,
+        "dune_params": {"blockchain": "ethereum"},
+        "defi_calls": [
+            {"tool_name": "tvl_get", "arguments": {"chain": "ethereum"}},
+            {"tool_name": "token_price", "arguments": {"token": "ethereum"}}
+        ],
+        "tvl_chain": "ethereum",
+        "price_symbol": "ETH",
+        "pools_chain": "ethereum",
+        "pools_limit": 10
+    }
+)
+
+data = response.json()
+print("=== Research Summary ===")
+print(data.get("summary", "No summary available"))
+print(f"\n=== Graph Data ===\n{data.get('graph_data')}")
+print(f"\n=== DeFi Results ===\n{data.get('defi_results')}")
+print(f"\n=== Dune Rows ===\n{len(data.get('dune_rows', []))} rows")
+```
+
+```typescript TypeScript
+const response = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/research/preview`,
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${sessionToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      subgraph: "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3",
+      gql: "query($first: Int!) { pools(first: $first) { id totalValueLockedUSD } }",
+      variables: { first: 3 },
+      dune_query_id: 3238237,
+      dune_params: { blockchain: "ethereum" },
+      defi_calls: [
+        { tool_name: "tvl_get", arguments: { chain: "ethereum" } },
+        { tool_name: "token_price", arguments: { token: "ethereum" } }
+      ],
+      tvl_chain: "ethereum",
+      price_symbol: "ETH",
+      pools_chain: "ethereum",
+      pools_limit: 10
+    })
+  }
+);
+
+const data = await response.json();
+console.log("=== Research Summary ===");
+console.log(data.summary || "No summary available");
+console.log("\n=== Graph Data ===", data.graph_data);
+console.log("\n=== DeFi Results ===", data.defi_results);
+console.log(`\n=== Dune Rows ===\n${data.dune_rows?.length || 0} rows`);
+```
+</CodeGroup>
+
+<Accordion title="Expected Response Structure">
+```json
+{
+  "graph_data": {
+    "data": {
+      "pools": [
+        {
+          "id": "0x...",
+          "totalValueLockedUSD": "123456789.50"
+        }
+      ]
+    }
+  },
+  "dune_rows": [...],
+  "dune_state": "QUERY_STATE_COMPLETED",
+  "defi_results": [
+    {
+      "tool": "tvl_get",
+      "result": { "tvl": 50000000000 }
+    },
+    {
+      "tool": "token_price",
+      "result": { "price": 2500.50 }
+    }
+  ],
+  "summary": "Ethereum TVL is $50B. Current ETH price: $2,500.50. Top Uniswap V3 pool has $123.4M TVL."
+}
+```
+</Accordion>
+
+---
+
+## 4. Trading & Quotes
+
+### Get Swap Quote (EVM)
+
+Get a pseudo-quote for an EVM token swap (development/simulation).
+
+<CodeGroup>
+```bash curl
 curl -X POST http://localhost:8000/api/v1/multi-agent/quote/evm/pseudo \
-  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
-  -d '{"input":{"chain_id":8453,"token_in_address":"0x4200000000000000000000000000000000000006","token_out_address":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","amount_in":"0.01","amount_in_currency":"ETH"}}'
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input": {
+      "chain_id": 8453,
+      "token_in_address": "0x4200000000000000000000000000000000000006",
+      "token_out_address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "amount_in": "0.01",
+      "amount_in_currency": "token_units",
+      "slippage_bps": 50
+    }
+  }'
 ```
-```bash Risk Preview
-curl -X POST http://localhost:8000/api/v1/multi-agent/risk/preview \
-  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
-  -d '{"quote":{...},"input":{"chain":"base"}}'
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/multi-agent/quote/evm/pseudo",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={
+        "input": {
+            "chain_id": 8453,  # Base
+            "token_in_address": "0x4200000000000000000000000000000000000006",  # WETH
+            "token_out_address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  # USDC
+            "amount_in": "0.01",
+            "amount_in_currency": "token_units",
+            "slippage_bps": 50
+        }
+    }
+)
+
+quote = response.json()
+print(f"Expected Output: {quote['expected_out']}")
+print(f"Price Impact: {quote.get('price_impact_bps', 'N/A')} bps")
+print(f"Venue: {quote['venue']}")
+print(f"Quote ID: {quote['quote_id']}")
+```
+
+```typescript TypeScript
+const response = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/quote/evm/pseudo`,
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${sessionToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      input: {
+        chain_id: 8453, // Base
+        token_in_address: "0x4200000000000000000000000000000000000006", // WETH
+        token_out_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC
+        amount_in: "0.01",
+        amount_in_currency: "token_units",
+        slippage_bps: 50
+      }
+    })
+  }
+);
+
+const quote = await response.json();
+console.log(`Expected Output: ${quote.expected_out}`);
+console.log(`Price Impact: ${quote.price_impact_bps || "N/A"} bps`);
+console.log(`Venue: ${quote.venue}`);
+console.log(`Quote ID: ${quote.quote_id}`);
 ```
 </CodeGroup>
 
-## Binance Subscribe/Unsubscribe
+<Accordion title="Quote Response Format">
+```json
+{
+  "route": ["0x4200000000000000000000000000000000000006", "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"],
+  "expected_out": "25.5",
+  "price_impact_bps": 15,
+  "slippage_bps": 50,
+  "fees": {
+    "protocol_fee": "0.003",
+    "gas_estimate": "150000"
+  },
+  "gas_estimate": "150000",
+  "venue": "uniswap-v3",
+  "quote_id": "quote_abc123",
+  "expires_at": "2025-10-03T12:15:00Z"
+}
+```
+</Accordion>
+
+---
+
+### Risk Assessment
+
+Assess risk before executing a trade.
 
 <CodeGroup>
-```bash Subscribe
-curl -X POST http://localhost:8000/api/v1/multi-agent/binance/subscribe \
-  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
-  -d '{"symbol":"BTCUSDT","market":"spot","streams":["trade"],"interval":"1m"}'
+```bash curl
+curl -X POST http://localhost:8000/api/v1/multi-agent/risk/preview \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "quote": {
+      "expected_out": "25.5",
+      "slippage_bps": 50,
+      "venue": "uniswap-v3",
+      "quote_id": "quote_abc123",
+      "expires_at": "2025-10-03T12:15:00Z"
+    },
+    "input": {
+      "chain": "evm",
+      "addresses": [
+        "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+      ],
+      "checks": ["rug", "whale_flow", "price_sanity"]
+    },
+    "thresholds": {
+      "max_price_impact_bps": 100,
+      "min_liquidity_usd": 100000
+    }
+  }'
 ```
-```bash Unsubscribe
-curl -X POST http://localhost:8000/api/v1/multi-agent/binance/unsubscribe \
-  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
-  -d '{"subscription_id":"sub-123"}'
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/multi-agent/risk/preview",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={
+        "quote": {
+            "expected_out": "25.5",
+            "slippage_bps": 50,
+            "venue": "uniswap-v3",
+            "quote_id": "quote_abc123",
+            "expires_at": "2025-10-03T12:15:00Z"
+        },
+        "input": {
+            "chain": "evm",
+            "addresses": ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"],
+            "checks": ["rug", "whale_flow", "price_sanity"]
+        },
+        "thresholds": {
+            "max_price_impact_bps": 100,
+            "min_liquidity_usd": 100000
+        }
+    }
+)
+
+risk_report = response.json()
+print(f"Risk Level: {risk_report['level']}")
+print(f"Aggregate Score: {risk_report.get('aggregate_score', 'N/A')}")
+print(f"Flags: {', '.join(risk_report.get('flags', []))}")
+
+for check in risk_report.get("checks", []):
+    print(f"  - {check.get('name')}: {check.get('result')}")
+```
+
+```typescript TypeScript
+const response = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/risk/preview`,
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${sessionToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      quote: {
+        expected_out: "25.5",
+        slippage_bps: 50,
+        venue: "uniswap-v3",
+        quote_id: "quote_abc123",
+        expires_at: "2025-10-03T12:15:00Z"
+      },
+      input: {
+        chain: "evm",
+        addresses: ["0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"],
+        checks: ["rug", "whale_flow", "price_sanity"]
+      },
+      thresholds: {
+        max_price_impact_bps: 100,
+        min_liquidity_usd: 100000
+      }
+    })
+  }
+);
+
+const riskReport = await response.json();
+console.log(`Risk Level: ${riskReport.level}`);
+console.log(`Aggregate Score: ${riskReport.aggregate_score || "N/A"}`);
+console.log(`Flags: ${riskReport.flags?.join(", ") || "None"}`);
+
+riskReport.checks?.forEach(check => {
+  console.log(`  - ${check.name}: ${check.result}`);
+});
 ```
 </CodeGroup>
 
+<Accordion title="Risk Report Format">
+```json
+{
+  "level": "low",
+  "aggregate_score": 85,
+  "checks": [
+    {
+      "name": "rug",
+      "result": "pass",
+      "details": { "liquidity_locked": true }
+    },
+    {
+      "name": "whale_flow",
+      "result": "pass",
+      "details": { "whale_concentration": 0.15 }
+    },
+    {
+      "name": "price_sanity",
+      "result": "pass",
+      "details": { "deviation_percent": 2.5 }
+    }
+  ],
+  "flags": []
+}
+```
+</Accordion>
+
+---
+
+### Execute Trade (EVM)
+
+Execute a swap on EVM chains with safety checks.
+
+<Warning>
+**Production Warning:** Only execute trades with `confirm: true` when you're ready for real transactions. Always test with `simulate_only: true` first.
+</Warning>
+
+<CodeGroup>
+```bash curl
+# Simulate first
+curl -X POST http://localhost:8000/api/v1/multi-agent/execute/evm \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input": {
+      "chain_id": 8453,
+      "token_in_address": "0x4200000000000000000000000000000000000006",
+      "token_out_address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "amount_in": "0.01",
+      "amount_in_currency": "token_units",
+      "slippage_bps": 50,
+      "simulate_only": true
+    },
+    "confirm": false,
+    "skip_risk": false,
+    "thresholds": {
+      "max_price_impact_bps": 100
+    }
+  }'
+```
+
+```python Python
+# Simulate first
+simulate_response = requests.post(
+    f"{BASE_URL}/api/v1/multi-agent/execute/evm",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={
+        "input": {
+            "chain_id": 8453,
+            "token_in_address": "0x4200000000000000000000000000000000000006",
+            "token_out_address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "amount_in": "0.01",
+            "amount_in_currency": "token_units",
+            "slippage_bps": 50,
+            "simulate_only": True
+        },
+        "confirm": False,
+        "skip_risk": False,
+        "thresholds": {
+            "max_price_impact_bps": 100
+        }
+    }
+)
+
+result = simulate_response.json()
+print(f"Status: {result.get('status')}")
+print(f"Message: {result.get('message')}")
+
+# If simulation looks good, execute for real
+if result.get("status") == "success":
+    execute_response = requests.post(
+        f"{BASE_URL}/api/v1/multi-agent/execute/evm",
+        headers={"Authorization": f"Bearer {session_token}"},
+        json={
+            "input": {
+                "chain_id": 8453,
+                "token_in_address": "0x4200000000000000000000000000000000000006",
+                "token_out_address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                "amount_in": "0.01",
+                "amount_in_currency": "token_units",
+                "slippage_bps": 50,
+                "simulate_only": False
+            },
+            "confirm": True,
+            "wallet_ref": "my-wallet",
+            "idempotency_key": "trade-12345"
+        }
+    )
+
+    final_result = execute_response.json()
+    print(f"TX Hash: {final_result.get('tx_hash')}")
+    print(f"Explorer: {final_result.get('explorer_url')}")
+```
+
+```typescript TypeScript
+// Simulate first
+const simulateResponse = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/execute/evm`,
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${sessionToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      input: {
+        chain_id: 8453,
+        token_in_address: "0x4200000000000000000000000000000000000006",
+        token_out_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        amount_in: "0.01",
+        amount_in_currency: "token_units",
+        slippage_bps: 50,
+        simulate_only: true
+      },
+      confirm: false,
+      skip_risk: false,
+      thresholds: {
+        max_price_impact_bps: 100
+      }
+    })
+  }
+);
+
+const result = await simulateResponse.json();
+console.log(`Status: ${result.status}`);
+console.log(`Message: ${result.message}`);
+
+// If simulation looks good, execute for real
+if (result.status === "success") {
+  const executeResponse = await fetch(
+    `${BASE_URL}/api/v1/multi-agent/execute/evm`,
+    {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${sessionToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        input: {
+          chain_id: 8453,
+          token_in_address: "0x4200000000000000000000000000000000000006",
+          token_out_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          amount_in: "0.01",
+          amount_in_currency: "token_units",
+          slippage_bps: 50,
+          simulate_only: false
+        },
+        confirm: true,
+        wallet_ref: "my-wallet",
+        idempotency_key: "trade-12345"
+      })
+    }
+  );
+
+  const finalResult = await executeResponse.json();
+  console.log(`TX Hash: ${finalResult.tx_hash}`);
+  console.log(`Explorer: ${finalResult.explorer_url}`);
+}
+```
+</CodeGroup>
+
+---
+
+## 5. Multi-Agent Workflows
+
+### Intent Routing Preview
+
+Preview how user intent is routed to specialized teams.
+
+<CodeGroup>
+```bash curl
+curl -X POST http://localhost:8000/api/v1/multi-agent/preview \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Swap 0.5 ETH for USDC on Base with low slippage"
+  }'
+```
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/multi-agent/preview",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={
+        "text": "Swap 0.5 ETH for USDC on Base with low slippage"
+    }
+)
+
+preview = response.json()
+print(f"Intent: {preview['intent']}")
+print(f"Team: {preview['team']}")
+print(f"Entities: {preview['entities']}")
+```
+
+```typescript TypeScript
+const response = await fetch(`${BASE_URL}/api/v1/multi-agent/preview`, {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${sessionToken}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    text: "Swap 0.5 ETH for USDC on Base with low slippage"
+  })
+});
+
+const preview = await response.json();
+console.log(`Intent: ${preview.intent}`);
+console.log(`Team: ${preview.team}`);
+console.log(`Entities:`, preview.entities);
+```
+</CodeGroup>
+
+<Accordion title="Intent Routing Examples">
+| User Input | Intent | Team |
+|-----------|--------|------|
+| "What's the TVL on Ethereum?" | `research` | `research_team` |
+| "Swap 1 ETH to USDC" | `trade` | `trading_team` |
+| "Is this token safe to buy?" | `risk_assessment` | `risk_team` |
+| "Get quote for ETH to DAI" | `quote` | `trading_team` |
+</Accordion>
+
+---
+
+### Full Preview Run (Research + Quote + Risk)
+
+Execute a complete workflow including research, quote, and risk assessment.
+
+<CodeGroup>
+```bash curl
+curl -X POST http://localhost:8000/api/v1/multi-agent/preview/run \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Swap 0.1 ETH to USDC on Base",
+    "evm_input": {
+      "chain_id": 8453,
+      "token_in_address": "0x4200000000000000000000000000000000000006",
+      "token_out_address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "amount_in": "0.1",
+      "amount_in_currency": "token_units",
+      "slippage_bps": 50
+    },
+    "thresholds": {
+      "max_price_impact_bps": 100,
+      "min_liquidity_usd": 100000
+    }
+  }'
+```
+
+```python Python
+response = requests.post(
+    f"{BASE_URL}/api/v1/multi-agent/preview/run",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={
+        "text": "Swap 0.1 ETH to USDC on Base",
+        "evm_input": {
+            "chain_id": 8453,
+            "token_in_address": "0x4200000000000000000000000000000000000006",
+            "token_out_address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "amount_in": "0.1",
+            "amount_in_currency": "token_units",
+            "slippage_bps": 50
+        },
+        "thresholds": {
+            "max_price_impact_bps": 100,
+            "min_liquidity_usd": 100000
+        }
+    }
+)
+
+result = response.json()
+print(f"Intent: {result['intent']}")
+print(f"Team: {result['team']}")
+print(f"Summary: {result['summary']}")
+
+if result.get("quote"):
+    print(f"\nQuote: {result['quote']['expected_out']} USDC")
+
+if result.get("risk"):
+    print(f"Risk Level: {result['risk']['level']}")
+```
+
+```typescript TypeScript
+const response = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/preview/run`,
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${sessionToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      text: "Swap 0.1 ETH to USDC on Base",
+      evm_input: {
+        chain_id: 8453,
+        token_in_address: "0x4200000000000000000000000000000000000006",
+        token_out_address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        amount_in: "0.1",
+        amount_in_currency: "token_units",
+        slippage_bps: 50
+      },
+      thresholds: {
+        max_price_impact_bps: 100,
+        min_liquidity_usd: 100000
+      }
+    })
+  }
+);
+
+const result = await response.json();
+console.log(`Intent: ${result.intent}`);
+console.log(`Team: ${result.team}`);
+console.log(`Summary: ${result.summary}`);
+
+if (result.quote) {
+  console.log(`\nQuote: ${result.quote.expected_out} USDC`);
+}
+
+if (result.risk) {
+  console.log(`Risk Level: ${result.risk.level}`);
+}
+```
+</CodeGroup>
+
+---
+
+## 6. MCP Tool Integration
+
+### DeFiLlama Tools
+
+List and invoke DeFiLlama MCP tools for on-chain data.
+
+<CodeGroup>
+```bash curl
+# List available tools
+curl -X GET http://localhost:8000/api/v1/multi-agent/defillama/tools \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+
+# Get TVL for a chain
+curl -X POST http://localhost:8000/api/v1/multi-agent/defillama/invoke \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tool_name": "tvl_get",
+    "arguments": { "chain": "ethereum" }
+  }'
+
+# Get token price
+curl -X POST http://localhost:8000/api/v1/multi-agent/defillama/invoke \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tool_name": "token_price",
+    "arguments": { "token": "ethereum" }
+  }'
+```
+
+```python Python
+# List available tools
+tools = requests.get(
+    f"{BASE_URL}/api/v1/multi-agent/defillama/tools",
+    headers={"Authorization": f"Bearer {session_token}"}
+).json()
+
+print("Available DeFiLlama tools:", tools)
+
+# Get TVL for Ethereum
+tvl_response = requests.post(
+    f"{BASE_URL}/api/v1/multi-agent/defillama/invoke",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={
+        "tool_name": "tvl_get",
+        "arguments": {"chain": "ethereum"}
+    }
+).json()
+
+print(f"Ethereum TVL: ${tvl_response}")
+
+# Get ETH price
+price_response = requests.post(
+    f"{BASE_URL}/api/v1/multi-agent/defillama/invoke",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={
+        "tool_name": "token_price",
+        "arguments": {"token": "ethereum"}
+    }
+).json()
+
+print(f"ETH Price: ${price_response}")
+```
+
+```typescript TypeScript
+// List available tools
+const tools = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/defillama/tools`,
+  {
+    headers: { "Authorization": `Bearer ${sessionToken}` }
+  }
+).then(r => r.json());
+
+console.log("Available DeFiLlama tools:", tools);
+
+// Get TVL for Ethereum
+const tvlResponse = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/defillama/invoke`,
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${sessionToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      tool_name: "tvl_get",
+      arguments: { chain: "ethereum" }
+    })
+  }
+).then(r => r.json());
+
+console.log(`Ethereum TVL: $${tvlResponse}`);
+
+// Get ETH price
+const priceResponse = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/defillama/invoke`,
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${sessionToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      tool_name: "token_price",
+      arguments: { token: "ethereum" }
+    })
+  }
+).then(r => r.json());
+
+console.log(`ETH Price: $${priceResponse}`);
+```
+</CodeGroup>
+
+---
+
+### Binance Market Data
+
+Subscribe to real-time Binance market data streams.
+
+<CodeGroup>
+```bash curl
+# List Binance tools
+curl -X GET http://localhost:8000/api/v1/multi-agent/binance/tools \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+
+# Subscribe to BTC/USDT spot trades
+curl -X POST http://localhost:8000/api/v1/multi-agent/binance/subscribe \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "symbol": "BTCUSDT",
+    "market": "spot",
+    "streams": ["trade", "kline"],
+    "interval": "1m"
+  }'
+
+# Unsubscribe
+curl -X POST http://localhost:8000/api/v1/multi-agent/binance/unsubscribe \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subscription_id": "sub-123"
+  }'
+```
+
+```python Python
+# List Binance tools
+tools = requests.get(
+    f"{BASE_URL}/api/v1/multi-agent/binance/tools",
+    headers={"Authorization": f"Bearer {session_token}"}
+).json()
+
+# Subscribe to BTC/USDT
+subscribe_response = requests.post(
+    f"{BASE_URL}/api/v1/multi-agent/binance/subscribe",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={
+        "symbol": "BTCUSDT",
+        "market": "spot",
+        "streams": ["trade", "kline"],
+        "interval": "1m"
+    }
+).json()
+
+subscription_id = subscribe_response.get("subscription_id")
+print(f"Subscription ID: {subscription_id}")
+
+# Later, unsubscribe
+requests.post(
+    f"{BASE_URL}/api/v1/multi-agent/binance/unsubscribe",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={"subscription_id": subscription_id}
+)
+```
+
+```typescript TypeScript
+// List Binance tools
+const tools = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/binance/tools`,
+  {
+    headers: { "Authorization": `Bearer ${sessionToken}` }
+  }
+).then(r => r.json());
+
+// Subscribe to BTC/USDT
+const subscribeResponse = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/binance/subscribe`,
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${sessionToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      symbol: "BTCUSDT",
+      market: "spot",
+      streams: ["trade", "kline"],
+      interval: "1m"
+    })
+  }
+).then(r => r.json());
+
+const subscriptionId = subscribeResponse.subscription_id;
+console.log(`Subscription ID: ${subscriptionId}`);
+
+// Later, unsubscribe
+await fetch(`${BASE_URL}/api/v1/multi-agent/binance/unsubscribe`, {
+  method: "POST",
+  headers: {
+    "Authorization": `Bearer ${sessionToken}`,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({ subscription_id: subscriptionId })
+});
+```
+</CodeGroup>
+
+---
+
+### Bitcoin Tools
+
+Access Bitcoin blockchain data and utilities.
+
+<CodeGroup>
+```bash curl
+# List Bitcoin tools
+curl -X GET http://localhost:8000/api/v1/multi-agent/bitcoin/tools \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+
+# Get latest block
+curl -X GET http://localhost:8000/api/v1/multi-agent/bitcoin/latest-block \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+
+# Decode raw transaction
+curl -X POST http://localhost:8000/api/v1/multi-agent/bitcoin/tx/decode \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "raw_tx": "0100000001..."
+  }'
+
+# Validate address
+curl -X POST http://localhost:8000/api/v1/multi-agent/bitcoin/address/validate \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+  }'
+```
+
+```python Python
+# Get latest block
+latest_block = requests.get(
+    f"{BASE_URL}/api/v1/multi-agent/bitcoin/latest-block",
+    headers={"Authorization": f"Bearer {session_token}"}
+).json()
+
+print(f"Latest Block: {latest_block}")
+
+# Validate Bitcoin address
+validation = requests.post(
+    f"{BASE_URL}/api/v1/multi-agent/bitcoin/address/validate",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={"address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"}
+).json()
+
+print(f"Address valid: {validation.get('valid')}")
+```
+
+```typescript TypeScript
+// Get latest block
+const latestBlock = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/bitcoin/latest-block`,
+  {
+    headers: { "Authorization": `Bearer ${sessionToken}` }
+  }
+).then(r => r.json());
+
+console.log(`Latest Block:`, latestBlock);
+
+// Validate Bitcoin address
+const validation = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/bitcoin/address/validate`,
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${sessionToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      address: "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+    })
+  }
+).then(r => r.json());
+
+console.log(`Address valid: ${validation.valid}`);
+```
+</CodeGroup>
+
+---
+
+### Chainlink Price Feeds
+
+Get real-time oracle price data from Chainlink.
+
+<CodeGroup>
+```bash curl
+curl -X POST http://localhost:8000/api/v1/multi-agent/chainlink/price \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "chain": "ethereum",
+    "pair": "ETH/USD"
+  }'
+```
+
+```python Python
+price_data = requests.post(
+    f"{BASE_URL}/api/v1/multi-agent/chainlink/price",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={
+        "chain": "ethereum",
+        "pair": "ETH/USD"
+    }
+).json()
+
+print(f"ETH/USD Price: ${price_data}")
+```
+
+```typescript TypeScript
+const priceData = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/chainlink/price`,
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${sessionToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      chain: "ethereum",
+      pair: "ETH/USD"
+    })
+  }
+).then(r => r.json());
+
+console.log(`ETH/USD Price: $${priceData}`);
+```
+</CodeGroup>
+
+---
+
+## 7. Wallet & Positions
+
+### Get EVM Wallet Balance
+
+Check wallet balance for EVM addresses.
+
+<CodeGroup>
+```bash curl
+curl -X POST http://localhost:8000/api/v1/multi-agent/wallet/evm/balance \
+  -H "Authorization: Bearer $SESSION_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+  }'
+```
+
+```python Python
+balance = requests.post(
+    f"{BASE_URL}/api/v1/multi-agent/wallet/evm/balance",
+    headers={"Authorization": f"Bearer {session_token}"},
+    json={
+        "address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+    }
+).json()
+
+print(f"Wallet Balance: {balance}")
+```
+
+```typescript TypeScript
+const balance = await fetch(
+  `${BASE_URL}/api/v1/multi-agent/wallet/evm/balance`,
+  {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${sessionToken}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      address: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+    })
+  }
+).then(r => r.json());
+
+console.log(`Wallet Balance:`, balance);
+```
+</CodeGroup>
+
+---
+
+### List Positions
+
+Get all open positions filtered by agent, wallet, or token.
+
+<CodeGroup>
+```bash curl
+# All positions
+curl -X GET http://localhost:8000/api/v1/positions \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+
+# Filter by agent
+curl -X GET "http://localhost:8000/api/v1/positions?agent=trading_team" \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+
+# Filter by wallet
+curl -X GET "http://localhost:8000/api/v1/positions?wallet_address=0x..." \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+```
+
+```python Python
+# All positions
+all_positions = requests.get(
+    f"{BASE_URL}/api/v1/positions",
+    headers={"Authorization": f"Bearer {session_token}"}
+).json()
+
+# Filter by agent
+agent_positions = requests.get(
+    f"{BASE_URL}/api/v1/positions",
+    headers={"Authorization": f"Bearer {session_token}"},
+    params={"agent": "trading_team"}
+).json()
+
+for pos in agent_positions:
+    print(f"{pos['token_symbol']}: {pos['quantity']} units, PnL: ${pos['realized_pnl_usd']:.2f}")
+```
+
+```typescript TypeScript
+// All positions
+const allPositions = await fetch(`${BASE_URL}/api/v1/positions`, {
+  headers: { "Authorization": `Bearer ${sessionToken}` }
+}).then(r => r.json());
+
+// Filter by agent
+const params = new URLSearchParams({ agent: "trading_team" });
+const agentPositions = await fetch(
+  `${BASE_URL}/api/v1/positions?${params}`,
+  {
+    headers: { "Authorization": `Bearer ${sessionToken}` }
+  }
+).then(r => r.json());
+
+agentPositions.forEach(pos => {
+  console.log(`${pos.token_symbol}: ${pos.quantity} units, PnL: $${pos.realized_pnl_usd.toFixed(2)}`);
+});
+```
+</CodeGroup>
+
+---
+
+## 8. Metrics & Analytics
+
+### Volume Metrics
+
+Get total trading volume with optional filters.
+
+<CodeGroup>
+```bash curl
+# Total volume
+curl -X GET http://localhost:8000/api/v1/metrics/volume \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+
+# Volume by date range
+curl -X GET "http://localhost:8000/api/v1/metrics/volume?start=2025-10-01T00:00:00Z&end=2025-10-03T23:59:59Z" \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+
+# Volume by agent
+curl -X GET "http://localhost:8000/api/v1/metrics/volume?agent=trading_team" \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+```
+
+```python Python
+from datetime import datetime, timedelta
+
+# Total volume
+total_volume = requests.get(
+    f"{BASE_URL}/api/v1/metrics/volume",
+    headers={"Authorization": f"Bearer {session_token}"}
+).json()
+
+print(f"Total Volume: ${total_volume['total_volume_usd']:,.2f}")
+
+# Last 7 days
+end = datetime.now()
+start = end - timedelta(days=7)
+
+weekly_volume = requests.get(
+    f"{BASE_URL}/api/v1/metrics/volume",
+    headers={"Authorization": f"Bearer {session_token}"},
+    params={
+        "start": start.isoformat(),
+        "end": end.isoformat()
+    }
+).json()
+
+print(f"7-Day Volume: ${weekly_volume['total_volume_usd']:,.2f}")
+
+# By agent breakdown
+for breakdown in weekly_volume.get("by_agent", []):
+    print(f"  {breakdown['key']}: ${breakdown['value']:,.2f}")
+```
+
+```typescript TypeScript
+// Total volume
+const totalVolume = await fetch(`${BASE_URL}/api/v1/metrics/volume`, {
+  headers: { "Authorization": `Bearer ${sessionToken}` }
+}).then(r => r.json());
+
+console.log(`Total Volume: $${totalVolume.total_volume_usd.toLocaleString()}`);
+
+// Last 7 days
+const end = new Date();
+const start = new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+const params = new URLSearchParams({
+  start: start.toISOString(),
+  end: end.toISOString()
+});
+
+const weeklyVolume = await fetch(
+  `${BASE_URL}/api/v1/metrics/volume?${params}`,
+  {
+    headers: { "Authorization": `Bearer ${sessionToken}` }
+  }
+).then(r => r.json());
+
+console.log(`7-Day Volume: $${weeklyVolume.total_volume_usd.toLocaleString()}`);
+
+weeklyVolume.by_agent?.forEach(breakdown => {
+  console.log(`  ${breakdown.key}: $${breakdown.value.toLocaleString()}`);
+});
+```
+</CodeGroup>
+
+---
+
+### PnL Metrics
+
+Get realized and unrealized profit/loss.
+
+<CodeGroup>
+```bash curl
+# Realized PnL
+curl -X GET http://localhost:8000/api/v1/metrics/pnl \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+
+# Unrealized PnL
+curl -X GET http://localhost:8000/api/v1/metrics/pnl/unrealized \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+```
+
+```python Python
+# Realized PnL
+realized = requests.get(
+    f"{BASE_URL}/api/v1/metrics/pnl",
+    headers={"Authorization": f"Bearer {session_token}"}
+).json()
+
+print(f"Realized PnL: ${realized['realized_pnl_usd']:,.2f}")
+
+# Unrealized PnL
+unrealized = requests.get(
+    f"{BASE_URL}/api/v1/metrics/pnl/unrealized",
+    headers={"Authorization": f"Bearer {session_token}"}
+).json()
+
+print(f"Unrealized PnL: ${unrealized['unrealized_pnl_usd']:,.2f}")
+```
+
+```typescript TypeScript
+// Realized PnL
+const realized = await fetch(`${BASE_URL}/api/v1/metrics/pnl`, {
+  headers: { "Authorization": `Bearer ${sessionToken}` }
+}).then(r => r.json());
+
+console.log(`Realized PnL: $${realized.realized_pnl_usd.toLocaleString()}`);
+
+// Unrealized PnL
+const unrealized = await fetch(
+  `${BASE_URL}/api/v1/metrics/pnl/unrealized`,
+  {
+    headers: { "Authorization": `Bearer ${sessionToken}` }
+  }
+).then(r => r.json());
+
+console.log(`Unrealized PnL: $${unrealized.unrealized_pnl_usd.toLocaleString()}`);
+```
+</CodeGroup>
+
+---
+
+### TVL Metrics
+
+Get Total Value Locked from agent wallets or DeFiLlama.
+
+<CodeGroup>
+```bash curl
+# Agent TVL
+curl -X GET "http://localhost:8000/api/v1/metrics/tvl?mode=agents" \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+
+# DeFiLlama chain TVL
+curl -X GET "http://localhost:8000/api/v1/metrics/tvl?mode=defillama&chain=ethereum" \
+  -H "Authorization: Bearer $SESSION_TOKEN"
+```
+
+```python Python
+# Agent TVL
+agent_tvl = requests.get(
+    f"{BASE_URL}/api/v1/metrics/tvl",
+    headers={"Authorization": f"Bearer {session_token}"},
+    params={"mode": "agents"}
+).json()
+
+print(f"Agent TVL: ${agent_tvl['tvl_usd']:,.2f}")
+print(f"Source: {agent_tvl['source']}")
+
+# DeFiLlama Ethereum TVL
+defi_tvl = requests.get(
+    f"{BASE_URL}/api/v1/metrics/tvl",
+    headers={"Authorization": f"Bearer {session_token}"},
+    params={"mode": "defillama", "chain": "ethereum"}
+).json()
+
+print(f"Ethereum TVL: ${defi_tvl['tvl_usd']:,.2f}")
+```
+
+```typescript TypeScript
+// Agent TVL
+const agentTvl = await fetch(
+  `${BASE_URL}/api/v1/metrics/tvl?mode=agents`,
+  {
+    headers: { "Authorization": `Bearer ${sessionToken}` }
+  }
+).then(r => r.json());
+
+console.log(`Agent TVL: $${agentTvl.tvl_usd.toLocaleString()}`);
+console.log(`Source: ${agentTvl.source}`);
+
+// DeFiLlama Ethereum TVL
+const defiTvl = await fetch(
+  `${BASE_URL}/api/v1/metrics/tvl?mode=defillama&chain=ethereum`,
+  {
+    headers: { "Authorization": `Bearer ${sessionToken}` }
+  }
+).then(r => r.json());
+
+console.log(`Ethereum TVL: $${defiTvl.tvl_usd.toLocaleString()}`);
+```
+</CodeGroup>
+
+---
+
+## 9. Advanced Patterns
+
+### Error Handling
+
+Robust error handling for all API calls.
+
+<CodeGroup>
+```python Python
+import requests
+from typing import Optional, Dict, Any
+
+def safe_api_call(
+    method: str,
+    endpoint: str,
+    session_token: str,
+    json_data: Optional[Dict[Any, Any]] = None,
+    params: Optional[Dict[str, Any]] = None
+) -> Optional[Dict[Any, Any]]:
+    """
+    Make a safe API call with proper error handling.
+    """
+    headers = {"Authorization": f"Bearer {session_token}"}
+    url = f"{BASE_URL}{endpoint}"
+
+    try:
+        if method.upper() == "GET":
+            response = requests.get(url, headers=headers, params=params, timeout=30)
+        elif method.upper() == "POST":
+            response = requests.post(url, headers=headers, json=json_data, timeout=30)
+        elif method.upper() == "DELETE":
+            response = requests.delete(url, headers=headers, timeout=30)
+        else:
+            raise ValueError(f"Unsupported method: {method}")
+
+        response.raise_for_status()
+        return response.json()
+
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 401:
+            print("Authentication failed. Token may be expired.")
+        elif e.response.status_code == 422:
+            print(f"Validation error: {e.response.json()}")
+        elif e.response.status_code == 429:
+            print("Rate limit exceeded. Retry after cooldown.")
+        else:
+            print(f"HTTP error {e.response.status_code}: {e.response.text}")
+        return None
+
+    except requests.exceptions.ConnectionError:
+        print("Connection error. Check if server is running.")
+        return None
+
+    except requests.exceptions.Timeout:
+        print("Request timed out.")
+        return None
+
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return None
+
+# Usage
+result = safe_api_call(
+    "POST",
+    "/api/v1/chatbot/chat",
+    session_token,
+    json_data={"messages": [{"role": "user", "content": "Hello"}]}
+)
+
+if result:
+    print("Success:", result)
+else:
+    print("Request failed")
+```
+
+```typescript TypeScript
+async function safeApiCall<T>(
+  method: string,
+  endpoint: string,
+  sessionToken: string,
+  body?: any,
+  params?: Record<string, string>
+): Promise<T | null> {
+  const headers: HeadersInit = {
+    "Authorization": `Bearer ${sessionToken}`,
+    "Content-Type": "application/json"
+  };
+
+  let url = `${BASE_URL}${endpoint}`;
+  if (params) {
+    url += "?" + new URLSearchParams(params).toString();
+  }
+
+  try {
+    const options: RequestInit = {
+      method: method.toUpperCase(),
+      headers
+    };
+
+    if (body && (method.toUpperCase() === "POST" || method.toUpperCase() === "PATCH")) {
+      options.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(url, options);
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        console.error("Authentication failed. Token may be expired.");
+      } else if (response.status === 422) {
+        const error = await response.json();
+        console.error("Validation error:", error);
+      } else if (response.status === 429) {
+        console.error("Rate limit exceeded. Retry after cooldown.");
+      } else {
+        console.error(`HTTP error ${response.status}: ${await response.text()}`);
+      }
+      return null;
+    }
+
+    return await response.json() as T;
+
+  } catch (error) {
+    if (error instanceof TypeError) {
+      console.error("Connection error. Check if server is running.");
+    } else {
+      console.error("Unexpected error:", error);
+    }
+    return null;
+  }
+}
+
+// Usage
+const result = await safeApiCall(
+  "POST",
+  "/api/v1/chatbot/chat",
+  sessionToken,
+  { messages: [{ role: "user", content: "Hello" }] }
+);
+
+if (result) {
+  console.log("Success:", result);
+} else {
+  console.log("Request failed");
+}
+```
+</CodeGroup>
+
+---
+
+### Retry Logic with Exponential Backoff
+
+Handle transient failures with automatic retries.
+
+<CodeGroup>
+```python Python
+import time
+from typing import Callable, Optional, TypeVar
+
+T = TypeVar('T')
+
+def retry_with_backoff(
+    func: Callable[[], T],
+    max_retries: int = 3,
+    initial_delay: float = 1.0,
+    backoff_factor: float = 2.0
+) -> Optional[T]:
+    """
+    Retry a function with exponential backoff.
+    """
+    delay = initial_delay
+
+    for attempt in range(max_retries):
+        try:
+            return func()
+        except Exception as e:
+            if attempt == max_retries - 1:
+                print(f"Max retries ({max_retries}) exceeded")
+                raise
+
+            print(f"Attempt {attempt + 1} failed: {e}")
+            print(f"Retrying in {delay}s...")
+            time.sleep(delay)
+            delay *= backoff_factor
+
+    return None
+
+# Usage
+def get_tvl():
+    response = requests.get(
+        f"{BASE_URL}/api/v1/metrics/tvl",
+        headers={"Authorization": f"Bearer {session_token}"},
+        params={"mode": "agents"}
+    )
+    response.raise_for_status()
+    return response.json()
+
+tvl_data = retry_with_backoff(get_tvl, max_retries=3)
+if tvl_data:
+    print(f"TVL: ${tvl_data['tvl_usd']:,.2f}")
+```
+
+```typescript TypeScript
+async function retryWithBackoff<T>(
+  func: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelay: number = 1000,
+  backoffFactor: number = 2.0
+): Promise<T | null> {
+  let delay = initialDelay;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await func();
+    } catch (error) {
+      if (attempt === maxRetries - 1) {
+        console.error(`Max retries (${maxRetries}) exceeded`);
+        throw error;
+      }
+
+      console.error(`Attempt ${attempt + 1} failed:`, error);
+      console.log(`Retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= backoffFactor;
+    }
+  }
+
+  return null;
+}
+
+// Usage
+const getTvl = async () => {
+  const response = await fetch(
+    `${BASE_URL}/api/v1/metrics/tvl?mode=agents`,
+    {
+      headers: { "Authorization": `Bearer ${sessionToken}` }
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return response.json();
+};
+
+const tvlData = await retryWithBackoff(getTvl, 3);
+if (tvlData) {
+  console.log(`TVL: $${tvlData.tvl_usd.toLocaleString()}`);
+}
+```
+</CodeGroup>
+
+---
+
+### Batch Operations
+
+Execute multiple independent operations in parallel.
+
+<CodeGroup>
+```python Python
+import asyncio
+import aiohttp
+from typing import List, Dict, Any
+
+async def fetch_url(
+    session: aiohttp.ClientSession,
+    method: str,
+    url: str,
+    **kwargs
+) -> Dict[Any, Any]:
+    """Fetch a single URL."""
+    async with session.request(method, url, **kwargs) as response:
+        return await response.json()
+
+async def batch_requests(
+    session_token: str,
+    requests: List[Dict[str, Any]]
+) -> List[Dict[Any, Any]]:
+    """
+    Execute multiple API requests in parallel.
+
+    Args:
+        session_token: Authentication token
+        requests: List of request configs [{"method": "GET", "endpoint": "/..."}]
+    """
+    headers = {"Authorization": f"Bearer {session_token}"}
+
+    async with aiohttp.ClientSession(headers=headers) as session:
+        tasks = []
+        for req in requests:
+            url = f"{BASE_URL}{req['endpoint']}"
+            task = fetch_url(
+                session,
+                req.get("method", "GET"),
+                url,
+                json=req.get("json"),
+                params=req.get("params")
+            )
+            tasks.append(task)
+
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        return results
+
+# Usage
+batch_requests_list = [
+    {"method": "GET", "endpoint": "/api/v1/metrics/volume"},
+    {"method": "GET", "endpoint": "/api/v1/metrics/pnl"},
+    {"method": "GET", "endpoint": "/api/v1/metrics/tvl", "params": {"mode": "agents"}},
+    {"method": "GET", "endpoint": "/api/v1/positions"}
+]
+
+results = asyncio.run(batch_requests(session_token, batch_requests_list))
+
+volume, pnl, tvl, positions = results
+print(f"Volume: ${volume['total_volume_usd']:,.2f}")
+print(f"PnL: ${pnl['realized_pnl_usd']:,.2f}")
+print(f"TVL: ${tvl['tvl_usd']:,.2f}")
+print(f"Positions: {len(positions)}")
+```
+
+```typescript TypeScript
+interface BatchRequest {
+  method?: string;
+  endpoint: string;
+  body?: any;
+  params?: Record<string, string>;
+}
+
+async function batchRequests(
+  sessionToken: string,
+  requests: BatchRequest[]
+): Promise<any[]> {
+  const headers = {
+    "Authorization": `Bearer ${sessionToken}`,
+    "Content-Type": "application/json"
+  };
+
+  const promises = requests.map(async (req) => {
+    let url = `${BASE_URL}${req.endpoint}`;
+    if (req.params) {
+      url += "?" + new URLSearchParams(req.params).toString();
+    }
+
+    const options: RequestInit = {
+      method: req.method || "GET",
+      headers
+    };
+
+    if (req.body) {
+      options.body = JSON.stringify(req.body);
+    }
+
+    try {
+      const response = await fetch(url, options);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`Request to ${req.endpoint} failed:`, error);
+      return null;
+    }
+  });
+
+  return Promise.all(promises);
+}
+
+// Usage
+const batchRequestsList: BatchRequest[] = [
+  { endpoint: "/api/v1/metrics/volume" },
+  { endpoint: "/api/v1/metrics/pnl" },
+  { endpoint: "/api/v1/metrics/tvl", params: { mode: "agents" } },
+  { endpoint: "/api/v1/positions" }
+];
+
+const [volume, pnl, tvl, positions] = await batchRequests(
+  sessionToken,
+  batchRequestsList
+);
+
+console.log(`Volume: $${volume?.total_volume_usd.toLocaleString()}`);
+console.log(`PnL: $${pnl?.realized_pnl_usd.toLocaleString()}`);
+console.log(`TVL: $${tvl?.tvl_usd.toLocaleString()}`);
+console.log(`Positions: ${positions?.length}`);
+```
+</CodeGroup>
+
+---
+
+## 10. Complete Workflow Example
+
+### End-to-End Trading Flow
+
+A complete example combining authentication, research, quote, risk assessment, and execution.
+
+<CodeGroup>
+```python Python
+import requests
+from typing import Dict, Any, Optional
+
+BASE_URL = "http://localhost:8000"
+
+class NexT1Client:
+    def __init__(self, email: str, password: str):
+        self.email = email
+        self.password = password
+        self.session_token: Optional[str] = None
+
+    def authenticate(self) -> bool:
+        """Login and create session."""
+        # Step 1: Login
+        login_resp = requests.post(
+            f"{BASE_URL}/api/v1/auth/login",
+            data={"username": self.email, "password": self.password}
+        )
+
+        if login_resp.status_code != 200:
+            print("Login failed")
+            return False
+
+        access_token = login_resp.json()["access_token"]
+
+        # Step 2: Create session
+        session_resp = requests.post(
+            f"{BASE_URL}/api/v1/auth/session",
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+
+        if session_resp.status_code != 200:
+            print("Session creation failed")
+            return False
+
+        self.session_token = session_resp.json()["token"]["access_token"]
+        print("✓ Authenticated successfully")
+        return True
+
+    def research_token(self, token_address: str) -> Dict[Any, Any]:
+        """Research a token using DeFiLlama."""
+        print(f"\n=== Researching {token_address} ===")
+
+        response = requests.post(
+            f"{BASE_URL}/api/v1/multi-agent/research/preview",
+            headers={"Authorization": f"Bearer {self.session_token}"},
+            json={
+                "defi_calls": [
+                    {"tool_name": "token_price", "arguments": {"token": "ethereum"}}
+                ],
+                "price_symbol": "ETH"
+            }
+        )
+
+        data = response.json()
+        print(f"Research Summary: {data.get('summary', 'N/A')}")
+        return data
+
+    def get_quote(
+        self,
+        chain_id: int,
+        token_in: str,
+        token_out: str,
+        amount: str
+    ) -> Dict[Any, Any]:
+        """Get swap quote."""
+        print(f"\n=== Getting Quote ===")
+
+        response = requests.post(
+            f"{BASE_URL}/api/v1/multi-agent/quote/evm/pseudo",
+            headers={"Authorization": f"Bearer {self.session_token}"},
+            json={
+                "input": {
+                    "chain_id": chain_id,
+                    "token_in_address": token_in,
+                    "token_out_address": token_out,
+                    "amount_in": amount,
+                    "amount_in_currency": "token_units",
+                    "slippage_bps": 50
+                }
+            }
+        )
+
+        quote = response.json()
+        print(f"Expected Output: {quote.get('expected_out')} tokens")
+        print(f"Price Impact: {quote.get('price_impact_bps', 'N/A')} bps")
+        return quote
+
+    def assess_risk(self, quote: Dict[Any, Any], token_address: str) -> Dict[Any, Any]:
+        """Assess trade risk."""
+        print(f"\n=== Assessing Risk ===")
+
+        response = requests.post(
+            f"{BASE_URL}/api/v1/multi-agent/risk/preview",
+            headers={"Authorization": f"Bearer {self.session_token}"},
+            json={
+                "quote": quote,
+                "input": {
+                    "chain": "evm",
+                    "addresses": [token_address],
+                    "checks": ["rug", "whale_flow", "price_sanity"]
+                },
+                "thresholds": {
+                    "max_price_impact_bps": 100,
+                    "min_liquidity_usd": 100000
+                }
+            }
+        )
+
+        risk = response.json()
+        print(f"Risk Level: {risk['level']}")
+        print(f"Flags: {', '.join(risk.get('flags', [])) or 'None'}")
+        return risk
+
+    def execute_trade(
+        self,
+        chain_id: int,
+        token_in: str,
+        token_out: str,
+        amount: str,
+        simulate: bool = True
+    ) -> Dict[Any, Any]:
+        """Execute or simulate trade."""
+        mode = "Simulating" if simulate else "Executing"
+        print(f"\n=== {mode} Trade ===")
+
+        response = requests.post(
+            f"{BASE_URL}/api/v1/multi-agent/execute/evm",
+            headers={"Authorization": f"Bearer {self.session_token}"},
+            json={
+                "input": {
+                    "chain_id": chain_id,
+                    "token_in_address": token_in,
+                    "token_out_address": token_out,
+                    "amount_in": amount,
+                    "amount_in_currency": "token_units",
+                    "slippage_bps": 50,
+                    "simulate_only": simulate
+                },
+                "confirm": not simulate,
+                "skip_risk": False
+            }
+        )
+
+        result = response.json()
+        print(f"Status: {result.get('status')}")
+        if result.get('tx_hash'):
+            print(f"TX Hash: {result['tx_hash']}")
+            print(f"Explorer: {result.get('explorer_url')}")
+        return result
+
+
+# Complete workflow
+def main():
+    # Initialize client
+    client = NexT1Client("user@example.com", "SecurePass123!")
+
+    # Authenticate
+    if not client.authenticate():
+        return
+
+    # Define trade parameters
+    CHAIN_ID = 8453  # Base
+    WETH = "0x4200000000000000000000000000000000000006"
+    USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    AMOUNT = "0.01"
+
+    # Step 1: Research
+    research_data = client.research_token(USDC)
+
+    # Step 2: Get Quote
+    quote = client.get_quote(CHAIN_ID, WETH, USDC, AMOUNT)
+
+    # Step 3: Assess Risk
+    risk = client.assess_risk(quote, USDC)
+
+    # Step 4: Decision
+    if risk["level"] in ["low", "medium"]:
+        print("\n✓ Risk acceptable, proceeding with simulation")
+        result = client.execute_trade(CHAIN_ID, WETH, USDC, AMOUNT, simulate=True)
+
+        if result.get("status") == "success":
+            print("\n✓ Simulation successful!")
+
+            # Uncomment to execute for real
+            # print("\nExecuting real trade...")
+            # final_result = client.execute_trade(CHAIN_ID, WETH, USDC, AMOUNT, simulate=False)
+    else:
+        print(f"\n✗ Risk level {risk['level']} too high, aborting trade")
+
+
+if __name__ == "__main__":
+    main()
+```
+</CodeGroup>
+
+---
+
+## Common Errors & Solutions
+
+<AccordionGroup>
+<Accordion title="401 Unauthorized">
+**Problem:** Authentication failed or token expired.
+
+**Solutions:**
+- Verify credentials are correct
+- Create a new session if token expired
+- Check `Authorization: Bearer <token>` header format
+</Accordion>
+
+<Accordion title="422 Validation Error">
+**Problem:** Invalid request parameters.
+
+**Solutions:**
+- Check required fields are present
+- Verify data types match schema
+- Review OpenAPI spec at `/openapi.json`
+</Accordion>
+
+<Accordion title="429 Rate Limited">
+**Problem:** Too many requests in a short time.
+
+**Solutions:**
+- Implement exponential backoff
+- Reduce request frequency
+- Use batch operations when possible
+</Accordion>
+
+<Accordion title="Connection Refused">
+**Problem:** Server not reachable.
+
+**Solutions:**
+- Verify server is running: `http://localhost:8000/health`
+- Check BASE_URL configuration
+- Ensure firewall allows connections
+</Accordion>
+</AccordionGroup>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+<Card title="API Reference" icon="book" href="/api-reference">
+  Explore detailed endpoint documentation
+</Card>
+
+<Card title="Multi-Agent Guide" icon="users" href="/multi-agent">
+  Learn about specialized agent teams
+</Card>
+
+<Card title="MCP Integration" icon="plug" href="/mcp">
+  Connect external tools and data sources
+</Card>
+
+<Card title="Deployment" icon="rocket" href="/deployment">
+  Deploy Nex-T1 to production
+</Card>
+</CardGroup>
