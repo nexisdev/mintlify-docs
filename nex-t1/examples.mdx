@@ -1,0 +1,58 @@
+---
+title: 'Examples'
+description: 'Copy‑paste examples for common Nex‑T1 tasks: research queries, quotes, and risk checks.'
+icon: 'code'
+---
+
+# Examples
+
+## Research: The Graph + Dune + DeFiLlama
+
+<CodeGroup>
+```bash Research
+curl -X POST http://localhost:8000/api/v1/multi-agent/research/preview \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{
+    "subgraph": "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3",
+    "gql": "query($first:Int!){ pools(first:$first){ id totalValueLockedUSD } }",
+    "variables": { "first": 2 },
+    "dune_query_id": 12345,
+    "dune_params": {"example":"value"},
+    "defi_calls": [
+      {"tool_name":"tvl_get","arguments":{"chain":"ethereum"}},
+      {"tool_name":"token_price","arguments":{"token":"ethereum"}}
+    ]
+  }'
+```
+</CodeGroup>
+
+## EVM: Quote (dev) and Risk
+
+<CodeGroup>
+```bash Pseudo Quote (dev)
+curl -X POST http://localhost:8000/api/v1/multi-agent/quote/evm/pseudo \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"input":{"chain_id":8453,"token_in_address":"0x4200000000000000000000000000000000000006","token_out_address":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","amount_in":"0.01","amount_in_currency":"ETH"}}'
+```
+```bash Risk Preview
+curl -X POST http://localhost:8000/api/v1/multi-agent/risk/preview \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"quote":{...},"input":{"chain":"base"}}'
+```
+</CodeGroup>
+
+## Binance Subscribe/Unsubscribe
+
+<CodeGroup>
+```bash Subscribe
+curl -X POST http://localhost:8000/api/v1/multi-agent/binance/subscribe \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"symbol":"BTCUSDT","market":"spot","streams":["trade"],"interval":"1m"}'
+```
+```bash Unsubscribe
+curl -X POST http://localhost:8000/api/v1/multi-agent/binance/unsubscribe \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"subscription_id":"sub-123"}'
+```
+</CodeGroup>
+

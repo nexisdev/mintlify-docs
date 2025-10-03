@@ -1,0 +1,47 @@
+---
+title: 'Integration Guide'
+description: 'Consumer (users) API flows and developer (extenders) patterns to customize Nex‑T1.'
+icon: 'git-merge'
+---
+
+# Integration Guide
+
+## For Users (API Consumers)
+
+1) Obtain credentials and create a session (see Get Started).
+2) Choose your flow:
+   - Chat: `/api/v1/chatbot/chat` or `/chat/stream`
+   - Research: `/api/v1/multi-agent/research/preview`
+   - Trading: `/api/v1/multi-agent/preview` → quote → risk → execute (EVM)
+
+Security & reliability
+- Rate limits apply; handle HTTP 429 with backoff.
+- Validate responses and timeouts; endpoints return structured JSON per Pydantic schemas.
+
+## For Developers (Extending)
+
+Agent & tools
+- Add tools in `app/core/langgraph/tools/` and include them in `tools`.
+- Inspect the `LangGraphAgent` in `app/core/langgraph/graph.py` for tool binding and message flow.
+
+Multi‑agent
+- Extend team graphs under `app/core/langgraph/multi/teams/*`.
+- Routing via `SupervisorRouter` in `app/core/langgraph/multi/supervisor.py`.
+
+MCP integrations
+- Implement adapters in `app/core/langgraph/tools/mcp` and helpers in `app/core/integrations/mcp`.
+- Configure via env vars; add typed helper endpoints for common operations.
+
+Configuration
+- `app/core/config.py` handles env detection and settings. Prefer `.env.development` etc. and never commit secrets.
+
+Observability
+- Prometheus `/metrics`, health `/health`, and Langfuse tracing via `LANGFUSE_*` env vars.
+
+Deployment
+- Makefile + Docker Compose for local stack; Railway and Kubernetes examples in repo docs.
+
+<Warning>
+Gate dev‑only endpoints (like `/quote/evm/pseudo`) behind flags in production. Enforce allowlists and add receipt verification.
+</Warning>
+

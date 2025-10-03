@@ -1,0 +1,32 @@
+---
+title: 'Supported Chains'
+description: 'EVM chains, Solana, and Bitcoin support through adapters and configuration.'
+icon: 'network'
+---
+
+# Supported Chains
+
+## EVM
+
+- Chain IDs provided per request (see request models in `app/schemas/multi/`), Base 8453 used in examples.
+- RPC configured via `EVM_RPC_URL` or `EVM_RPC_URL_<CHAIN_ID>` env vars.
+- Token metadata and decimals loaded from `configs/evm_tokens.json`.
+- Chainlink feed mappings via `configs/chainlink_feeds.json`.
+
+Adapters
+- Chainlink price: `evm_chainlink.py`
+- Uniswap/0x quote/execute: `evm_uniswap.py`
+- Wallet (Thirdweb or EVM Wallet MCP): `evm_thirdweb.py` and `integrations/mcp/evm_wallet.py`
+
+## Solana
+
+- Jupiter quote/execute adapter `sol_jupiter.py` with direct HTTP fallback; Helius integration referenced in docs.
+
+## Bitcoin
+
+- Bitcoin MCP adapter with runtime tool discovery `integrations/mcp/bitcoin.py`.
+
+<Info>
+Production execution should verify receipts, add idempotency, and enforce allowlists per chain. See `docs/PSEUDO_TO_PRODUCTION.md` in the codebase.
+</Info>
+

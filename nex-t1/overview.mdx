@@ -1,0 +1,247 @@
+---
+title: 'Nex‑T1 Overview'
+description: 'FastAPI + LangGraph multi‑agent platform with MCP integrations, JWT auth, metrics, and production‑ready scaffolding.'
+icon: 'sparkles'
+---
+
+# Overview
+
+<Info>
+Nex‑T1 is a production‑ready AI agents platform built on FastAPI and LangGraph. It ships multi‑agent orchestration previews, JWT auth + session flow, Postgres‑backed state, and Model Context Protocol (MCP) integrations for research (The Graph, Dune, CoinGecko, DeFiLlama, Sentiment), market data and execution (Chainlink, Uniswap/0x, Thirdweb/EVM Wallet MCP), and exchange connectivity (Binance). Optional Solana (Jupiter) and Bitcoin MCP adapters are included.
+</Info>
+
+---
+
+## Introduction
+
+Nex‑T1 exposes:
+
+- High‑performance FastAPI backend with Prometheus metrics and Langfuse tracing.
+- LangGraph agent with Postgres checkpointer (`AsyncPostgresSaver`) and tool calling.
+- JWT authentication and per‑session tokens for chat and multi‑agent endpoints.
+- Feature‑flagged multi‑agent preview endpoints for intent routing, quotes, execution and risk checks.
+- MCP adapter tools and direct HTTP fallbacks for reliable production operation.
+
+Key modules (from the codebase):
+
+- `app/main.py` – FastAPI app, metrics, CORS, health, router mounting.
+- `app/api/v1/api.py` – mounts `auth`, `chatbot`, and `multi-agent` routers.
+- `app/core/langgraph/graph.py` – LangGraph workflow, OpenAI chat model, Postgres checkpointing, tool calls.
+- `app/api/v1/multiagent.py` – preview endpoints for research, quotes, execution, and risk evaluation.
+- `app/core/langgraph/tools` – built‑in tools (DuckDuckGo) plus MCP adapters (EVM/Solana/research).
+
+---
+
+## Use Cases
+
+- Research workflows: The Graph queries, Dune jobs/results, DeFiLlama TVL/prices, Sentiment lookups.
+- Trading previews (EVM/Solana): Uniswap/0x quotes, execute via Thirdweb or EVM Wallet MCP.
+- Risk evaluation: configurable thresholds, Chainlink reference prices, token allowlists.
+- Exchange market data: Binance WebSocket subscribe/unsubscribe via MCP helper wrappers.
+- General chat: single‑agent chat with tool binding (DuckDuckGo by default).
+
+---
+
+## Get Started
+
+<Steps>
+  <Step title="Install dependencies">
+    Uses `uv` and a `pyproject.toml`.
+    <CodeGroup>
+      ```bash
+      uv sync
+      ```
+    </CodeGroup>
+  </Step>
+  <Step title="Configure environment">
+    Environment files: `.env.development`, `.env.staging`, `.env.production`.
+    Critical vars: `LLM_API_KEY`, `POSTGRES_*`, `JWT_SECRET_KEY`, optional MCP bases.
+  </Step>
+  <Step title="Run the API">
+    <CodeGroup>
+      ```bash Local
+      make dev          # or: uvicorn app.main:app --host 0.0.0.0 --port 8000
+      ```
+      ```bash Docker
+      make docker-build-env ENV=development
+      make docker-run-env   ENV=development
+      ```
+    </CodeGroup>
+    Swagger: `http://localhost:8000/docs`, Metrics: `/metrics`, Health: `/health`.
+  </Step>
+</Steps>
+
+---
+
+## Features
+
+- FastAPI + async stack, CORS, structured logging, rate limiting (SlowAPI), and Prometheus metrics.
+- LangGraph agent orchestration with Postgres checkpointing and OpenAI chat model.
+- Langfuse tracing for LLM calls and tool usage.
+- JWT auth, session creation, and per‑endpoint rate limits.
+- Multi‑agent preview router with intent classification and team routing.
+- MCP integrations with typed adapters and direct HTTP fallbacks (feature‑flagged).
+
+---
+
+## Usage
+
+Authentication and session flow:
+
+<CodeGroup>
+```bash Register
+curl -X POST http://localhost:8000/api/v1/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com","password":"StrongP@ssw0rd"}'
+```
+```bash Login
+curl -X POST http://localhost:8000/api/v1/auth/login -F username=you@example.com -F password=StrongP@ssw0rd
+```
+```bash Create Session
+curl -X POST http://localhost:8000/api/v1/auth/session \
+  -H 'Authorization: Bearer <user_access_token>'
+```
+</CodeGroup>
+
+Chat endpoints (single‑agent):
+
+<CodeGroup>
+```bash Chat
+curl -X POST http://localhost:8000/api/v1/chatbot/chat \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"messages":[{"role":"user","content":"hello"}]}'
+```
+```bash Stream
+curl -X POST http://localhost:8000/api/v1/chatbot/chat/stream \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -N -d '{"messages":[{"role":"user","content":"hello"}]}'
+```
+</CodeGroup>
+
+Multi‑agent preview (feature‑flagged via `MULTI_AGENT_ENABLED=true`):
+
+<CodeGroup>
+```bash Intent
+curl -X POST http://localhost:8000/api/v1/multi-agent/preview \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"text":"quote 10 USDC to WETH on Base"}'
+```
+```bash Research
+curl -X POST http://localhost:8000/api/v1/multi-agent/research/preview \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"subgraph":"https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3","gql":"query{ bundles(first:1){ethPrice} }"}'
+```
+</CodeGroup>
+
+---
+
+## Tools
+
+- Built‑in: DuckDuckGo search tool bound to the main chat agent (`app/core/langgraph/tools`).
+- MCP Adapters (select examples):
+  - Research: The Graph, Dune, CoinGecko, DeFiLlama, Sentiment.
+  - EVM: Chainlink price feeds, Uniswap quote/execute (via 0x APIs), Thirdweb wallet (balance, sign/send, get tx).
+  - Exchanges: Binance subscribe/unsubscribe (typed helper wrappers).
+  - Solana: Jupiter quote/execute (HTTP fallback), Helius (verification adapter in docs).
+  - Bitcoin: MCP adapter with runtime tool discovery.
+
+Note: By default, only DuckDuckGo is bound to the single‑agent chat toolset. MCP adapters are exercised via the `multi-agent` endpoints and can be bound as tools if desired.
+
+---
+
+## MCP
+
+MCP servers are integrated via lightweight adapters in `app/core/integrations/mcp` and `app/core/langgraph/tools/mcp`. Configure base URLs and tokens via environment variables. From the repository’s README:
+
+```env
+# Thirdweb MCP (execute)
+THIRDWEB_MCP_BASE=https://thirdweb-mcp.example.com
+THIRDWEB_MCP_TOKEN=<token>
+
+# Optional MCP server bases
+CHAINLINK_MCP_BASE=https://chainlink.nex-t1.ai
+DEFILLAMA_MCP_BASE=https://defillama.nex-t1.ai
+EVM_WALLET_MCP_BASE=https://evm-wallets.nex-t1.ai
+ETHERSCAN_MCP_BASE=https://etherscan.nex-t1.ai
+HELIUS_MCP_BASE=https://helius.nex-t1.ai
+BLOCKNATIVE_MCP_BASE=https://blocknative.nex-t1.ai
+UNISWAP_SPY_MCP_BASE=https://uniswap-spy.nex-t1.ai
+SENTIMENT_MCP_BASE=https://sentiment.nex-t1.ai
+ALCHEMY_MCP_BASE=https://alchemy.nex-t1.ai
+BINANCE_MCP_BASE=https://binance.nex-t1.ai
+BITCOIN_MCP_BASE=https://bitcoin.nex-t1.ai
+```
+
+Direct HTTP fallbacks exist for certain tools (e.g., The Graph, Dune, Jupiter) when MCP bases are not configured.
+
+---
+
+## Supported Chains
+
+- EVM (chain IDs; Base 8453 used in examples). EVM RPC provided via `EVM_RPC_URL` or `EVM_RPC_URL_<CHAIN_ID>`.
+- Solana via Jupiter quote/execute adapters.
+- Bitcoin via dedicated MCP adapter.
+
+Token metadata and decimals for EVM quoting are read from `configs/evm_tokens.json`; token allowlists and Chainlink feed mappings are supported via `configs/token_allowlist.json` and `configs/chainlink_feeds.json`.
+
+---
+
+## Prompting Guide
+
+System prompt lives in `app/core/prompts.py` and the chat flow binds tools via `LangGraphAgent` (`app/core/langgraph/graph.py`). Practical tips:
+
+- Be explicit about intent, chain, and tokens: “quote 10 USDC to WETH on Base”.
+- For research, specify data sources and limits: “get TVL by chain (ethereum) and top 5 pools”.
+- For execution, include wallet context when required by adapters (e.g., Thirdweb wallet reference).
+
+---
+
+## Integration Guide
+
+1) Auth and Session
+
+- Register/login to obtain a user token, then create a session for an access token used across chat/multi‑agent routes.
+
+2) Call APIs
+
+- Single‑agent chat: `/api/v1/chatbot/chat` or `/chat/stream`.
+- Multi‑agent previews: `/api/v1/multi-agent/*` (intent, research, quote/execute, risk checks).
+
+3) Configure Adapters
+
+- Provide `LLM_API_KEY`, Postgres settings, and MCP base URLs/tokens as needed.
+- Optional: populate `configs/*.json` for tokens, Chainlink feeds, and allowlists.
+
+Monitoring & Health
+
+- Metrics at `/metrics`, health at `/health` and `/api/v1/health`, and Langfuse tracing via env keys.
+
+---
+
+## Example Usage
+
+EVM pseudo quote + risk preview (dev‑only pseudo quote):
+
+<CodeGroup>
+```bash Pseudo Quote (EVM)
+curl -X POST http://localhost:8000/api/v1/multi-agent/quote/evm/pseudo \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"input":{"chain_id":8453,"token_in_address":"0x4200000000000000000000000000000000000006","token_out_address":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","amount_in":"0.01","amount_in_currency":"ETH"}}'
+```
+```bash Risk Preview
+curl -X POST http://localhost:8000/api/v1/multi-agent/risk/preview \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"quote":{...},"input":{"chain":"base"}}'
+```
+</CodeGroup>
+
+Research (Graph + Dune + DeFiLlama helpers): see README examples for `research/preview` and `defillama` tool invocations.
+
+---
+
+## Disclaimers/Legal
+
+- Certain endpoints are development or preview‑only (e.g., `/quote/evm/pseudo`). Guard with feature flags before production (see `docs/PSEUDO_TO_PRODUCTION.md`).
+- MCP integrations require third‑party services; configure credentials and follow provider terms.
+- On‑chain execution and wallet operations should be tested in safe environments; verify receipts and add idempotency.
+- This documentation reflects the code as provided; adapt configurations, rate limits, and security settings to your deployment.

@@ -1,0 +1,49 @@
+---
+title: 'Usage'
+description: 'How users call the APIs and how developers work with the agent graph and tools.'
+icon: 'terminal'
+---
+
+# Usage
+
+## User — Chat Endpoints
+
+<CodeGroup>
+```bash Chat
+curl -X POST http://localhost:8000/api/v1/chatbot/chat \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"messages":[{"role":"user","content":"hello"}]}'
+```
+```bash Stream
+curl -X POST http://localhost:8000/api/v1/chatbot/chat/stream \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -N -d '{"messages":[{"role":"user","content":"hello"}]}'
+```
+</CodeGroup>
+
+## User — Multi‑Agent Preview
+
+<CodeGroup>
+```bash Intent
+curl -X POST http://localhost:8000/api/v1/multi-agent/preview \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"text":"quote 10 USDC to WETH on Base"}'
+```
+```bash Research
+curl -X POST http://localhost:8000/api/v1/multi-agent/research/preview \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"subgraph":"https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v3","gql":"query{ bundles(first:1){ethPrice} }"}'
+```
+```bash Risk
+curl -X POST http://localhost:8000/api/v1/multi-agent/risk/preview \
+  -H 'Authorization: Bearer <session_token>' -H 'Content-Type: application/json' \
+  -d '{"quote":{...},"input":{"chain":"base"}}'
+```
+</CodeGroup>
+
+## Developer — Graph & Tools
+
+- Agent defined in `app/core/langgraph/graph.py`.
+- Tools bound via `app/core/langgraph/tools` (default: DuckDuckGo). Add more BaseTool implementations and include in `tools` list.
+- MCP tools are exercised primarily through `/api/v1/multi-agent/*` endpoints and can be bound to the single‑agent graph if desired.
+

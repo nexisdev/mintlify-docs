@@ -36,7 +36,7 @@
   "tabs": [
     {
       "name": "Nex-T1",
-      "url": "nex-t1"
+      "url": "nex-t1/overview"
     },
     {
       "name": "API Reference",
@@ -178,7 +178,18 @@
     {
       "group": "Nex-T1",
       "pages": [
-        "nex-t1"
+        "nex-t1/overview",
+        "nex-t1/use-cases",
+        "nex-t1/get-started",
+        "nex-t1/features",
+        "nex-t1/usage",
+        "nex-t1/tools",
+        "nex-t1/mcp",
+        "nex-t1/supported-chains",
+        "nex-t1/prompting-guide",
+        "nex-t1/integration-guide",
+        "nex-t1/examples",
+        "nex-t1/legal"
       ]
     },
     {
