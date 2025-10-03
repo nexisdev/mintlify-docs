@@ -1,12 +1,12 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "FastAPI LangGraph Multi-Agent Trading System",
-    "description": "A production-ready FastAPI template with LangGraph multi-agent orchestration, trading capabilities, research tools, and risk management. Features include: JWT authentication, session management, real-time chat with streaming, EVM/Solana trading, Chainlink price feeds, DefiLlama integration, sentiment analysis, and comprehensive risk assessment.",
+    "title": "Nex-T1-DefAI-Agents",
+    "description": "Nex-T1-DefAI-Agents — created by Nexis Labs. A production-ready FastAPI application with LangGraph multi-agent orchestration, trading capabilities, research tools, and risk management. Features include: JWT authentication, session management, real-time chat with streaming, EVM/Solana trading, Chainlink price feeds, DefiLlama integration, sentiment analysis, and comprehensive risk assessment.",
     "version": "1.0.0",
     "contact": {
       "name": "API Support",
-      "url": "https://github.com/yourusername/yourrepo"
+      "url": "https://github.com/Nexis-AI/Nex-T1-DefAI-Agents"
     },
     "license": {
       "name": "MIT",
@@ -19,7 +19,7 @@
       "description": "Development server"
     },
     {
-      "url": "https://api.production.com",
+      "url": "https://api.nex-t1.ai",
       "description": "Production server"
     }
   ],
@@ -58,7 +58,7 @@
                   "properties": {
                     "name": {
                       "type": "string",
-                      "example": "FastAPI LangGraph Multi-Agent Trading System"
+                      "example": "Nex-T1-DefAI-Agents"
                     },
                     "version": {
                       "type": "string",
@@ -323,6 +323,15 @@
       }
     },
     "/api/v1/auth/session/{session_id}/name": {
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" },
+          "description": "The UUID of the session to update"
+        }
+      ],
       "patch": {
         "tags": ["auth"],
         "summary": "Update Session Name",
@@ -333,18 +342,7 @@
             "HTTPBearer": []
           }
         ],
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "description": "The UUID of the session to update"
-          }
-        ],
+        "parameters": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -390,6 +388,14 @@
       }
     },
     "/api/v1/auth/session/{session_id}": {
+      "parameters": [
+        {
+          "name": "session_id",
+          "in": "path",
+          "required": true,
+          "schema": { "type": "string", "format": "uuid" }
+        }
+      ],
       "delete": {
         "tags": ["auth"],
         "summary": "Delete Session",
@@ -400,17 +406,7 @@
             "HTTPBearer": []
           }
         ],
-        "parameters": [
-          {
-            "name": "session_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "description": "Session deleted successfully",
@@ -569,6 +565,24 @@
               }
             }
           }
+        }
+      }
+    },
+    "/api/v1/chatbot/chat/stream/sse": {
+      "get": {
+        "tags": ["chatbot"],
+        "summary": "Stream Chat (SSE - GET)",
+        "description": "Server-Sent Events stream for chat completions. Accepts Authorization header or token query param.",
+        "operationId": "chat_stream_sse_api_v1_chatbot_chat_stream_sse_get",
+        "parameters": [
+          {"name": "q", "in": "query", "required": true, "schema": {"type": "string"}, "description": "User message content for this turn"},
+          {"name": "token", "in": "query", "required": false, "schema": {"type": "string"}, "description": "Bearer token if Authorization header is not provided"},
+          {"name": "Authorization", "in": "header", "required": false, "schema": {"type": "string"}, "description": "Bearer <token> alternative to token query param"}
+        ],
+        "responses": {
+          "200": {"description": "SSE stream of chat events", "content": {"text/event-stream": {"schema": {"type": "string"}}}},
+          "401": {"description": "Missing or invalid token", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPError"}}}},
+          "404": {"description": "Session not found", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HTTPError"}}}}
         }
       }
     },

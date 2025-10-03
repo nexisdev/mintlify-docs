@@ -1,26 +1,28 @@
 ---
-title: 'API Playground'
-description: 'Interactive API playground powered by the OpenAPI spec'
-icon: 'terminal'
+title: "API Playground"
+description: "Interactive API playground powered by the OpenAPI spec"
+icon: "terminal"
+mode: "wide"
+sidebarTitle: "Nex-T1"
 ---
 
 <Note>
-This playground is generated from the OpenAPI spec in `/openapi.json`. Use the sidebar to explore endpoints and send requests live.
+  This playground is generated from the OpenAPI spec in `/openapi.json`. Use the sidebar to explore endpoints and send requests live.
 </Note>
-
 
 ### Quick Try
 
 Use the inline playground below to call a couple of common endpoints. For the full experience with all routes, open the dedicated Playground.
 
-<a href="/api">Open Full API Playground →</a>
+<a href="/api">
+Open Full API Playground →</a>
 
 <Tip>
-Use the Base URL switcher at the top of the API playground to choose between your local API (`http://localhost:8000`) and production (`https://nex-t1.ai`). If you use a different production API host, let us know and we’ll update the config.
+  Use the Base URL switcher at the top of the API playground to choose between your local API (`http://localhost:8000`) and production (`https://nex-t1.ai`). If you use a different production API host, let us know and we’ll update the config.
 </Tip>
 
 <Note>
-Most endpoints require JWT bearer auth. First, call the login endpoint to obtain a token, then click “Set Authentication” in the playground and paste `Bearer <your_token>`.
+  Most endpoints require JWT bearer auth. First, call the login endpoint to obtain a token, then click “Set Authentication” in the playground and paste `Bearer <your_token>`.
 </Note>
 
 #### Health Check
