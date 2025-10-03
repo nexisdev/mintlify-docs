@@ -1,38 +1,136 @@
 ---
-title: "API Playground"
-description: "Interactive API playground powered by the OpenAPI spec"
+title: "Nex-T1 API Playground"
+description: "Interactive playground for testing Nex-T1 AI agent endpoints"
 icon: "terminal"
 mode: "wide"
-sidebarTitle: "Nex-T1"
 ---
 
-<Note>
-  This playground is generated from the OpenAPI spec in `/openapi.json`. Use the sidebar to explore endpoints and send requests live.
-</Note>
+# Nex-T1 API Playground
 
-### Quick Try
+<Info>
+This playground is generated from the [OpenAPI specification](https://api.nex-t1.ai/docs) and provides interactive testing for all Nex-T1 endpoints.
+</Info>
 
-Use the inline playground below to call a couple of common endpoints. For the full experience with all routes, open the dedicated Playground.
+## Base URL Options
 
-<a href="/api">
-Open Full API Playground →</a>
+You can test against two environments:
+
+| Environment | Base URL | Description |
+|------------|----------|-------------|
+| **Production** | `https://api.nex-t1.ai` | Live production API with real data |
+| **Local Development** | `http://localhost:8000` | Your local instance for testing |
 
 <Tip>
-  Use the Base URL switcher at the top of the API playground to choose between your local API (`http://localhost:8000`) and production (`https://nex-t1.ai`). If you use a different production API host, let us know and we’ll update the config.
+Use the **Base URL switcher** at the top of each API request to toggle between production and local development.
 </Tip>
 
-<Note>
-  Most endpoints require JWT bearer auth. First, call the login endpoint to obtain a token, then click “Set Authentication” in the playground and paste `Bearer <your_token>`.
-</Note>
+## Authentication
 
-#### Health Check
+Most endpoints require JWT bearer authentication:
+
+1. **Get a token**: Call the `/api/v1/auth/register` or `/api/v1/auth/login` endpoint
+2. **Set authentication**: Click "Set Authentication" in the playground
+3. **Add token**: Paste `Bearer <your_token>` in the authorization field
+
+<Warning>
+Keep your JWT tokens secure and never share them publicly. Tokens expire after a set period and must be refreshed.
+</Warning>
+
+## Quick Start Examples
+
+### Health Check
+
+Test the API status without authentication:
 
 <ApiPlayground method="GET" path="/api/v1/health" />
 
-#### Auth Login (get a JWT)
+### Register New Account
+
+Create a new user account:
+
+<ApiPlayground method="POST" path="/api/v1/auth/register" />
+
+### Login (Get JWT Token)
+
+Authenticate and receive your JWT token:
 
 <ApiPlayground method="POST" path="/api/v1/auth/login" />
 
-#### Chat (non-streaming)
+### Chat with AI Agent
+
+Send a message to the Nex-T1 AI agent (requires authentication):
 
 <ApiPlayground method="POST" path="/api/v1/chatbot/chat" />
+
+### Chat with Streaming Response
+
+Get real-time streaming responses using Server-Sent Events:
+
+<ApiPlayground method="POST" path="/api/v1/chatbot/chat/stream" />
+
+## Multi-Agent Endpoints
+
+### Preview Route Decision
+
+See how the AI router classifies your intent:
+
+<ApiPlayground method="POST" path="/api/v1/multi-agent/preview" />
+
+### Get Trade Quote
+
+Generate a swap quote for EVM tokens:
+
+<ApiPlayground method="POST" path="/api/v1/multi-agent/quote/evm/pseudo" />
+
+### Risk Assessment
+
+Evaluate risk for a potential trade:
+
+<ApiPlayground method="POST" path="/api/v1/multi-agent/risk/preview" />
+
+### Execute Trade
+
+Execute an EVM swap (requires confirmation):
+
+<ApiPlayground method="POST" path="/api/v1/multi-agent/execute/evm" />
+
+## MCP Integrations
+
+### DeFiLlama Tools
+
+List and invoke DeFiLlama protocol data:
+
+<ApiPlayground method="GET" path="/api/v1/multi-agent/defillama/tools" />
+<ApiPlayground method="POST" path="/api/v1/multi-agent/defillama/invoke" />
+
+### Binance Market Data
+
+Access Binance exchange data:
+
+<ApiPlayground method="GET" path="/api/v1/multi-agent/binance/tools" />
+<ApiPlayground method="POST" path="/api/v1/multi-agent/binance/invoke" />
+
+### Bitcoin Tools
+
+Query Bitcoin blockchain data:
+
+<ApiPlayground method="GET" path="/api/v1/multi-agent/bitcoin/tools" />
+<ApiPlayground method="POST" path="/api/v1/multi-agent/bitcoin/invoke" />
+
+## Additional Resources
+
+<CardGroup cols={3}>
+  <Card title="API Reference" icon="book" href="/api-reference/introduction">
+    Complete API documentation with schemas and examples
+  </Card>
+  <Card title="Nex-T1 Docs" icon="sparkles" href="/Nex-T1/overview">
+    Learn about Nex-T1's capabilities and architecture
+  </Card>
+  <Card title="OpenAPI Spec" icon="code" href="https://api.nex-t1.ai/docs">
+    View the full Swagger/OpenAPI documentation
+  </Card>
+</CardGroup>
+
+<Note>
+For programmatic access, consider using our SDKs or HTTP clients with the OpenAPI spec. See the [Integration Guide](/Nex-T1/integration-guide) for details.
+</Note>
