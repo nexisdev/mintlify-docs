@@ -1,6 +1,6 @@
 {
   "$schema": "https://mintlify.com/schema.json",
-  "name": "Nexis Appchain",
+  "name": "Nexis Network",
   "logo": {
     "dark": "/logo/dark.svg",
     "light": "/logo/light.svg"
@@ -34,6 +34,10 @@
     "url": "https://nex-t1.ai"
   },
   "tabs": [
+    {
+      "name": "Nex-T1",
+      "url": "nex-t1"
+    },
     {
       "name": "API Reference",
       "url": "api-reference"
@@ -169,6 +173,12 @@
         "api-reference/treasury-api",
         "api-reference/subscriptions-api",
         "api-reference/rpc-methods"
+      ]
+    },
+    {
+      "group": "Nex-T1",
+      "pages": [
+        "nex-t1"
       ]
     },
     {
