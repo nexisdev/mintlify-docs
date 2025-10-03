@@ -64,6 +64,15 @@
     }
   ],
   "api": {
+    "baseUrl": [
+      "http://localhost:8000",
+      "https://nex-t1.ai"
+    ],
+    "auth": {
+      "method": "bearer",
+      "name": "Authorization",
+      "inputPrefix": "Bearer "
+    },
     "playground": {
       "mode": "show"
     }
