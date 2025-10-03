@@ -1,0 +1,2179 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "FastAPI LangGraph Multi-Agent Trading System",
+    "description": "A production-ready FastAPI template with LangGraph multi-agent orchestration, trading capabilities, research tools, and risk management. Features include: JWT authentication, session management, real-time chat with streaming, EVM/Solana trading, Chainlink price feeds, DefiLlama integration, sentiment analysis, and comprehensive risk assessment.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support",
+      "url": "https://github.com/yourusername/yourrepo"
+    },
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Development server"
+    },
+    {
+      "url": "https://api.production.com",
+      "description": "Production server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "auth",
+      "description": "Authentication and session management endpoints"
+    },
+    {
+      "name": "chatbot",
+      "description": "Chat interaction endpoints with LangGraph agent"
+    },
+    {
+      "name": "multi-agent",
+      "description": "Multi-agent orchestration, trading, research, and risk management"
+    },
+    {
+      "name": "health",
+      "description": "System health and status endpoints"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Root Endpoint",
+        "description": "Returns basic API information, version, and documentation links",
+        "operationId": "root_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "example": "FastAPI LangGraph Multi-Agent Trading System"
+                    },
+                    "version": {
+                      "type": "string",
+                      "example": "1.0.0"
+                    },
+                    "status": {
+                      "type": "string",
+                      "example": "healthy"
+                    },
+                    "environment": {
+                      "type": "string",
+                      "example": "development"
+                    },
+                    "swagger_url": {
+                      "type": "string",
+                      "example": "/docs"
+                    },
+                    "redoc_url": {
+                      "type": "string",
+                      "example": "/redoc"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["health"],
+        "summary": "Health Check",
+        "description": "Health check endpoint with database connectivity status and component health",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "description": "System is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": ["healthy", "degraded"]
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "environment": {
+                      "type": "string"
+                    },
+                    "components": {
+                      "type": "object",
+                      "properties": {
+                        "api": {
+                          "type": "string"
+                        },
+                        "database": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "System is degraded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "tags": ["health"],
+        "summary": "API Health Check",
+        "description": "API-specific health check endpoint",
+        "operationId": "health_check_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Register User",
+        "description": "Register a new user account with email and password. Password must contain uppercase, lowercase, number, and special character.",
+        "operationId": "register_user_api_v1_auth_register_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              },
+              "example": {
+                "email": "user@example.com",
+                "password": "SecurePass123!"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User successfully registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Email already registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Login",
+        "description": "Authenticate user with email and password, returns JWT access token",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_login_api_v1_auth_login_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/session": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Create Session",
+        "description": "Create a new chat session for the authenticated user",
+        "operationId": "create_session_api_v1_auth_session_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/session/{session_id}/name": {
+      "patch": {
+        "tags": ["auth"],
+        "summary": "Update Session Name",
+        "description": "Update the name of an existing session",
+        "operationId": "update_session_name_api_v1_auth_session__session_id__name_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The UUID of the session to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_update_session_name_api_v1_auth_session__session_id__name_patch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session name updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cannot modify other sessions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/session/{session_id}": {
+      "delete": {
+        "tags": ["auth"],
+        "summary": "Delete Session",
+        "description": "Delete a chat session",
+        "operationId": "delete_session_api_v1_auth_session__session_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Cannot delete other sessions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/sessions": {
+      "get": {
+        "tags": ["auth"],
+        "summary": "Get User Sessions",
+        "description": "Retrieve all sessions for the authenticated user",
+        "operationId": "get_user_sessions_api_v1_auth_sessions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of user sessions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SessionResponse"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chatbot/chat": {
+      "post": {
+        "tags": ["chatbot"],
+        "summary": "Chat",
+        "description": "Process a chat request using LangGraph agent. Returns the full conversation history including the assistant's response.",
+        "operationId": "chat_api_v1_chatbot_chat_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              },
+              "example": {
+                "messages": [
+                  {
+                    "role": "user",
+                    "content": "What is the current price of Bitcoin?"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat response with full conversation history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chatbot/chat/stream": {
+      "post": {
+        "tags": ["chatbot"],
+        "summary": "Chat Stream",
+        "description": "Process a chat request with streaming response using Server-Sent Events (SSE). Streams the assistant's response in real-time.",
+        "operationId": "chat_stream_api_v1_chatbot_chat_stream_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Streaming chat response (SSE)",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-sent events containing StreamResponse JSON objects"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chatbot/messages": {
+      "get": {
+        "tags": ["chatbot"],
+        "summary": "Get Session Messages",
+        "description": "Retrieve all messages for the current session",
+        "operationId": "get_session_messages_api_v1_chatbot_messages_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session message history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["chatbot"],
+        "summary": "Clear Chat History",
+        "description": "Clear all messages for the current session",
+        "operationId": "clear_chat_history_api_v1_chatbot_messages_delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat history cleared",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Chat history cleared successfully"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/preview": {
+      "post": {
+        "tags": ["multi-agent"],
+        "summary": "Preview Route",
+        "description": "Preview the routing decision for a given text input without executing the full multi-agent workflow",
+        "operationId": "preview_route_api_v1_multi_agent_preview_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Route preview with intent and assigned team",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Multi-agent feature disabled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/risk/preview": {
+      "post": {
+        "tags": ["multi-agent"],
+        "summary": "Risk Preview",
+        "description": "Evaluate risk for a trade quote with configurable thresholds and checks",
+        "operationId": "risk_preview_api_v1_multi_agent_risk_preview_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RiskPreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Risk assessment report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RiskReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/quote/evm/pseudo": {
+      "post": {
+        "tags": ["multi-agent"],
+        "summary": "Pseudo Quote EVM",
+        "description": "Generate a reference-based EVM swap quote using Chainlink price feeds (non-executable, for preview purposes)",
+        "operationId": "pseudo_quote_evm_api_v1_multi_agent_quote_evm_pseudo_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvmPseudoQuoteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pseudo quote generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TradeQuote"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing token metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/preview/run": {
+      "post": {
+        "tags": ["multi-agent"],
+        "summary": "Preview Run",
+        "description": "Execute a full preview of the multi-agent workflow including routing, quote generation, and risk assessment",
+        "operationId": "preview_run_api_v1_multi_agent_preview_run_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewRunRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preview run completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewRunResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/research/preview": {
+      "post": {
+        "tags": ["multi-agent"],
+        "summary": "Research Preview",
+        "description": "Execute research queries across The Graph, Dune Analytics, DefiLlama, and sentiment data sources",
+        "operationId": "research_preview_api_v1_multi_agent_research_preview_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResearchPreviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Research data aggregated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResearchPreviewResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/execute/evm": {
+      "post": {
+        "tags": ["multi-agent"],
+        "summary": "Execute EVM Trade",
+        "description": "Execute an EVM swap with optional risk checking, wallet integration, and transaction tracking",
+        "operationId": "execute_evm_api_v1_multi_agent_execute_evm_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvmExecuteRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trade executed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvmExecuteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Execution blocked by risk check or missing confirmation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/defillama/tools": {
+      "get": {
+        "tags": ["multi-agent"],
+        "summary": "List DefiLlama Tools",
+        "description": "Get list of available DefiLlama MCP tools",
+        "operationId": "defillama_list_tools_api_v1_multi_agent_defillama_tools_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of available tools",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/defillama/invoke": {
+      "post": {
+        "tags": ["multi-agent"],
+        "summary": "Invoke DefiLlama Tool",
+        "description": "Invoke a specific DefiLlama MCP tool with arguments",
+        "operationId": "defillama_invoke_api_v1_multi_agent_defillama_invoke_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefillamaInvokeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool invoked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/binance/tools": {
+      "get": {
+        "tags": ["multi-agent"],
+        "summary": "List Binance Tools",
+        "description": "Get list of available Binance MCP tools",
+        "operationId": "binance_list_tools_api_v1_multi_agent_binance_tools_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of available tools",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/binance/invoke": {
+      "post": {
+        "tags": ["multi-agent"],
+        "summary": "Invoke Binance Tool",
+        "description": "Invoke a specific Binance MCP tool with arguments",
+        "operationId": "binance_invoke_api_v1_multi_agent_binance_invoke_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BinanceInvokeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool invoked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/binance/subscribe": {
+      "post": {
+        "tags": ["multi-agent"],
+        "summary": "Subscribe to Binance WebSocket",
+        "description": "Subscribe to Binance real-time data streams",
+        "operationId": "binance_subscribe_api_v1_multi_agent_binance_subscribe_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BinanceSubscribeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/binance/unsubscribe": {
+      "post": {
+        "tags": ["multi-agent"],
+        "summary": "Unsubscribe from Binance WebSocket",
+        "description": "Unsubscribe from Binance real-time data streams",
+        "operationId": "binance_unsubscribe_api_v1_multi_agent_binance_unsubscribe_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BinanceUnsubscribeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unsubscription successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/bitcoin/tools": {
+      "get": {
+        "tags": ["multi-agent"],
+        "summary": "List Bitcoin Tools",
+        "description": "Get list of available Bitcoin MCP tools",
+        "operationId": "bitcoin_list_tools_api_v1_multi_agent_bitcoin_tools_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of available tools",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/bitcoin/invoke": {
+      "post": {
+        "tags": ["multi-agent"],
+        "summary": "Invoke Bitcoin Tool",
+        "description": "Invoke a specific Bitcoin MCP tool with arguments",
+        "operationId": "bitcoin_invoke_api_v1_multi_agent_bitcoin_invoke_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BitcoinInvokeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool invoked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/chainlink/price": {
+      "post": {
+        "tags": ["multi-agent"],
+        "summary": "Get Chainlink Price",
+        "description": "Get the latest price from a Chainlink price feed",
+        "operationId": "chainlink_get_price_api_v1_multi_agent_chainlink_price_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChainlinkPriceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Price retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "price": {
+                      "type": "number"
+                    },
+                    "decimals": {
+                      "type": "integer"
+                    },
+                    "timestamp": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/multi-agent/wallet/evm/balance": {
+      "post": {
+        "tags": ["multi-agent"],
+        "summary": "Get EVM Wallet Balance",
+        "description": "Get the balance of an EVM wallet address",
+        "operationId": "evm_wallet_balance_api_v1_multi_agent_wallet_evm_balance_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvmWalletBalanceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Balance retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "UserCreate": {
+        "type": "object",
+        "required": ["email", "password"],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User's email address",
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "maxLength": 64,
+            "description": "User's password (min 8 chars, must contain uppercase, lowercase, number, and special character)",
+            "writeOnly": true,
+            "example": "SecurePass123!"
+          }
+        },
+        "title": "UserCreate",
+        "description": "Request model for user registration"
+      },
+      "UserResponse": {
+        "type": "object",
+        "required": ["id", "email", "token"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "User's ID",
+            "example": 1
+          },
+          "email": {
+            "type": "string",
+            "description": "User's email address",
+            "example": "user@example.com"
+          },
+          "token": {
+            "$ref": "#/components/schemas/Token"
+          }
+        },
+        "title": "UserResponse",
+        "description": "Response model for user operations"
+      },
+      "Token": {
+        "type": "object",
+        "required": ["access_token", "expires_at"],
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "The JWT access token"
+          },
+          "token_type": {
+            "type": "string",
+            "default": "bearer",
+            "description": "The type of token"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The token expiration timestamp"
+          }
+        },
+        "title": "Token",
+        "description": "Token model for authentication"
+      },
+      "TokenResponse": {
+        "type": "object",
+        "required": ["access_token", "expires_at"],
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "The JWT access token"
+          },
+          "token_type": {
+            "type": "string",
+            "default": "bearer",
+            "description": "The type of token"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the token expires"
+          }
+        },
+        "title": "TokenResponse",
+        "description": "Response model for login endpoint"
+      },
+      "Body_login_api_v1_auth_login_post": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username",
+            "description": "User's email address"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password",
+            "description": "User's password"
+          },
+          "grant_type": {
+            "type": "string",
+            "title": "Grant Type",
+            "default": "password"
+          }
+        },
+        "title": "Body_login_api_v1_auth_login_post"
+      },
+      "SessionResponse": {
+        "type": "object",
+        "required": ["session_id", "token"],
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The unique identifier for the chat session"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "default": "",
+            "description": "Name of the session"
+          },
+          "token": {
+            "$ref": "#/components/schemas/Token"
+          }
+        },
+        "title": "SessionResponse",
+        "description": "Response model for session creation"
+      },
+      "Body_update_session_name_api_v1_auth_session__session_id__name_patch": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "maxLength": 100,
+            "description": "The new name for the session"
+          }
+        },
+        "title": "Body_update_session_name_api_v1_auth_session__session_id__name_patch"
+      },
+      "Message": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant", "system"],
+            "description": "The role of the message sender"
+          },
+          "content": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 3000,
+            "description": "The content of the message"
+          }
+        },
+        "title": "Message",
+        "description": "Message model for chat endpoint"
+      },
+      "ChatRequest": {
+        "type": "object",
+        "required": ["messages"],
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "minItems": 1,
+            "description": "List of messages in the conversation"
+          }
+        },
+        "title": "ChatRequest",
+        "description": "Request model for chat endpoint"
+      },
+      "ChatResponse": {
+        "type": "object",
+        "required": ["messages"],
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "description": "List of messages in the conversation"
+          }
+        },
+        "title": "ChatResponse",
+        "description": "Response model for chat endpoint"
+      },
+      "StreamResponse": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "default": "",
+            "description": "The content of the current chunk"
+          },
+          "done": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether the stream is complete"
+          }
+        },
+        "title": "StreamResponse",
+        "description": "Response model for streaming chat endpoint"
+      },
+      "PreviewRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Input text to route"
+          }
+        },
+        "title": "PreviewRequest"
+      },
+      "PreviewResponse": {
+        "type": "object",
+        "required": ["intent", "entities", "team"],
+        "properties": {
+          "intent": {
+            "type": "string",
+            "description": "Detected intent"
+          },
+          "entities": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Extracted entities"
+          },
+          "team": {
+            "type": "string",
+            "description": "Assigned team"
+          }
+        },
+        "title": "PreviewResponse"
+      },
+      "EvmTradeInput": {
+        "type": "object",
+        "required": ["chain_id", "token_in_address", "token_out_address", "amount_in"],
+        "properties": {
+          "action": {
+            "type": "string",
+            "const": "swap",
+            "default": "swap"
+          },
+          "chain_id": {
+            "type": "integer",
+            "description": "EVM chain ID (1=Ethereum, 8453=Base, etc.)",
+            "example": 1
+          },
+          "token_in_address": {
+            "type": "string",
+            "description": "Input token contract address",
+            "example": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+          },
+          "token_out_address": {
+            "type": "string",
+            "description": "Output token contract address",
+            "example": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+          },
+          "amount_in": {
+            "type": "string",
+            "pattern": "^\\d+(\\.\\d+)?$",
+            "description": "Amount to swap",
+            "example": "1.5"
+          },
+          "amount_in_currency": {
+            "type": "string",
+            "enum": ["wei", "ether", "token_units"],
+            "default": "token_units",
+            "description": "Unit of amount_in"
+          },
+          "slippage_bps": {
+            "type": "integer",
+            "default": 50,
+            "description": "Slippage tolerance in basis points (50 = 0.5%)"
+          },
+          "wallet_ref": {
+            "type": "string",
+            "nullable": true,
+            "description": "Wallet reference ID"
+          },
+          "simulate_only": {
+            "type": "boolean",
+            "default": true,
+            "description": "If true, only simulate the transaction"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "nullable": true,
+            "description": "Idempotency key for request deduplication"
+          }
+        },
+        "title": "EvmTradeInput"
+      },
+      "SolanaTradeInput": {
+        "type": "object",
+        "required": ["mint_in", "mint_out", "amount_in"],
+        "properties": {
+          "action": {
+            "type": "string",
+            "const": "swap",
+            "default": "swap"
+          },
+          "mint_in": {
+            "type": "string",
+            "description": "Input token mint address"
+          },
+          "mint_out": {
+            "type": "string",
+            "description": "Output token mint address"
+          },
+          "amount_in": {
+            "type": "string",
+            "pattern": "^\\d+(\\.\\d+)?$",
+            "description": "Amount to swap"
+          },
+          "slippage_bps": {
+            "type": "integer",
+            "default": 50,
+            "description": "Slippage tolerance in basis points"
+          },
+          "wallet_ref": {
+            "type": "string",
+            "nullable": true
+          },
+          "simulate_only": {
+            "type": "boolean",
+            "default": true
+          },
+          "idempotency_key": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "title": "SolanaTradeInput"
+      },
+      "TradeQuote": {
+        "type": "object",
+        "required": ["expected_out", "slippage_bps", "venue", "quote_id", "expires_at"],
+        "properties": {
+          "route": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Route taken for the swap"
+          },
+          "expected_out": {
+            "type": "string",
+            "pattern": "^\\d+(\\.\\d+)?$",
+            "description": "Expected output amount"
+          },
+          "price_impact_bps": {
+            "type": "number",
+            "nullable": true,
+            "description": "Price impact in basis points"
+          },
+          "slippage_bps": {
+            "type": "integer",
+            "description": "Slippage tolerance in basis points"
+          },
+          "fees": {
+            "type": "object",
+            "additionalProperties": true,
+            "default": {},
+            "description": "Fee breakdown"
+          },
+          "gas_estimate": {
+            "type": "string",
+            "nullable": true,
+            "description": "Estimated gas cost"
+          },
+          "venue": {
+            "type": "string",
+            "description": "Exchange/aggregator used"
+          },
+          "quote_id": {
+            "type": "string",
+            "description": "Unique quote identifier"
+          },
+          "expires_at": {
+            "type": "string",
+            "description": "Quote expiration timestamp"
+          }
+        },
+        "title": "TradeQuote"
+      },
+      "RiskCheckInput": {
+        "type": "object",
+        "required": ["chain", "addresses", "checks"],
+        "properties": {
+          "chain": {
+            "type": "string",
+            "enum": ["evm", "solana"]
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Token addresses to check"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["rug", "whale_flow", "peg_stability", "gas_spike", "price_sanity"]
+            },
+            "description": "Risk checks to perform"
+          },
+          "thresholds": {
+            "type": "object",
+            "additionalProperties": true,
+            "default": {},
+            "description": "Custom risk thresholds"
+          }
+        },
+        "title": "RiskCheckInput"
+      },
+      "RiskReport": {
+        "type": "object",
+        "required": ["level"],
+        "properties": {
+          "level": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "unknown"],
+            "description": "Overall risk level"
+          },
+          "aggregate_score": {
+            "type": "number",
+            "nullable": true,
+            "description": "Aggregate risk score"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "default": [],
+            "description": "Individual check results"
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "description": "Risk flags raised"
+          }
+        },
+        "title": "RiskReport"
+      },
+      "RiskPreviewRequest": {
+        "type": "object",
+        "required": ["quote", "input"],
+        "properties": {
+          "quote": {
+            "$ref": "#/components/schemas/TradeQuote"
+          },
+          "input": {
+            "$ref": "#/components/schemas/RiskCheckInput"
+          },
+          "thresholds": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "evm_input": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EvmTradeInput"
+              }
+            ],
+            "nullable": true
+          },
+          "sol_input": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SolanaTradeInput"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "title": "RiskPreviewRequest"
+      },
+      "EvmPseudoQuoteRequest": {
+        "type": "object",
+        "required": ["input"],
+        "properties": {
+          "input": {
+            "$ref": "#/components/schemas/EvmTradeInput"
+          }
+        },
+        "title": "EvmPseudoQuoteRequest"
+      },
+      "PreviewRunRequest": {
+        "type": "object",
+        "required": ["text"],
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "evm_input": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EvmTradeInput"
+              }
+            ],
+            "nullable": true
+          },
+          "sol_input": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SolanaTradeInput"
+              }
+            ],
+            "nullable": true
+          },
+          "thresholds": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true
+          }
+        },
+        "title": "PreviewRunRequest"
+      },
+      "PreviewRunResponse": {
+        "type": "object",
+        "required": ["intent", "team", "summary"],
+        "properties": {
+          "intent": {
+            "type": "string"
+          },
+          "team": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "quote": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TradeQuote"
+              }
+            ],
+            "nullable": true
+          },
+          "risk": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RiskReport"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "title": "PreviewRunResponse"
+      },
+      "ResearchPreviewRequest": {
+        "type": "object",
+        "properties": {
+          "subgraph": {
+            "type": "string",
+            "nullable": true,
+            "description": "The Graph subgraph URL or ID"
+          },
+          "gql": {
+            "type": "string",
+            "nullable": true,
+            "description": "GraphQL query string"
+          },
+          "variables": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true,
+            "description": "GraphQL query variables"
+          },
+          "dune_query_id": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Dune Analytics query ID"
+          },
+          "dune_params": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true,
+            "description": "Dune query parameters"
+          },
+          "defi_calls": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "nullable": true,
+            "description": "DefiLlama tool calls"
+          },
+          "sentiment_assets": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "description": "Assets for sentiment analysis"
+          },
+          "include_trending_words": {
+            "type": "boolean",
+            "default": false
+          },
+          "trending_days": {
+            "type": "integer",
+            "default": 7
+          },
+          "trending_top_n": {
+            "type": "integer",
+            "default": 5
+          },
+          "tvl_chain": {
+            "type": "string",
+            "nullable": true,
+            "description": "Chain for TVL lookup"
+          },
+          "price_symbol": {
+            "type": "string",
+            "nullable": true,
+            "description": "Token symbol for price lookup"
+          },
+          "price_vs_currency": {
+            "type": "string",
+            "default": "usd"
+          },
+          "pools_chain": {
+            "type": "string",
+            "nullable": true
+          },
+          "pools_limit": {
+            "type": "integer",
+            "default": 50
+          },
+          "historical_tvl_chain": {
+            "type": "string",
+            "nullable": true
+          },
+          "historical_tvl_days": {
+            "type": "integer",
+            "default": 30
+          }
+        },
+        "title": "ResearchPreviewRequest"
+      },
+      "ResearchPreviewResponse": {
+        "type": "object",
+        "required": ["summary"],
+        "properties": {
+          "graph_data": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "dune_rows": {
+            "type": "array",
+            "items": {},
+            "nullable": true
+          },
+          "dune_state": {
+            "type": "string",
+            "nullable": true
+          },
+          "defi_results": {
+            "type": "array",
+            "items": {},
+            "nullable": true
+          },
+          "sentiment_results": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "title": "ResearchPreviewResponse"
+      },
+      "EvmExecuteRequest": {
+        "type": "object",
+        "required": ["input"],
+        "properties": {
+          "input": {
+            "$ref": "#/components/schemas/EvmTradeInput"
+          },
+          "wallet_ref": {
+            "type": "string",
+            "nullable": true
+          },
+          "confirm": {
+            "type": "boolean",
+            "default": false,
+            "description": "Must be true to execute trade"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "nullable": true
+          },
+          "thresholds": {
+            "type": "object",
+            "additionalProperties": true,
+            "nullable": true
+          },
+          "skip_risk": {
+            "type": "boolean",
+            "default": false,
+            "description": "Skip risk assessment (not recommended)"
+          }
+        },
+        "title": "EvmExecuteRequest"
+      },
+      "EvmExecuteResponse": {
+        "type": "object",
+        "required": ["tx"],
+        "properties": {
+          "tx": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Transaction object"
+          },
+          "tx_hash": {
+            "type": "string",
+            "nullable": true,
+            "description": "Transaction hash"
+          },
+          "explorer_url": {
+            "type": "string",
+            "nullable": true,
+            "description": "Block explorer URL"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true,
+            "description": "Transaction status"
+          },
+          "message": {
+            "type": "string",
+            "nullable": true,
+            "description": "Status message"
+          }
+        },
+        "title": "EvmExecuteResponse"
+      },
+      "DefillamaInvokeRequest": {
+        "type": "object",
+        "required": ["tool_name"],
+        "properties": {
+          "tool_name": {
+            "type": "string",
+            "description": "Name of the DefiLlama tool to invoke"
+          },
+          "arguments": {
+            "type": "object",
+            "additionalProperties": true,
+            "default": {},
+            "description": "Tool arguments"
+          }
+        },
+        "title": "DefillamaInvokeRequest"
+      },
+      "BinanceInvokeRequest": {
+        "type": "object",
+        "required": ["tool_name"],
+        "properties": {
+          "tool_name": {
+            "type": "string"
+          },
+          "arguments": {
+            "type": "object",
+            "additionalProperties": true,
+            "default": {}
+          }
+        },
+        "title": "BinanceInvokeRequest"
+      },
+      "BinanceSubscribeRequest": {
+        "type": "object",
+        "required": ["symbol", "market", "streams"],
+        "properties": {
+          "symbol": {
+            "type": "string",
+            "description": "Trading symbol (e.g., BTCUSDT)"
+          },
+          "market": {
+            "type": "string",
+            "description": "Market type (spot, futures, etc.)"
+          },
+          "streams": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Data streams to subscribe to"
+          },
+          "interval": {
+            "type": "string",
+            "nullable": true,
+            "description": "Interval for kline/candlestick streams"
+          }
+        },
+        "title": "BinanceSubscribeRequest"
+      },
+      "BinanceUnsubscribeRequest": {
+        "type": "object",
+        "properties": {
+          "subscription_id": {
+            "type": "string",
+            "nullable": true
+          },
+          "extra": {
+            "type": "object",
+            "additionalProperties": true,
+            "default": {}
+          }
+        },
+        "title": "BinanceUnsubscribeRequest"
+      },
+      "BitcoinInvokeRequest": {
+        "type": "object",
+        "required": ["tool_name"],
+        "properties": {
+          "tool_name": {
+            "type": "string"
+          },
+          "arguments": {
+            "type": "object",
+            "additionalProperties": true,
+            "default": {}
+          }
+        },
+        "title": "BitcoinInvokeRequest"
+      },
+      "ChainlinkPriceRequest": {
+        "type": "object",
+        "required": ["chain", "pair"],
+        "properties": {
+          "chain": {
+            "type": "string",
+            "description": "Chain name (ethereum, base, etc.)"
+          },
+          "pair": {
+            "type": "string",
+            "description": "Price pair (ETH/USD, BTC/USD, etc.)"
+          }
+        },
+        "title": "ChainlinkPriceRequest"
+      },
+      "EvmWalletBalanceRequest": {
+        "type": "object",
+        "required": ["address"],
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "EVM wallet address"
+          }
+        },
+        "title": "EvmWalletBalanceRequest"
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "components": {
+            "type": "object"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "title": "HealthResponse"
+      },
+      "HTTPError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "string",
+            "description": "Error detail message"
+          }
+        },
+        "title": "HTTPError"
+      },
+      "HTTPValidationError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "type": "object",
+        "required": ["loc", "msg", "type"],
+        "properties": {
+          "loc": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT bearer token authentication. Obtain token via /api/v1/auth/login endpoint."
+      }
+    }
+  },
+  "security": []
+}

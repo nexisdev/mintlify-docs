@@ -1258,11 +1258,11 @@ If none of these solutions work:
 
 2. **Join Community Support:**
    - Discord: https://discord.gg/nexis (response time: <1 hour)
-   - GitHub Discussions: https://github.com/nexis-network/nexis-base-appchain/discussions
+   - GitHub Discussions: https://github.com/Nexis-AI/Nexis-appchain/discussions
    - Stack Overflow: Tag `nexis-appchain`
 
 3. **Report a Bug:**
-   - GitHub Issues: https://github.com/nexis-network/nexis-base-appchain/issues
+   - GitHub Issues: https://github.com/Nexis-AI/Nexis-appchain/issues
    - Include: OS, Node version, error message, steps to reproduce
    - Bug bounty available for critical issues!
 ```

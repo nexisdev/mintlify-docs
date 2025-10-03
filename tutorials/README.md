@@ -111,5 +111,5 @@ Each tutorial includes:
 ## Support
 
 - Discord: https://discord.gg/nexis
-- GitHub: https://github.com/nexis-network/nexis-base-appchain
+- GitHub: https://github.com/Nexis-AI/Nexis-appchain
 - Documentation: https://docs.nexis.network
