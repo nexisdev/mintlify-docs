@@ -36,7 +36,7 @@
   "tabs": [
     {
       "name": "Nex-T1",
-      "url": "Nex-T1/overview"
+      "url": "Nex-T1"
     },
     {
       "name": "API Reference",
@@ -185,19 +185,39 @@
       ]
     },
     {
-      "group": "Nex-T1",
+      "group": "Overview",
       "pages": [
-        "Nex-T1/overview",
+        "Nex-T1/overview"
+      ]
+    },
+    {
+      "group": "Getting Started",
+      "pages": [
         "Nex-T1/use-cases",
         "Nex-T1/get-started",
-        "Nex-T1/features",
+        "Nex-T1/features"
+      ]
+    },
+    {
+      "group": "Documentation",
+      "pages": [
         "Nex-T1/usage",
         "Nex-T1/tools",
         "Nex-T1/mcp",
-        "Nex-T1/supported-chains",
-        "Nex-T1/supported-protocols",
         "Nex-T1/prompting-guide",
-        "Nex-T1/integration-guide",
+        "Nex-T1/integration-guide"
+      ]
+    },
+    {
+      "group": "Platform Support",
+      "pages": [
+        "Nex-T1/supported-chains",
+        "Nex-T1/supported-protocols"
+      ]
+    },
+    {
+      "group": "Resources",
+      "pages": [
         "Nex-T1/examples",
         "Nex-T1/legal"
       ]
