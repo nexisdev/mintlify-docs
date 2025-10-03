@@ -1,44 +1,62 @@
 ---
 title: 'Nex‑T1 Overview'
-description: 'FastAPI + LangGraph multi‑agent platform with MCP integrations, JWT auth, metrics, and production‑ready scaffolding.'
+description: 'What Nex‑T1 is, what it can do, when to use it, and the tech behind it.'
 icon: 'sparkles'
 ---
 
 # Overview
 
 <Info>
-Nex‑T1 is a production‑ready AI agents platform built on FastAPI and LangGraph. It ships multi‑agent orchestration previews, JWT auth + session flow, Postgres‑backed state, and Model Context Protocol (MCP) integrations for research (The Graph, Dune, CoinGecko, DeFiLlama, Sentiment), market data and execution (Chainlink, Uniswap/0x, Thirdweb/EVM Wallet MCP), and exchange connectivity (Binance). Optional Solana (Jupiter) and Bitcoin MCP adapters are included.
+Nex‑T1 is a production‑ready platform for building and operating AI agents. It combines a high‑performance FastAPI service with LangGraph‑based orchestration, Postgres‑backed state, and first‑class Model Context Protocol (MCP) integrations for on‑chain, market, and research workflows.
 </Info>
+
+<CardGroup cols={3}>
+  <Card title="What It Is" icon="sparkles">
+    A FastAPI + LangGraph service that exposes chat, research, quoting, execution, and risk‑check APIs with built‑in auth, metrics, and tracing.
+  </Card>
+  <Card title="What It Does" icon="zap">
+    Routes intents, calls tools and MCP servers, retrieves market/research data, generates LLM responses, and (optionally) executes on EVM via wallet adapters.
+  </Card>
+  <Card title="Who It’s For" icon="users">
+    Users needing reliable APIs for AI workflows; developers extending tools, teams, and adapters for domain‑specific agents.
+  </Card>
+</CardGroup>
 
 ---
 
 ## Introduction
 
-Nex‑T1 exposes:
+Nex‑T1 provides:
 
-- High‑performance FastAPI backend with Prometheus metrics and Langfuse tracing.
-- LangGraph agent with Postgres checkpointer (`AsyncPostgresSaver`) and tool calling.
-- JWT authentication and per‑session tokens for chat and multi‑agent endpoints.
-- Feature‑flagged multi‑agent preview endpoints for intent routing, quotes, execution and risk checks.
-- MCP adapter tools and direct HTTP fallbacks for reliable production operation.
+- A robust FastAPI service with Prometheus metrics, health checks, and Langfuse tracing.
+- A LangGraph agent that binds tools, manages state, and retries LLM calls with environment‑aware settings.
+- JWT authentication and session tokens for secure access to chat and multi‑agent endpoints.
+- Feature‑flagged multi‑agent previews for intent routing, quoting, execution, research, and risk evaluation.
+- MCP integrations and safe direct HTTP fallbacks for reliability during development.
 
-Key modules (from the codebase):
+Key modules:
 
-- `app/main.py` – FastAPI app, metrics, CORS, health, router mounting.
-- `app/api/v1/api.py` – mounts `auth`, `chatbot`, and `multi-agent` routers.
-- `app/core/langgraph/graph.py` – LangGraph workflow, OpenAI chat model, Postgres checkpointing, tool calls.
-- `app/api/v1/multiagent.py` – preview endpoints for research, quotes, execution, and risk evaluation.
-- `app/core/langgraph/tools` – built‑in tools (DuckDuckGo) plus MCP adapters (EVM/Solana/research).
+- `app/main.py` — App wiring, metrics, CORS, health.
+- `app/api/v1/api.py` — Mounts `auth`, `chatbot`, `multi-agent` routers.
+- `app/core/langgraph/graph.py` — Agent graph, Postgres checkpointing, tool calling.
+- `app/api/v1/multiagent.py` — Research, quote/execute, risk preview endpoints.
+- `app/core/langgraph/tools` — Built‑in + MCP adapter tools.
 
 ---
 
 ## Use Cases
 
-- Research workflows: The Graph queries, Dune jobs/results, DeFiLlama TVL/prices, Sentiment lookups.
-- Trading previews (EVM/Solana): Uniswap/0x quotes, execute via Thirdweb or EVM Wallet MCP.
-- Risk evaluation: configurable thresholds, Chainlink reference prices, token allowlists.
-- Exchange market data: Binance WebSocket subscribe/unsubscribe via MCP helper wrappers.
-- General chat: single‑agent chat with tool binding (DuckDuckGo by default).
+- Research assistants: The Graph queries, Dune jobs/results, DeFiLlama TVL/prices, sentiment lookups.
+- Trading previews (EVM/Solana): Uniswap/0x quotes; execute via Thirdweb or EVM Wallet MCP.
+- Risk evaluation: Expected price checks, allowlists, Chainlink references before execution.
+- Exchange data: Binance subscribe/unsubscribe with typed helpers.
+- General chat: Single‑agent chat with tool binding (DuckDuckGo by default).
+
+<CardGroup cols={3}>
+  <Card title="Research" icon="book-open" href="/nex-t1/use-cases#use-cases">Combine Graph, Dune, and DeFiLlama data in one call.</Card>
+  <Card title="Trade Preview" icon="activity" href="/nex-t1/use-cases#use-cases">Quote, risk‑check, then execute with wallet adapters.</Card>
+  <Card title="Operations" icon="server" href="/nex-t1/integration-guide">Metrics, health, and tracing for production ops.</Card>
+</CardGroup>
 
 ---
 
@@ -73,7 +91,14 @@ Key modules (from the codebase):
 
 ---
 
-## Features
+## Technology Advancements
+
+- LangGraph orchestration with stateful Postgres checkpointer (`AsyncPostgresSaver`) for resumable workflows.
+- Model Context Protocol (MCP) adapters across research and execution, plus runtime tool discovery and typed helper layers.
+- Environment‑aware LLM configuration and retries; observability via Langfuse.
+- Feature flags to gate preview/dev endpoints safely.
+
+See full feature list in [/nex-t1/features](/nex-t1/features).
 
 - FastAPI + async stack, CORS, structured logging, rate limiting (SlowAPI), and Prometheus metrics.
 - LangGraph agent orchestration with Postgres checkpointing and OpenAI chat model.
@@ -238,6 +263,23 @@ curl -X POST http://localhost:8000/api/v1/multi-agent/risk/preview \
 Research (Graph + Dune + DeFiLlama helpers): see README examples for `research/preview` and `defillama` tool invocations.
 
 ---
+
+## Nex‑T1 Documentation
+
+Explore the full Nex‑T1 docs:
+
+- Overview (this page)
+- Use Cases — [/nex-t1/use-cases](/nex-t1/use-cases)
+- Get Started — [/nex-t1/get-started](/nex-t1/get-started)
+- Features — [/nex-t1/features](/nex-t1/features)
+- Usage — [/nex-t1/usage](/nex-t1/usage)
+- Tools — [/nex-t1/tools](/nex-t1/tools)
+- MCP — [/nex-t1/mcp](/nex-t1/mcp)
+- Supported Chains — [/nex-t1/supported-chains](/nex-t1/supported-chains)
+- Prompting Guide — [/nex-t1/prompting-guide](/nex-t1/prompting-guide)
+- Integration Guide — [/nex-t1/integration-guide](/nex-t1/integration-guide)
+- Examples — [/nex-t1/examples](/nex-t1/examples)
+- Legal — [/nex-t1/legal](/nex-t1/legal)
 
 ## Disclaimers/Legal
 
