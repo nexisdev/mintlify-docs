@@ -1,0 +1,29 @@
+---
+title: 'Prompting Guide'
+description: 'Write effective prompts for chat and multi‑agent workflows; where the system prompt lives.'
+icon: 'message-circle'
+---
+
+# Prompting Guide
+
+## System Prompt
+
+- Location: `app/core/prompts.py`
+- The agent in `app/core/langgraph/graph.py` injects the system prompt and binds tools.
+
+## Tips
+
+- Be explicit about intent and chain context.
+  - “quote 10 USDC to WETH on Base (8453)”
+- For research, specify sources and limits.
+  - “Graph query: top 5 pools by TVL; Dune query 12345 with params …”
+- For execution, include wallet context when adapters require it.
+  - “use Thirdweb wallet_ref=…; chain_id=8453”
+- Keep long‑running operations staged: preview intent → preview quote → risk → execute.
+
+## Example Prompts
+
+- Research: “Get ETH price from Chainlink (Base), TVL for ethereum from DeFiLlama, and latest 10 trending words in sentiment.”
+- Trade preview: “Quote 0.01 ETH to USDC on Base; include Chainlink reference; compute risk report.”
+- Data check: “Run The Graph query for Uniswap V3 pools(first:2) id + TVL.”
+

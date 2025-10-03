@@ -1,0 +1,23 @@
+---
+title: 'Features'
+description: 'Nex‑T1 architecture and capabilities for users and developers.'
+icon: 'layers'
+---
+
+# Features
+
+- FastAPI backend with async performance, CORS, security headers, validation handlers.
+- Prometheus metrics and Grafana dashboards; health endpoints.
+- LangGraph agent with OpenAI chat model binding and Postgres checkpointer (via `AsyncPostgresSaver`).
+- Langfuse tracing for LLM/tool observability.
+- JWT authentication, user + session tokens.
+- Multi‑agent preview router for intent routing, quotes/execute, research, and risk.
+- MCP adapters and direct HTTP fallbacks (The Graph, Dune, CoinGecko, DeFiLlama, Chainlink, Uniswap/0x, Thirdweb Wallet, Binance, Jupiter, Bitcoin).
+- Config via `.env.*` and dynamic environment detection (`development`, `staging`, `production`, `test`).
+
+Developer ergonomics
+- Clear module boundaries: `api`, `core`, `models`, `schemas`, `services`, `utils`.
+- Typed Pydantic models for requests and responses.
+- Feature flags in `app/core/feature_flags.py` (e.g., `MULTI_AGENT_ENABLED`).
+- Makefile targets for common workflows; Docker Compose for full stack.
+

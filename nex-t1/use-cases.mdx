@@ -1,0 +1,37 @@
+---
+title: 'Use Cases'
+description: 'What you can build with Nex‑T1: research, trading previews, risk checks, market data, and more.'
+icon: 'target'
+---
+
+# Use Cases
+
+<Info>
+Nex‑T1 provides a foundation for both end users (consuming APIs) and developers (extending agents, tools, and MCP adapters).
+</Info>
+
+- Research assistants
+  - Run subgraph queries (The Graph), Dune jobs, DeFiLlama TVL/prices, and sentiment lookups in a single request.
+  - Endpoint: `/api/v1/multi-agent/research/preview`.
+
+- Trading previews (EVM/Solana)
+  - Fetch quotes and simulate trades using Uniswap/0x and Jupiter adapters; execute via Thirdweb/EVM Wallet MCP.
+  - Endpoints: `/api/v1/multi-agent/preview`, `/api/v1/multi-agent/quote/evm/pseudo` (dev only), `/api/v1/multi-agent/execute/evm`.
+
+- Risk management
+  - Compute configurable risk thresholds (e.g., allowed tokens, expected price vs Chainlink reference) before execution.
+  - Endpoint: `/api/v1/multi-agent/risk/preview`.
+
+- Exchange market data
+  - Subscribe to Binance spot data via MCP, list/invoke tools; unsubscribe when done.
+  - Endpoints: `/api/v1/multi-agent/binance/*`.
+
+- General agent chat
+  - Single‑agent chat with a default DuckDuckGo search tool bound; extendable with more tools.
+  - Endpoints: `/api/v1/chatbot/chat`, `/api/v1/chatbot/chat/stream`.
+
+Developer extensions
+- Add new tools in `app/core/langgraph/tools` and bind to the agent.
+- Add/replace MCP adapters in `app/core/langgraph/tools/mcp` and `app/core/integrations/mcp`.
+- Expand multi‑agent teams in `app/core/langgraph/multi/teams/*`.
+
