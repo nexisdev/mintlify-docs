@@ -27,6 +27,10 @@
     {
       "name": "GitHub",
       "url": "https://github.com/Nexis-AI/Nexis-appchain"
+    },
+    {
+      "name": "API Playground",
+      "url": "https://registry.scalar.com/@default-team-ubrqt/apis/nex-t1-defai-api/"
     }
   ],
   "topbarCtaButton": {
